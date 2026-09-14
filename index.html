@@ -273,17 +273,17 @@
 /* ============================================================
    0. CONSTANTS / STATE
 ============================================================ */
-var R        = 0.55;      
-var GRAV     = 30.0;      
-var REST     = 0.78;      
-var MAX_V    = 45.0;      
-var FIXED_DT = 1/120;     
+var R        = 0.55;
+var GRAV     = 30.0;
+var REST     = 0.78;
+var MAX_V    = 45.0;
+var FIXED_DT = 1/120;
 var BOUNDS   = { x:8, yTop:11, z:5 };
-var WALL     = { x:4.2, hx:0.31, h:4.26, hz:6.06 };  
+var WALL     = { x:4.2, hx:0.31, h:4.26, hz:6.06 };
 
 var flags = { fx:true, snd:true, slow:false, orbit:false };
 var timeScale = 1, timeScaleTarget = 1;
-var quality = 0;          
+var quality = 0;
 var shake = 0;
 
 /* ============================================================
@@ -468,12 +468,19 @@ var contactShadow = (function () {
 var ball = { p:new THREE.Vector3(-3, 4, 0), v:new THREE.Vector3(), w:new THREE.Vector3(), squash:0, squashN:new THREE.Vector3(0,1,0), target:new THREE.Vector3() };
 
 /* ============================================================
-   5. POOLED CUSTOM VFX — Indie Physics Sparks, Dust, Trail
+   5. POOLED CUSTOM VFX — Enhanced Sparks, Dust, Trail
 ============================================================ */
-var P_MAX = 200;
-var pGeo = new THREE.TetrahedronGeometry(0.12, 0); 
+var P_MAX = 240;
+var pGeo = new THREE.IcosahedronGeometry(0.105, 1);
 var pMat = new THREE.MeshStandardMaterial({
-  roughness: 0.2, metalness: 0.1, transparent: true, blending: THREE.AdditiveBlending
+  color:0xffffff,
+  roughness:0.18,
+  metalness:0.15,
+  emissive:0xffffff,
+  emissiveIntensity:1.15,
+  transparent:true,
+  blending:THREE.AdditiveBlending,
+  depthWrite:false
 });
 var pMesh = new THREE.InstancedMesh(pGeo, pMat, P_MAX);
 pMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -488,70 +495,176 @@ var pRotV = new Float32Array(P_MAX * 3);
 var pAge = new Float32Array(P_MAX);
 var pLife = new Float32Array(P_MAX);
 var pScale = new Float32Array(P_MAX);
+var pSeed = new Float32Array(P_MAX);
 
 var colorArray = new Float32Array(P_MAX * 3);
 pMesh.instanceColor = new THREE.InstancedBufferAttribute(colorArray, 3);
 var pColor = new THREE.Color();
-var pastelColors = [0xffb7b2, 0xffd1dc, 0xb2ffda, 0xdcf4ff]; 
+var pastelColors = [0xffb7b2, 0xffd1dc, 0xb2ffda, 0xdcf4ff, 0xffe4f0];
 
 pDummy.position.set(0, -50, 0);
 pDummy.updateMatrix();
-for(var i=0; i<P_MAX; i++) pMesh.setMatrixAt(i, pDummy.matrix);
+for (var i = 0; i < P_MAX; i++) {
+  pAge[i] = 999;
+  pLife[i] = 1;
+  pMesh.setMatrixAt(i, pDummy.matrix);
+}
 pMesh.instanceMatrix.needsUpdate = true;
 var pCursor = 0;
 
 function spawnBurst(pos, n, power) {
   if (!flags.fx) return;
-  var count = Math.min(32, 6 + power * 32 | 0);
+
+  var count = Math.min(38, 8 + (power * 30 | 0));
+  var tangentA = new THREE.Vector3();
+  var tangentB = new THREE.Vector3();
+
+  if (Math.abs(n.y) < 0.9) tangentA.set(0,1,0).cross(n).normalize();
+  else tangentA.set(1,0,0).cross(n).normalize();
+  tangentB.copy(n).cross(tangentA).normalize();
+
   for (var i = 0; i < count; i++) {
-    var idx = pCursor; pCursor = (pCursor + 1) % P_MAX;
+    var idx = pCursor;
+    pCursor = (pCursor + 1) % P_MAX;
+
     var a = Math.random() * Math.PI * 2;
-    var up = Math.random();
-    var sp = (1.5 + Math.random() * 3.5) * (0.5 + power);
-    pPos[idx*3]   = pos.x + n.x * 0.05;
-    pPos[idx*3+1] = pos.y + n.y * 0.05;
-    pPos[idx*3+2] = pos.z + n.z * 0.05;
-    pVel[idx*3]   = (Math.cos(a) * sp + n.x * sp * 1.8) * 0.7;
-    pVel[idx*3+1] = (up * sp * 1.5 + n.y * sp * 1.8) * 0.7;
-    pVel[idx*3+2] = (Math.sin(a) * sp + n.z * sp * 1.8) * 0.7;
-    pRot[idx*3] = Math.random() * Math.PI; pRot[idx*3+1] = Math.random() * Math.PI; pRot[idx*3+2] = Math.random() * Math.PI;
-    pRotV[idx*3] = (Math.random()-0.5)*15; pRotV[idx*3+1] = (Math.random()-0.5)*15; pRotV[idx*3+2] = (Math.random()-0.5)*15;
+    var radial = Math.sqrt(Math.random());
+    var outward = 0.35 + Math.random() * 0.95;
+    var lift = Math.random() * 0.9;
+    var sp = (2.2 + Math.random() * 5.2) * (0.55 + power * 0.9);
+
+    var tx = Math.cos(a) * radial;
+    var tz = Math.sin(a) * radial;
+
+    pPos[idx*3]   = pos.x + n.x * 0.075 + (tangentA.x * tx + tangentB.x * tz) * 0.035;
+    pPos[idx*3+1] = pos.y + n.y * 0.075 + (tangentA.y * tx + tangentB.y * tz) * 0.035;
+    pPos[idx*3+2] = pos.z + n.z * 0.075 + (tangentA.z * tx + tangentB.z * tz) * 0.035;
+
+    pVel[idx*3]   = n.x * sp * (1.45 + power) + (tangentA.x * tx + tangentB.x * tz) * sp * outward;
+    pVel[idx*3+1] = n.y * sp * (1.45 + power) + (tangentA.y * tx + tangentB.y * tz) * sp * outward + lift * sp * 0.35;
+    pVel[idx*3+2] = n.z * sp * (1.45 + power) + (tangentA.z * tx + tangentB.z * tz) * sp * outward;
+
+    pRot[idx*3] = Math.random() * Math.PI * 2;
+    pRot[idx*3+1] = Math.random() * Math.PI * 2;
+    pRot[idx*3+2] = Math.random() * Math.PI * 2;
+
+    pRotV[idx*3] = (Math.random()-0.5) * 22;
+    pRotV[idx*3+1] = (Math.random()-0.5) * 22;
+    pRotV[idx*3+2] = (Math.random()-0.5) * 22;
+
     pAge[idx] = 0;
-    pLife[idx] = 0.4 + Math.random() * 0.6;
-    pScale[idx] = 0.5 + Math.random() * 1.2 + power * 0.5;
-    
+    pLife[idx] = 0.32 + Math.random() * 0.58 + power * 0.12;
+    pScale[idx] = 0.38 + Math.random() * 0.95 + power * 0.42;
+    pSeed[idx] = Math.random();
+
     pColor.setHex(pastelColors[Math.floor(Math.random() * pastelColors.length)]);
-    colorArray[idx*3] = pColor.r; colorArray[idx*3+1] = pColor.g; colorArray[idx*3+2] = pColor.b;
+    colorArray[idx*3] = pColor.r;
+    colorArray[idx*3+1] = pColor.g;
+    colorArray[idx*3+2] = pColor.b;
   }
   pMesh.instanceColor.needsUpdate = true;
 }
 
-var DUST_N = 60;
+function clearParticles() {
+  for (var i = 0; i < P_MAX; i++) {
+    pAge[i] = 999;
+    pLife[i] = 1;
+    pMesh.setMatrixAt(i, pDummy.matrix);
+  }
+  pMesh.instanceMatrix.needsUpdate = true;
+}
+
+/* Ambient floating dust with softer, varied motion. */
+var DUST_N = 72;
 var dustGeo = new THREE.BufferGeometry();
 (function () {
   var dp = new Float32Array(DUST_N * 3), ds = new Float32Array(DUST_N);
   for (var i = 0; i < DUST_N; i++) {
-    dp[i*3] = (Math.random()-0.5) * 22; dp[i*3+1] = 0.4 + Math.random() * 7; dp[i*3+2] = (Math.random()-0.5) * 12;
+    dp[i*3] = (Math.random()-0.5) * 22;
+    dp[i*3+1] = 0.25 + Math.random() * 7.5;
+    dp[i*3+2] = (Math.random()-0.5) * 12;
     ds[i] = Math.random();
   }
-  dustGeo.setAttribute('position', new THREE.BufferAttribute(dp, 3)); dustGeo.setAttribute('aSeed', new THREE.BufferAttribute(ds, 1));
+  dustGeo.setAttribute('position', new THREE.BufferAttribute(dp, 3));
+  dustGeo.setAttribute('aSeed', new THREE.BufferAttribute(ds, 1));
 })();
+
 var dustMat = new THREE.ShaderMaterial({
-  transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, uniforms:{ uTime:{ value:0 } },
-  vertexShader: 'attribute float aSeed; uniform float uTime; varying float vA; void main(){ vec3 p=position; p.y+=sin(uTime*0.12+aSeed*9.0)*0.5; p.x+=sin(uTime*0.07+aSeed*5.0)*0.6; vA=0.08+0.12*fract(aSeed*3.7); vec4 mv=modelViewMatrix*vec4(p,1.0); gl_PointSize=(0.15+0.12*fract(aSeed*7.3))*(150.0/-mv.z); gl_Position=projectionMatrix*mv; }',
-  fragmentShader: 'varying float vA; void main(){ float d=length(gl_PointCoord-0.5); float m=smoothstep(0.5,0.1,d); gl_FragColor=vec4(vec3(0.9,0.85,0.95), m*vA); }'
+  transparent:true,
+  depthWrite:false,
+  blending:THREE.AdditiveBlending,
+  uniforms:{ uTime:{ value:0 } },
+  vertexShader:
+    'attribute float aSeed; uniform float uTime; varying float vA; '+
+    'void main(){ '+
+      'vec3 p=position; float s=aSeed*6.28318; '+
+      'p.y += sin(uTime*0.22+s)*0.22 + sin(uTime*0.07+s*2.1)*0.11; '+
+      'p.x += sin(uTime*0.12+s*1.7)*0.32; '+
+      'p.z += cos(uTime*0.10+s*1.3)*0.24; '+
+      'vA=0.035+0.095*fract(aSeed*7.13); '+
+      'vec4 mv=modelViewMatrix*vec4(p,1.0); '+
+      'gl_PointSize=(0.18+0.22*fract(aSeed*9.7))*(170.0/-mv.z); '+
+      'gl_Position=projectionMatrix*mv; '+
+    '}',
+  fragmentShader:
+    'varying float vA; '+
+    'void main(){ '+
+      'float d=length(gl_PointCoord-0.5); '+
+      'float m=1.0-smoothstep(0.08,0.5,d); '+
+      'gl_FragColor=vec4(0.92,0.86,0.95,m*vA); '+
+    '}'
 });
 var dust = new THREE.Points(dustGeo, dustMat);
-dust.frustumCulled = false; scene.add(dust);
+dust.frustumCulled = false;
+scene.add(dust);
 
-var TRAIL_N = 20;
-var trailGeo = new THREE.SphereGeometry(R * 0.9, 12, 10);
+/* Soft glow layer behind the physical spark meshes. */
+var sparkGlowGeo = new THREE.BufferGeometry();
+var sparkGlowPos = new Float32Array(P_MAX * 3);
+var sparkGlowSize = new Float32Array(P_MAX);
+sparkGlowGeo.setAttribute('position', new THREE.BufferAttribute(sparkGlowPos, 3));
+sparkGlowGeo.setAttribute('aSize', new THREE.BufferAttribute(sparkGlowSize, 1));
+var sparkGlowMat = new THREE.ShaderMaterial({
+  transparent:true,
+  depthWrite:false,
+  blending:THREE.AdditiveBlending,
+  uniforms:{ uIntensity:{value:0.9} },
+  vertexShader:
+    'attribute float aSize; varying float vA; '+
+    'void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); '+
+    'vA=aSize; gl_PointSize=aSize*(180.0/-mv.z); gl_Position=projectionMatrix*mv; }',
+  fragmentShader:
+    'varying float vA; '+
+    'void main(){ float d=length(gl_PointCoord-0.5); '+
+    'float a=(1.0-smoothstep(0.02,0.5,d))*vA; '+
+    'gl_FragColor=vec4(1.0,0.78,0.86,a); }'
+});
+var sparkGlow = new THREE.Points(sparkGlowGeo, sparkGlowMat);
+sparkGlow.frustumCulled = false;
+sparkGlow.visible = true;
+scene.add(sparkGlow);
+
+var TRAIL_N = 24;
+var trailGeo = new THREE.SphereGeometry(R * 0.82, 12, 10);
 var trail = [];
 for (var ti = 0; ti < TRAIL_N; ti++) {
-  var tm = new THREE.Mesh(trailGeo, new THREE.MeshBasicMaterial({ color:0xffd1dc, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending }));
-  tm.visible = false; scene.add(tm); trail.push({ m:tm, p:new THREE.Vector3(), t:1e9 });
+  var tm = new THREE.Mesh(
+    trailGeo,
+    new THREE.MeshBasicMaterial({
+      color:0xffd1dc,
+      transparent:true,
+      opacity:0,
+      depthWrite:false,
+      blending:THREE.AdditiveBlending
+    })
+  );
+  tm.visible = false;
+  scene.add(tm);
+  trail.push({ m:tm, p:new THREE.Vector3(), t:1e9 });
 }
 var trailCursor = 0, trailClock = 0;
+var particleMat = new THREE.Matrix4();
+var particleEuler = new THREE.Euler();
 
 var UP = new THREE.Vector3(0, 1, 0);
 
@@ -618,7 +731,7 @@ canvas.addEventListener('pointermove', function (e) {
       var maxR = 35;
       var dist = Math.sqrt(dx*dx + dy*dy);
       if (dist > maxR) { dx = (dx/dist)*maxR; dy = (dy/dist)*maxR; }
-      
+
       joyVector.set(dx/maxR, dy/maxR);
       joyStick.position.set(joyBase.position.x + dx, joyBase.position.y - dy, 0);
   } else if (dragMode === 2 && flags.orbit) {
@@ -642,86 +755,233 @@ canvas.addEventListener('pointercancel', pointerEnd);
 canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
 /* ============================================================
-   8. PHYSICS (ROLLING VIA JOYSTICK)
+   8. PHYSICS (ROLLING VIA JOYSTICK) — STABLE CONTACT SOLVER
 ============================================================ */
 var squashQ = new THREE.Quaternion();
 var tmpV1 = new THREE.Vector3(), tmpV2 = new THREE.Vector3(), tmpV3 = new THREE.Vector3(), tmpV4 = new THREE.Vector3(), tmpV5 = new THREE.Vector3(), tmpV6 = new THREE.Vector3();
 var tmpQ1 = new THREE.Quaternion();
+var impactClock = 0;
 
 function impact(n, speed, cx, cy, cz, isWall) {
-  var pw = THREE.MathUtils.clamp((speed - 2) / 26, 0, 1); if (pw <= 0.02) return;
-  ball.squash = Math.max(ball.squash, pw * 0.42); ball.squashN.copy(n); tmpV5.set(cx, cy, cz);
-  spawnBurst(tmpV5, n, pw); 
-  
+  var pw = THREE.MathUtils.clamp((speed - 2) / 26, 0, 1);
+  if (pw <= 0.02) return;
+
+  ball.squash = Math.max(ball.squash, pw * 0.42);
+  ball.squashN.copy(n);
+  tmpV5.set(cx, cy, cz);
+  spawnBurst(tmpV5, n, pw);
+
   if (flags.fx) {
-    shake = Math.min(0.5, shake + pw * 0.16);
-    var f = flashLights[0].i < flashLights[1].i ? flashLights[1] : flashLights[0];
-    f.i = pw * 7; f.l.position.set(cx + n.x * 0.7, cy + n.y * 0.7, cz + n.z * 0.7);
+    shake = Math.min(0.42, shake + pw * 0.13);
+    var f = flashLights[0].i < flashLights[1].i ? flashLights[0] : flashLights[1];
+    f.i = pw * 6.5;
+    f.l.position.set(cx + n.x * 0.7, cy + n.y * 0.7, cz + n.z * 0.7);
   }
-  sndBounce(pw, isWall);
+
+  /* Prevent repeated audio/FX explosions while several solver iterations
+     are resolving the same physical contact. */
+  if (impactClock <= 0 || speed > 7) {
+    sndBounce(pw, isWall);
+    impactClock = 0.045;
+  }
 }
 
 function collidePlanes() {
-  var p = ball.p, v = ball.v, n;
+  var p = ball.p, v = ball.v;
+
   if (p.y - R < 0) {
-    p.y = R; if (v.y < 0) { var s = -v.y; if (s > 1.4) impact(tmpV6.set(0,1,0), s, p.x, 0.02, p.z, false); v.y = s > 1.4 ? s * REST : 0; exchangeSpin(0, 1, 0); }
+    var wasFalling = v.y < -0.08;
+    var impactSpeed = Math.max(0, -v.y);
+    p.y = R;
+
+    if (wasFalling) {
+      if (impactSpeed > 1.4) impact(tmpV6.set(0,1,0), impactSpeed, p.x, 0.02, p.z, false);
+      v.y = impactSpeed > 1.4 ? impactSpeed * REST : 0;
+      exchangeSpin(0, 1, 0);
+    } else if (v.y < 0) {
+      v.y = 0;
+    }
   }
-  if (p.y + R > BOUNDS.yTop) { p.y = BOUNDS.yTop - R; if (v.y > 0) { impact(tmpV6.set(0,-1,0), v.y, p.x, BOUNDS.yTop, p.z, false); v.y = -v.y * REST; } }
-  if (p.x - R < -BOUNDS.x) { p.x = -BOUNDS.x + R; if (v.x < 0) { impact(tmpV6.set(1,0,0), -v.x, -BOUNDS.x, p.y, p.z, false); v.x = -v.x * REST; exchangeSpin(1,0,0); } }
-  if (p.z - R < -BOUNDS.z) { p.z = -BOUNDS.z + R; if (v.z < 0) { v.z = -v.z * REST; } }
-  if (p.z + R >  BOUNDS.z) { p.z =  BOUNDS.z - R; if (v.z > 0) { v.z = -v.z * REST; } }
+
+  if (p.y + R > BOUNDS.yTop) {
+    p.y = BOUNDS.yTop - R;
+    if (v.y > 0) {
+      impact(tmpV6.set(0,-1,0), v.y, p.x, BOUNDS.yTop, p.z, false);
+      v.y = -v.y * REST;
+    }
+  }
+
+  if (p.x - R < -BOUNDS.x) {
+    p.x = -BOUNDS.x + R;
+    if (v.x < 0) {
+      var sx = -v.x;
+      if (sx > 1.4) impact(tmpV6.set(1,0,0), sx, -BOUNDS.x, p.y, p.z, false);
+      v.x = sx * REST;
+      exchangeSpin(1,0,0);
+    }
+  }
+
+  if (p.z - R < -BOUNDS.z) {
+    p.z = -BOUNDS.z + R;
+    if (v.z < 0) v.z = -v.z * REST;
+  }
+
+  if (p.z + R > BOUNDS.z) {
+    p.z = BOUNDS.z - R;
+    if (v.z > 0) v.z = -v.z * REST;
+  }
 }
 
 function exchangeSpin(nx, ny, nz) {
-  var n = tmpV5.set(nx, ny, nz); var vn = ball.v.dot(n);
-  var vt = tmpV6.copy(ball.v).addScaledVector(n, -vn), vspin = tmpV4.copy(ball.w).cross(n).multiplyScalar(-R);
-  var slip = vt.add(vspin), k = 0.22;
-  ball.v.addScaledVector(slip, -k); ball.w.addScaledVector(tmpV3.copy(n).cross(slip), -k / R);
+  var n = tmpV5.set(nx, ny, nz);
+  var vn = ball.v.dot(n);
+  var vt = tmpV6.copy(ball.v).addScaledVector(n, -vn);
+  var vspin = tmpV4.copy(ball.w).cross(n).multiplyScalar(-R);
+  var slip = vt.add(vspin);
+  var k = 0.18;
+
+  ball.v.addScaledVector(slip, -k);
+  ball.w.addScaledVector(tmpV3.copy(n).cross(slip), -k / R);
 }
 
 function collideWall() {
-  var p = ball.p, cx = THREE.MathUtils.clamp(p.x, WALL.x - WALL.hx, WALL.x + WALL.hx), cy = THREE.MathUtils.clamp(p.y, 0, WALL.h), cz = THREE.MathUtils.clamp(p.z, -WALL.hz, WALL.hz);
-  var dx = p.x - cx, dy = p.y - cy, dz = p.z - cz, d2 = dx*dx + dy*dy + dz*dz;
-  if (d2 >= R * R) return;
-  var d = Math.sqrt(d2), n = tmpV6;
-  if (d > 1e-5) n.set(dx / d, dy / d, dz / d); else { n.set(p.x < WALL.x ? -1 : 1, 0, 0); d = 0.001; }
-  p.addScaledVector(n, R - d);
-  var vn = ball.v.dot(n);
-  if (vn < 0) { ball.v.addScaledVector(n, -(1 + REST) * vn); if (-vn > 1.6) impact(n, -vn, cx, cy, cz, true); exchangeSpin(n.x, n.y, n.z); }
+  var p = ball.p, v = ball.v;
+
+  var cx = THREE.MathUtils.clamp(p.x, WALL.x - WALL.hx, WALL.x + WALL.hx);
+  var cy = THREE.MathUtils.clamp(p.y, 0, WALL.h);
+  var cz = THREE.MathUtils.clamp(p.z, -WALL.hz, WALL.hz);
+
+  var dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
+  var d2 = dx*dx + dy*dy + dz*dz;
+  if (d2 >= R * R) return false;
+
+  var d = Math.sqrt(d2);
+  var n = tmpV6;
+
+  /*
+    The wall mesh begins at the floor. At the floor/wall corner, the raw
+    AABB closest-point normal can point diagonally upward. That is what
+    caused the old solver to fight the floor solver and launch the ball.
+    Treat the contact as a vertical wall while the ball is on the floor.
+  */
+  var nearFloor = p.y <= R + 0.075;
+  var horizontalDx = p.x - THREE.MathUtils.clamp(p.x, WALL.x - WALL.hx, WALL.x + WALL.hx);
+  var horizontalDz = p.z - THREE.MathUtils.clamp(p.z, -WALL.hz, WALL.hz);
+  var horizontalD2 = horizontalDx*horizontalDx + horizontalDz*horizontalDz;
+
+  if (nearFloor && horizontalD2 < R * R) {
+    var hd = Math.sqrt(horizontalD2);
+    if (hd > 1e-5) {
+      n.set(horizontalDx / hd, 0, horizontalDz / hd);
+      d = hd;
+      cx = p.x - horizontalDx;
+      cz = p.z - horizontalDz;
+      cy = Math.max(0, Math.min(WALL.h, p.y));
+    } else {
+      /* Stable side choice from position, never from velocity. */
+      n.set(p.x < WALL.x ? -1 : 1, 0, 0);
+      d = 0;
+      cx = WALL.x;
+      cy = Math.max(0, Math.min(WALL.h, p.y));
+      cz = p.z;
+    }
+  } else if (d > 1e-5) {
+    n.set(dx / d, dy / d, dz / d);
+  } else {
+    /*
+      Deep-inside fallback: choose the shortest horizontal escape whenever
+      possible. It cannot suddenly acquire a vertical component.
+    */
+    var side = p.x < WALL.x ? -1 : 1;
+    n.set(side, 0, 0);
+    d = 0;
+  }
+
+  var penetration = R - d;
+  if (penetration <= 0) return false;
+
+  /* Never make a giant correction in one solver pass. */
+  var correction = Math.min(penetration + 0.0015, 0.12);
+  p.addScaledVector(n, correction);
+
+  var vn = v.dot(n);
+
+  if (vn < -0.04) {
+    var speedIntoWall = -vn;
+    v.addScaledVector(n, -(1 + REST) * vn);
+
+    /* Remove tiny residual inward velocity after restitution. */
+    if (v.dot(n) < 0) v.addScaledVector(n, -v.dot(n));
+
+    if (speedIntoWall > 1.6) impact(n, speedIntoWall, cx, cy, cz, true);
+    exchangeSpin(n.x, n.y, n.z);
+  } else if (vn < 0) {
+    v.addScaledVector(n, -vn);
+  }
+
+  return true;
 }
 
 function physStep(dt) {
-  // Translate Joystick values directly into physical velocity relative to camera
+  impactClock = Math.max(0, impactClock - dt);
+
   if (joyActive) {
-      var camDir = new THREE.Vector3();
-      camera.getWorldDirection(camDir);
-      camDir.y = 0; camDir.normalize();
-      var camRight = new THREE.Vector3().crossVectors(camDir, UP).normalize();
-      
-      var moveDir = new THREE.Vector3();
-      moveDir.addScaledVector(camRight, joyVector.x);
-      moveDir.addScaledVector(camDir, -joyVector.y);
-      
-      ball.v.addScaledVector(moveDir, 28 * dt);
+    camera.getWorldDirection(tmpV1);
+    tmpV1.y = 0;
+    if (tmpV1.lengthSq() > 1e-8) tmpV1.normalize();
+
+    tmpV2.crossVectors(tmpV1, UP).normalize();
+
+    tmpV3.set(0,0,0)
+      .addScaledVector(tmpV2, joyVector.x)
+      .addScaledVector(tmpV1, -joyVector.y);
+
+    ball.v.addScaledVector(tmpV3, 28 * dt);
   }
 
-  ball.v.y -= GRAV * dt; 
-  var drag = 1 - 0.1 * dt; 
-  ball.v.multiplyScalar(drag); ball.w.multiplyScalar(1 - 0.12 * dt);
-  
-  if (ball.v.length() > MAX_V) ball.v.setLength(MAX_V);
-  
+  ball.v.y -= GRAV * dt;
+
+  var drag = Math.max(0, 1 - 0.1 * dt);
+  ball.v.multiplyScalar(drag);
+  ball.w.multiplyScalar(Math.max(0, 1 - 0.12 * dt));
+
+  if (ball.v.lengthSq() > MAX_V * MAX_V) ball.v.setLength(MAX_V);
+
   ball.p.addScaledVector(ball.v, dt);
-  collidePlanes(); collideWall();
-  
-  // Smooth rolling synchronization with ground
+
+  /*
+    Two short solver passes make floor/wall contacts converge without
+    ping-ponging. Floor is resolved first, then the wall is resolved against
+    the already-separated position, then the floor is checked once more.
+  */
+  collidePlanes();
+  collideWall();
+  collidePlanes();
+
+  /* Hard safety envelope against numerical drift/tunnelling. */
+  ball.p.x = THREE.MathUtils.clamp(ball.p.x, -BOUNDS.x + R, BOUNDS.x - R);
+  ball.p.y = THREE.MathUtils.clamp(ball.p.y, R, BOUNDS.yTop - R);
+  ball.p.z = THREE.MathUtils.clamp(ball.p.z, -BOUNDS.z + R, BOUNDS.z - R);
+
   if (ball.p.y <= R + 0.05) {
-    tmpV1.set(ball.v.z / R, 0, -ball.v.x / R); ball.w.lerp(tmpV1, Math.min(1, 15 * dt)); ball.v.multiplyScalar(1 - 1.1 * dt);
+    tmpV1.set(ball.v.z / R, 0, -ball.v.x / R);
+    ball.w.lerp(tmpV1, Math.min(1, 13 * dt));
+    ball.v.multiplyScalar(Math.max(0, 1 - 0.9 * dt));
+
+    /* A grounded ball should never accumulate downward energy. */
+    if (ball.v.y < 0) ball.v.y = 0;
   }
-  
+
+  if (ball.v.lengthSq() > MAX_V * MAX_V) ball.v.setLength(MAX_V);
+
   var wl = ball.w.length();
-  if (wl > 1e-4) { tmpQ1.setFromAxisAngle(tmpV2.copy(ball.w).multiplyScalar(1 / wl), wl * dt); ballMesh.quaternion.premultiply(tmpQ1); }
-  ball.squash *= Math.exp(-11 * dt); if (ball.squash < 0.001) ball.squash = 0;
+  if (wl > 1e-4) {
+    tmpQ1.setFromAxisAngle(tmpV2.copy(ball.w).multiplyScalar(1 / wl), wl * dt);
+    ballMesh.quaternion.premultiply(tmpQ1);
+  }
+
+  ball.squash *= Math.exp(-11 * dt);
+  if (ball.squash < 0.001) ball.squash = 0;
 }
 
 /* ============================================================
@@ -730,11 +990,11 @@ function physStep(dt) {
 var cam = { theta:0, phi:1.18, targetTheta:0, targetPhi:1.18, radius:12.5, look:new THREE.Vector3(0, 2.1, 0), lookT:new THREE.Vector3() };
 function camUpdate(dt) {
   cam.theta += (cam.targetTheta - cam.theta) * Math.min(1, 5 * dt); cam.phi += (cam.targetPhi - cam.phi) * Math.min(1, 5 * dt);
-  
+
   // Directly follow ball smoothly
-  cam.lookT.copy(ball.p); 
+  cam.lookT.copy(ball.p);
   cam.look.lerp(cam.lookT, Math.min(1, 5 * dt));
-  
+
   var sp = Math.sin(cam.phi), cp = Math.cos(cam.phi), st = Math.sin(cam.theta), ct = Math.cos(cam.theta);
   camera.position.set(cam.look.x + cam.radius * sp * st, cam.look.y + cam.radius * cp, cam.look.z + cam.radius * sp * ct);
   if (shake > 0.001) {
@@ -747,34 +1007,50 @@ function camUpdate(dt) {
    10. UI & PERFORMANCE
 ============================================================ */
 function bindBtn(id, fn) { var b = document.getElementById(id); b.addEventListener('click', function () { audioInit(); sndClick(); fn(b); }); }
-bindBtn('bReset', function () { ball.p.set(-3, 4, 0); ball.v.set(0, 0, 0); ball.w.set(0, 0, 0); ball.squash = 0; ballMesh.quaternion.identity(); for (var i = 0; i < TRAIL_N; i++) { trail[i].t = 1e9; trail[i].m.visible = false; } cam.targetTheta = 0; cam.targetPhi = 1.18; });
+bindBtn('bReset', function () {
+  ball.p.set(-3, 4, 0);
+  ball.v.set(0, 0, 0);
+  ball.w.set(0, 0, 0);
+  ball.squash = 0;
+  ball.squashN.set(0,1,0);
+  ballMesh.quaternion.identity();
+  clearParticles();
+  trailCursor = 0;
+  trailClock = 0;
+  for (var i = 0; i < TRAIL_N; i++) {
+    trail[i].t = 1e9;
+    trail[i].m.visible = false;
+  }
+  cam.targetTheta = 0;
+  cam.targetPhi = 1.18;
+});
 bindBtn('bSlow', function (b) { flags.slow = !flags.slow; timeScaleTarget = flags.slow ? 0.25 : 1; b.classList.toggle('on', flags.slow); document.getElementById('slowBadge').classList.toggle('show', flags.slow); });
 bindBtn('bCam', function (b) { flags.orbit = !flags.orbit; b.classList.toggle('on', flags.orbit); });
-bindBtn('bFx', function (b) { flags.fx = !flags.fx; b.classList.toggle('on', flags.fx); dust.visible = flags.fx && quality < 2; pMesh.visible = flags.fx; });
+bindBtn('bFx', function (b) { flags.fx = !flags.fx; b.classList.toggle('on', flags.fx); dust.visible = flags.fx && quality < 2; pMesh.visible = flags.fx; sparkGlow.visible = flags.fx; });
 bindBtn('bSnd', function (b) { flags.snd = !flags.snd; b.classList.toggle('on', flags.snd); });
 
 var sVel = document.getElementById('sVel'), sHgt = document.getElementById('sHgt'), sEn = document.getElementById('sEn'), sFps = document.getElementById('sFps'), statTimer = 0;
 var basePR = Math.min(window.devicePixelRatio || 1, 2), pr = basePR, fpsEMA = 60, fpsFrames = 0, fpsTime = 0, adaptTimer = 0;
 
 function applyQuality() {
-  if (quality === 0) { pr = basePR; key.shadow.mapSize.set(1024, 1024); dust.visible = flags.fx; }
+  if (quality === 0) { pr = basePR; key.shadow.mapSize.set(1024, 1024); dust.visible = flags.fx; sparkGlow.visible = flags.fx; }
   if (quality === 1) { pr = Math.min(basePR, 1.5); }
   if (quality === 2) { pr = 1.15; key.shadow.mapSize.set(512, 512); dust.visible = false; }
   if (key.shadow.map) { key.shadow.map.dispose(); key.shadow.map = null; } onResize();
 }
 
 function onResize() {
-  var w = window.innerWidth, h = window.innerHeight; 
-  renderer.setPixelRatio(pr); renderer.setSize(w, h); 
-  
+  var w = window.innerWidth, h = window.innerHeight;
+  renderer.setPixelRatio(pr); renderer.setSize(w, h);
+
   camera.aspect = w / h;
-  cam.radius = camera.aspect < 0.8 ? 15.5 : (camera.aspect < 1.2 ? 14 : 12.5); camera.fov = camera.aspect < 0.8 ? 50 : 42; 
+  cam.radius = camera.aspect < 0.8 ? 15.5 : (camera.aspect < 1.2 ? 14 : 12.5); camera.fov = camera.aspect < 0.8 ? 50 : 42;
   camera.updateProjectionMatrix();
 
   hudCamera.left = -w / 2; hudCamera.right = w / 2;
   hudCamera.top = h / 2; hudCamera.bottom = -h / 2;
   hudCamera.updateProjectionMatrix();
-  
+
   if (!joyActive) {
       joyBase.position.set(-w/2 + 80, -h/2 + 80, 0);
       joyStick.position.copy(joyBase.position);
@@ -823,25 +1099,91 @@ function loop(now) {
 
   var anyP = false;
   for (var pi2 = 0; pi2 < P_MAX; pi2++) {
-    if (pAge[pi2] >= pLife[pi2]) { pMesh.setMatrixAt(pi2, pDummy.matrix); continue; }
-    anyP = true; pAge[pi2] += dt;
-    var lf = 1 - pAge[pi2] / pLife[pi2];
-    pVel[pi2*3+1] -= GRAV * 0.45 * dt; var dr = 1 - 2.5 * dt;
-    pVel[pi2*3] *= dr; pVel[pi2*3+1] *= dr; pVel[pi2*3+2] *= dr;
-    pPos[pi2*3] += pVel[pi2*3] * dt; pPos[pi2*3+1] += pVel[pi2*3+1] * dt; pPos[pi2*3+2] += pVel[pi2*3+2] * dt;
-    if (pPos[pi2*3+1] < 0.06) pPos[pi2*3+1] = 0.06;
-    
-    pRot[pi2*3] += pRotV[pi2*3]*dt; pRot[pi2*3+1] += pRotV[pi2*3+1]*dt; pRot[pi2*3+2] += pRotV[pi2*3+2]*dt;
-    
-    tmpQ1.setFromEuler(new THREE.Euler(pRot[pi2*3], pRot[pi2*3+1], pRot[pi2*3+2]));
-    tmpV1.set(pPos[pi2*3], pPos[pi2*3+1], pPos[pi2*3+2]);
-    tmpV2.setScalar(pScale[pi2] * lf);
-    
-    tmpV3.set(0,0,0);
-    var mat = new THREE.Matrix4(); mat.compose(tmpV1, tmpQ1, tmpV2);
-    pMesh.setMatrixAt(pi2, mat);
+    if (pAge[pi2] >= pLife[pi2]) {
+      pMesh.setMatrixAt(pi2, pDummy.matrix);
+      sparkGlowPos[pi2*3] = 0;
+      sparkGlowPos[pi2*3+1] = -50;
+      sparkGlowPos[pi2*3+2] = 0;
+      sparkGlowSize[pi2] = 0;
+      continue;
+    }
+
+    anyP = true;
+    pAge[pi2] += dt;
+
+    var lf = THREE.MathUtils.clamp(1 - pAge[pi2] / pLife[pi2], 0, 1);
+    var fade = lf * lf * (3 - 2 * lf);
+
+    /* Light gravity + air resistance gives the sparks a softer arc. */
+    pVel[pi2*3+1] -= GRAV * (0.28 + pSeed[pi2] * 0.12) * dt;
+    var pDrag = Math.max(0, 1 - (1.25 + pSeed[pi2] * 1.4) * dt);
+    pVel[pi2*3] *= pDrag;
+    pVel[pi2*3+1] *= pDrag;
+    pVel[pi2*3+2] *= pDrag;
+
+    pPos[pi2*3] += pVel[pi2*3] * dt;
+    pPos[pi2*3+1] += pVel[pi2*3+1] * dt;
+    pPos[pi2*3+2] += pVel[pi2*3+2] * dt;
+
+    /* Small physical bounce on the floor. */
+    if (pPos[pi2*3+1] < 0.055) {
+      pPos[pi2*3+1] = 0.055;
+      if (pVel[pi2*3+1] < -0.65) {
+        pVel[pi2*3+1] = -pVel[pi2*3+1] * (0.22 + pSeed[pi2] * 0.16);
+        pVel[pi2*3] *= 0.72;
+        pVel[pi2*3+2] *= 0.72;
+      } else {
+        pVel[pi2*3+1] = 0;
+        pVel[pi2*3] *= 0.88;
+        pVel[pi2*3+2] *= 0.88;
+      }
+    }
+
+    /* Give sparks a light deflection if they hit the studio wall. */
+    var px = pPos[pi2*3], pz = pPos[pi2*3+2];
+    if (px > WALL.x - WALL.hx - 0.025 && px < WALL.x + WALL.hx + 0.025 &&
+        pz > -WALL.hz && pz < WALL.hz && pPos[pi2*3+1] < WALL.h + 0.08) {
+      var side = px < WALL.x ? -1 : 1;
+      pPos[pi2*3] = WALL.x + side * (WALL.hx + 0.03);
+      if (pVel[pi2*3] * side < 0) pVel[pi2*3] = -pVel[pi2*3] * 0.35;
+    }
+
+    pRot[pi2*3] += pRotV[pi2*3] * dt;
+    pRot[pi2*3+1] += pRotV[pi2*3+1] * dt;
+    pRot[pi2*3+2] += pRotV[pi2*3+2] * dt;
+
+    /* Elongate fast sparks along their velocity for a subtle streak. */
+    var vx = pVel[pi2*3], vy = pVel[pi2*3+1], vz = pVel[pi2*3+2];
+    var vlen = Math.sqrt(vx*vx + vy*vy + vz*vz);
+    tmpV1.set(px, pPos[pi2*3+1], pz);
+    tmpV2.set(vx, vy, vz);
+
+    particleEuler.set(
+      pRot[pi2*3],
+      pRot[pi2*3+1],
+      pRot[pi2*3+2]
+    );
+    tmpQ1.setFromEuler(particleEuler);
+
+    var pulse = 0.78 + 0.22 * Math.sin(pAge[pi2] * 28 + pSeed[pi2] * 12);
+    var baseScale = pScale[pi2] * (0.42 + 0.58 * fade) * pulse;
+    var stretch = 1 + Math.min(2.8, vlen * 0.055) * fade;
+
+    tmpV3.set(baseScale * 0.82, baseScale * stretch, baseScale * 0.82);
+    particleMat.compose(tmpV1, tmpQ1, tmpV3);
+    pMesh.setMatrixAt(pi2, particleMat);
+
+    sparkGlowPos[pi2*3] = px;
+    sparkGlowPos[pi2*3+1] = pPos[pi2*3+1];
+    sparkGlowPos[pi2*3+2] = pz;
+    sparkGlowSize[pi2] = (3.5 + vlen * 0.75) * fade;
   }
-  if (anyP || flags.fx) pMesh.instanceMatrix.needsUpdate = true;
+
+  if (anyP || flags.fx) {
+    pMesh.instanceMatrix.needsUpdate = true;
+    sparkGlowGeo.attributes.position.needsUpdate = true;
+    sparkGlowGeo.attributes.aSize.needsUpdate = true;
+  }
 
   for (var f2 = 0; f2 < flashLights.length; f2++) { var fo = flashLights[f2]; fo.i *= Math.exp(-9 * rawDt); fo.l.intensity = fo.i; }
   dustMat.uniforms.uTime.value += dt;
