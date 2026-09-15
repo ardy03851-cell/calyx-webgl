@@ -70,9 +70,7 @@
       overflow-y: auto;
       overflow-x: hidden;
       scrollbar-width: thin;
-      scrollbar-color: #ffffff30 transparent;
-      display: flex;
-      flex-direction: column
+      scrollbar-color: #ffffff30 transparent
     }
 
     .side::-webkit-scrollbar {
@@ -247,7 +245,8 @@
       border-radius: 9px;
       background: #111;
       padding: 2px;
-      cursor: pointer
+      cursor: pointer;
+      flex-shrink: 0
     }
 
     .colorWrap input[type=color]::-webkit-color-swatch-wrapper {
@@ -261,6 +260,7 @@
 
     .colorWrap input[type=text] {
       flex: 1;
+      min-width: 0;
       font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
       font-size: 10px;
       letter-spacing: .05em;
@@ -374,12 +374,6 @@
       border-radius: 8px 4px 8px 4px;
       font-size: 8px;
       letter-spacing: .08em
-    }
-
-    .btn.danger:hover {
-      background: #ff3b3b22;
-      border-color: #ff3b3b55;
-      color: #ffb0b0
     }
 
     /* ---------- CODE TAB ---------- */
@@ -726,14 +720,14 @@
             <label class="label">Base</label>
             <div class="colorWrap">
               <input id="a" type="color" value="#0d1118">
-              <input id="aHex" type="text" value="#0d1118" maxlength="7">
+              <input id="aHex" type="text" value="#0D1118" maxlength="7">
             </div>
           </div>
           <div>
             <label class="label">Flow</label>
             <div class="colorWrap">
               <input id="b" type="color" value="#55718d">
-              <input id="bHex" type="text" value="#55718d" maxlength="7">
+              <input id="bHex" type="text" value="#55718D" maxlength="7">
             </div>
           </div>
         </div>
@@ -811,11 +805,11 @@
     <!-- ============ CODE TAB ============ -->
     <div class="tab-panel" data-panel="code">
       <div class="codeHelp">
-        Write custom GLSL motion code. Set <code>v</code> to your result (0.0 – 1.0). Do not redeclare <code>v</code>.
+        Write custom GLSL motion code. Set <code>v</code> to your result (0.0 – 1.0).
         <details>
           <summary>Variables &amp; helpers</summary>
           <ul>
-            <li><b>p</b> — vec2 position, origin at centre</li>
+            <li><b>p</b> — vec2 position (origin centre)</li>
             <li><b>t</b> — float time × speed</li>
             <li><b>mouse</b> — vec2 mouse position</li>
             <li><b>d</b> — float distance from centre</li>
@@ -872,7 +866,7 @@
 
   <!-- ============================================================
        FRAGMENT SHADER
-       Custom code is injected at the placeholder // __CUSTOM_CODE__
+       Custom code is injected at // __CUSTOM_CODE__
        ============================================================ -->
   <script id="fs" type="x-shader/x-fragment">
     precision mediump float;
@@ -903,17 +897,14 @@
       float t = u_time * u_speed;
       float d = length(p);
 
-      // Mouse repulsion
       vec2 md = p - mouse;
       float mdist = length(md);
       if (mdist < .8) {
         p += normalize(md) * .055 * (1. - mdist / .8);
       }
 
-      // Global scale
       p *= u_scale;
 
-      // Global warp
       if (u_warp > 0.001) {
         p += vec2(fbm(p * 2. + t * .3), fbm(p * 2. + 5.3 + t * .25)) * u_warp * .3;
       }
@@ -1091,7 +1082,15 @@
       throw new Error("WebGL unavailable");
     }
 
+    // Shared geometry (one buffer for the fullscreen quad)
+    const quadBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.bufferData(gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+      gl.STATIC_DRAW);
+
     let currentProgram = null;
+    let currentAttribPos = -1;
     let U = {};
 
     function compileShader(type, src) {
@@ -1106,7 +1105,7 @@
       return s;
     }
 
-    function buildShaderSource(customCode) {
+    function buildFragmentSource(customCode) {
       const base = $("fs").textContent;
       const useCustom = customCode && customCode.trim().length > 0;
       const injected = useCustom ? customCode : "v = fbm(p * 2.5 + t * 0.02);";
@@ -1115,7 +1114,7 @@
 
     function compileProgram(customCode) {
       const vsSrc = $("vs").textContent;
-      const fsSrc = buildShaderSource(customCode);
+      const fsSrc = buildFragmentSource(customCode);
 
       const vs = compileShader(gl.VERTEX_SHADER, vsSrc);
       const fs = compileShader(gl.FRAGMENT_SHADER, fsSrc);
@@ -1138,7 +1137,9 @@
     }
 
     function installProgram(prog) {
-      if (currentProgram) gl.deleteProgram(currentProgram);
+      if (currentProgram && currentProgram !== prog) {
+        gl.deleteProgram(currentProgram);
+      }
       currentProgram = prog;
       gl.useProgram(prog);
 
@@ -1158,15 +1159,10 @@
         pulseAmt: gl.getUniformLocation(prog, "u_pulseAmt")
       };
 
-      const buf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-      gl.bufferData(gl.ARRAY_BUFFER,
-        new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
-        gl.STATIC_DRAW);
-
-      const pos = gl.getAttribLocation(prog, "a_position");
-      gl.enableVertexAttribArray(pos);
-      gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+      currentAttribPos = gl.getAttribLocation(prog, "a_position");
+      gl.enableVertexAttribArray(currentAttribPos);
+      gl.vertexAttribPointer(currentAttribPos, 2, gl.FLOAT, false, 0, 0);
     }
 
     // ---------- Shader compilation control ----------
@@ -1202,20 +1198,12 @@
           showCodeError("Shader error:\n" + e.message);
           if (lastGoodProgram) {
             installProgram(lastGoodProgram);
-          } else {
-            // Absolute fallback
-            try {
-              const fallback = compileProgram("");
-              installProgram(fallback);
-              lastGoodProgram = fallback;
-            } catch (e2) {
-              console.error(e2);
-            }
+            currentProgram = lastGoodProgram;
           }
         }
       };
       if (immediate) run();
-      else compileTimer = setTimeout(run, 450);
+      else compileTimer = setTimeout(run, 400);
     }
 
     // ---------- Viewport ----------
@@ -1234,14 +1222,14 @@
     // ---------- Pointer ----------
     let mx = innerWidth / 2, my = innerHeight / 2;
     let tx = mx, ty = innerHeight - my;
-    let pulse = 0;
+    let pulseVal = 0;   // animation pulse (renamed to avoid clashing with the slider)
 
     addEventListener("pointermove", e => {
       tx = e.clientX * dpr;
       ty = (innerHeight - e.clientY) * dpr;
     }, { passive: true });
 
-    addEventListener("pointerdown", () => { pulse = 1; }, { passive: true });
+    addEventListener("pointerdown", () => { pulseVal = 1; }, { passive: true });
 
     // ---------- Preset getters / setters ----------
     function getPreset() {
@@ -1291,7 +1279,7 @@
       if (bEl && bHex) bHex.value = bEl.value.toUpperCase();
     }
 
-    // ---------- Color hex sync ----------
+    // ---------- Color sync ----------
     $("a").addEventListener("input", () => { $("aHex").value = $("a").value.toUpperCase(); });
     $("b").addEventListener("input", () => { $("bHex").value = $("b").value.toUpperCase(); });
 
@@ -1308,20 +1296,24 @@
     bindHexInput($("aHex"), $("a"));
     bindHexInput($("bHex"), $("b"));
 
-    // ---------- Slider + input listeners ----------
+    // ---------- Sliders ----------
     ["speed", "glow", "soft", "scale", "warp", "pulse"].forEach(id => {
       $(id).addEventListener("input", syncUI);
     });
 
-    // ---------- Motion changes recompile ----------
+    // ---------- Motion ----------
     $("motion").addEventListener("change", () => {
       if (+$("motion").value === -1) {
         switchTab("code");
+        // If the code area is empty, seed it with the default template
+        if (!$("customCode").value.trim()) {
+          $("customCode").value = DEFAULT_TEMPLATE;
+        }
       }
-      rebuildShader(false);
+      rebuildShader(true);
     });
 
-    // ---------- Custom code auto-compile (debounced) ----------
+    // ---------- Custom code ----------
     $("customCode").addEventListener("input", () => {
       if (+$("motion").value === -1) rebuildShader(false);
     });
@@ -1361,7 +1353,7 @@ float minD = 1.0;
 for (int x = -1; x <= 1; x++) {
   for (int y = -1; y <= 1; y++) {
     vec2 n = vec2(float(x), float(y));
-    vec2 pt = hash(i + n) * vec2(0.5) + vec2(0.5);
+    vec2 pt = vec2(hash(i + n), hash(i + n + 7.7)) * vec2(0.6) + vec2(0.2);
     float dd = length(f - n - pt);
     minD = min(minD, dd);
   }
@@ -1381,11 +1373,10 @@ v = minD * 1.6;`
           const needsNewline = ta.value.length > 0 && !ta.value.endsWith("\n");
           ta.value += (needsNewline ? "\n\n" : "") + code;
         }
-        // Auto-select custom motion if not already
         if (+$("motion").value !== -1) {
           $("motion").value = "-1";
         }
-        rebuildShader(false);
+        rebuildShader(true);
         ta.focus();
       });
     });
@@ -1399,7 +1390,7 @@ vec2 q = p * 3.0;
 q.x += sin(q.y * 5.0 + t * 0.5) * 0.15;
 v = fbm(q + vec2(t * 0.05, -t * 0.03));`;
 
-    // ---------- Library (saved presets) ----------
+    // ---------- Library ----------
     function renderSaved() {
       const arr = JSON.parse(localStorage.getItem("calyx.presets") || "[]");
       const box = $("saved");
@@ -1420,7 +1411,8 @@ v = fbm(q + vec2(t * 0.05, -t * 0.03));`;
 
         const info = document.createElement("div");
         info.className = "pInfo";
-        info.innerHTML = `<b>${escapeStr(o.name)}</b><small>${escapeStr(o.cat || "organic")} · ${o.motion === -1 ? "custom" : "motion " + o.motion}</small>`;
+        const motionLabel = o.motion === -1 ? "custom" : "motion " + o.motion;
+        info.innerHTML = `<b>${escapeStr(o.name)}</b><small>${escapeStr(o.cat || "organic")} · ${motionLabel}</small>`;
 
         const del = document.createElement("button");
         del.className = "pDel";
@@ -1446,7 +1438,7 @@ v = fbm(q + vec2(t * 0.05, -t * 0.03));`;
       });
     }
 
-    // ---------- Save / Export / Import ----------
+    // ---------- Save ----------
     $("save").addEventListener("click", () => {
       const o = getPreset();
       const arr = JSON.parse(localStorage.getItem("calyx.presets") || "[]");
@@ -1459,6 +1451,7 @@ v = fbm(q + vec2(t * 0.05, -t * 0.03));`;
       toast("Saved " + o.name, "success");
     });
 
+    // ---------- Export JSON ----------
     $("export").addEventListener("click", () => {
       const o = getPreset();
       const json = JSON.stringify(o, null, 2);
@@ -1472,7 +1465,7 @@ v = fbm(q + vec2(t * 0.05, -t * 0.03));`;
       toast("Exported JSON", "success");
     });
 
-    // ---------- Copy as liquids.js entry ----------
+    // ---------- Copy liquids.js entry ----------
     function buildLiquidJsEntry(p) {
       const props = [
         `name: "${escapeStr(p.name)}"`,
@@ -1502,17 +1495,24 @@ v = fbm(q + vec2(t * 0.05, -t * 0.03));`;
         setStatus("COPIED", "success");
         toast("liquids.js entry copied", "success");
       } catch (e) {
-        // Fallback
         const ta = document.createElement("textarea");
         ta.value = code;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
         document.body.appendChild(ta);
         ta.select();
-        try { document.execCommand("copy"); toast("liquids.js entry copied", "success"); }
-        catch (e2) { toast("Copy failed — check console", "error"); console.log(code); }
+        try {
+          document.execCommand("copy");
+          toast("liquids.js entry copied", "success");
+        } catch (e2) {
+          toast("Copy failed — check console", "error");
+          console.log(code);
+        }
         document.body.removeChild(ta);
       }
     });
 
+    // ---------- Import ----------
     $("import").addEventListener("click", () => $("file").click());
 
     $("file").addEventListener("change", (e) => {
@@ -1539,4 +1539,120 @@ v = fbm(q + vec2(t * 0.05, -t * 0.03));`;
 
     // ---------- Randomize ----------
     const ADJ = ["Silent", "Velvet", "Frozen", "Molten", "Ancient", "Neon", "Hollow", "Lucid", "Crimson", "Verdant", "Cosmic", "Fractured", "Gentle", "Wild", "Electric", "Drifting", "Deep", "Pale"];
-    const NOUN = ["Tide", "Ember", "Bloom", "Vortex", "Drift", "Veil", "Pulse", "Current", "Haze", "Mirror", "Spiral
+    const NOUN = ["Tide", "Ember", "Bloom", "Vortex", "Drift", "Veil", "Pulse", "Current", "Haze", "Mirror", "Spiral", "Ash", "Rain", "Stone", "Vapor", "Shard", "Bloom", "Hush"];
+
+    function rand(min, max) { return min + Math.random() * (max - min); }
+    function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+
+    function randomHex(light) {
+      // Generate a hex colour, biased dark for base, brighter for accent
+      const c = () => Math.floor(Math.random() * 256);
+      if (light) {
+        // accented colour: brighter channel
+        let r = c(), g = c(), b = c();
+        const m = Math.max(r, g, b);
+        if (m < 140) { r += 60; g += 60; b += 60; }
+        return "#" + [r, g, b].map(x => clamp(x, 0, 255).toString(16).padStart(2, "0")).join("");
+      } else {
+        // dark base
+        return "#" + [c() * 0.25, c() * 0.25, c() * 0.3]
+          .map(x => Math.floor(x).toString(16).padStart(2, "0")).join("");
+      }
+    }
+
+    $("randomize").addEventListener("click", () => {
+      const adj = ADJ[randInt(0, ADJ.length - 1)];
+      const noun = NOUN[randInt(0, NOUN.length - 1)];
+      const cats = ["organic", "energy", "matter", "strange"];
+      const descBits = ["flow", "drift", "current", "surface", "motion", "field", "wave", "haze"];
+      const desc = "A " + descBits[randInt(0, descBits.length - 1)] + " of " + adj.toLowerCase() + " " + noun.toLowerCase();
+
+      const presets = [
+        { name: adj + " " + noun, desc, cat: cats[randInt(0, 3)] },
+      ];
+
+      $("name").value = adj + " " + noun;
+      $("desc").value = desc;
+      $("cat").value = cats[randInt(0, 3)];
+      $("a").value = randomHex(false);
+      $("b").value = randomHex(true);
+      $("motion").value = randInt(0, 31);
+      $("speed").value = rand(0.15, 0.9).toFixed(2);
+      $("glow").value = rand(0.15, 1.0).toFixed(2);
+      $("soft").value = rand(0.2, 0.85).toFixed(2);
+      $("scale").value = rand(0.6, 1.8).toFixed(2);
+      $("warp").value = Math.random() < 0.4 ? rand(0.05, 0.6).toFixed(2) : "0.00";
+      $("pulse").value = rand(0.5, 1.6).toFixed(2);
+
+      syncUI();
+      rebuildShader(true);
+      toast("Randomized: " + $("name").value, "success");
+    });
+
+    // ---------- Render loop ----------
+    let frameCount = 0;
+    let lastTime = 0;
+
+    function frame(t) {
+      // Throttle to ~60fps using a minimum delta
+      const dt = t - lastTime;
+      if (dt < 14) {
+        requestAnimationFrame(frame);
+        return;
+      }
+      lastTime = t;
+      frameCount++;
+
+      mx += (tx - mx) * 0.08;
+      my += (ty - my) * 0.08;
+      pulseVal *= 0.92;
+
+      const o = getPreset();
+
+      gl.uniform2f(U.res, W, H);
+      gl.uniform2f(U.mouse, mx, my);
+      gl.uniform1f(U.time, t * 0.001);
+      gl.uniform1i(U.motion, o.motion);
+      gl.uniform1f(U.pulse, pulseVal);
+      gl.uniform3fv(U.a, rgb(o.a));
+      gl.uniform3fv(U.b, rgb(o.b));
+      gl.uniform1f(U.speed, o.speed);
+      gl.uniform1f(U.soft, o.soft);
+      gl.uniform1f(U.glow, o.glow);
+      gl.uniform1f(U.scale, o.scale);
+      gl.uniform1f(U.warp, o.warp);
+      gl.uniform1f(U.pulseAmt, o.pulse);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      requestAnimationFrame(frame);
+    }
+
+    // ---------- Init ----------
+    syncUI();
+    renderSaved();
+    rebuildShader(true);  // compile initial program
+
+    // If motion is -1 (custom) with empty code, seed with the template
+    if (+$("motion").value === -1 && !$("customCode").value.trim()) {
+      $("customCode").value = DEFAULT_TEMPLATE;
+    }
+
+    requestAnimationFrame(frame);
+
+    // ---------- Keyboard shortcuts ----------
+    addEventListener("keydown", e => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        $("save").click();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "e") {
+        e.preventDefault();
+        $("export").click();
+      }
+    });
+  </script>
+</body>
+
+</html>
