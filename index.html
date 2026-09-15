@@ -64,7 +64,7 @@
       <h2>Projects</h2>
       <p>Fluid profiles and 3D scenes, plus room for your own.</p>
 
-      <div class="modeTabs">
+      <div class="modeTabs" id="modeTabs">
         <button class="modeTab active" data-mode="liquid">LIQUID</button>
         <button class="modeTab" data-mode="scene">3D SCENE</button>
       </div>
@@ -94,9 +94,11 @@
     <div class="settings-panel">
       <header class="settings-head">
         <div class="gear">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
         </div>
         <div>
@@ -110,16 +112,25 @@
       <div class="settings-body">
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 3a9 9 0 0 1 0 18" />
+            </svg>
             <span>Appearance</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="2.5" />
+                </svg>
               </div>
-              <div><div class="setting-name">UI Transparency</div><div class="setting-desc">Opacity of the floating panels</div></div>
+              <div>
+                <div class="setting-name">UI Transparency</div>
+                <div class="setting-desc">Opacity of the floating panels</div>
+              </div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="uiOpacity" min=".3" max="1" step=".01" value=".72">
@@ -130,9 +141,16 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path
+                    d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1" />
+                </svg>
               </div>
-              <div><div class="setting-name">Panel Blur</div><div class="setting-desc">Frosted glass amount behind panels</div></div>
+              <div>
+                <div class="setting-name">Panel Blur</div>
+                <div class="setting-desc">Frosted glass amount behind panels</div>
+              </div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="uiBlur" min="0" max="40" step="1" value="22">
@@ -143,9 +161,15 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 3v18" />
+                </svg>
               </div>
-              <div><div class="setting-name">Vignette</div><div class="setting-desc">Darkness at the edges of the screen</div></div>
+              <div>
+                <div class="setting-name">Vignette</div>
+                <div class="setting-desc">Darkness at the edges of the screen</div>
+              </div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="vignette" min="0" max="1.4" step=".01" value="1">
@@ -156,16 +180,25 @@
 
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2"/><circle cx="12" cy="12" r="3.2"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2" />
+              <circle cx="12" cy="12" r="3.2" />
+            </svg>
             <span>Visuals</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M9 6h6M8 9l4 12 4-12Z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M12 3v3M9 6h6M8 9l4 12 4-12Z" />
+                </svg>
               </div>
-              <div><div class="setting-name">Glow Intensity</div><div class="setting-desc">Strength of highlights and glows</div></div>
+              <div>
+                <div class="setting-name">Glow Intensity</div>
+                <div class="setting-desc">Strength of highlights and glows</div>
+              </div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="glowMult" min="0" max="2" step=".01" value="1">
@@ -176,9 +209,14 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M4 12h4l2-6 4 12 2-6h4"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <path d="M4 12h4l2-6 4 12 2-6h4" />
+                </svg>
               </div>
-              <div><div class="setting-name">Motion Speed</div><div class="setting-desc">Global multiplier for all scenes</div></div>
+              <div>
+                <div class="setting-name">Motion Speed</div>
+                <div class="setting-desc">Global multiplier for all scenes</div>
+              </div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="motionMult" min=".25" max="2" step=".01" value="1">
@@ -189,9 +227,16 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="M3 9h18" />
+                </svg>
               </div>
-              <div><div class="setting-name">Card Accent Stroke</div><div class="setting-desc">Auto-coloured dual-corner shine using the scene's two main colours</div></div>
+              <div>
+                <div class="setting-name">Card Accent Stroke</div>
+                <div class="setting-desc">Auto-coloured dual-corner shine using the scene's two main colours</div>
+              </div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cardStroke"></button></div>
           </div>
@@ -199,9 +244,16 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M5 12h14" />
+                  <path d="m13 6 6 6-6 6" />
+                </svg>
               </div>
-              <div><div class="setting-name">Card Hover Lift</div><div class="setting-desc">Cards rise slightly on hover</div></div>
+              <div>
+                <div class="setting-name">Card Hover Lift</div>
+                <div class="setting-desc">Cards rise slightly on hover</div>
+              </div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cardHover"></button></div>
           </div>
@@ -209,9 +261,15 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
               </div>
-              <div><div class="setting-name">Preview Animation</div><div class="setting-desc">Live canvas thumbnails inside cards</div></div>
+              <div>
+                <div class="setting-name">Preview Animation</div>
+                <div class="setting-desc">Live canvas thumbnails inside cards</div>
+              </div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cardPreviewAnim"></button></div>
           </div>
@@ -219,16 +277,26 @@
 
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20M7 4v4M17 4v4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M2 8h20M7 4v4M17 4v4" />
+            </svg>
             <span>Cinema</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".6" fill="currentColor"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 8v5" />
+                  <circle cx="12" cy="16" r=".6" fill="currentColor" />
+                </svg>
               </div>
-              <div><div class="setting-name">Auto-hide Delay</div><div class="setting-desc">Time before UI fades after mouse moves</div></div>
+              <div>
+                <div class="setting-name">Auto-hide Delay</div>
+                <div class="setting-desc">Time before UI fades after mouse moves</div>
+              </div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="cinemaDelay" min="600" max="8000" step="100" value="2200">
@@ -239,9 +307,15 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 14h6v6h-6zM4 14h6v6H4zM14 4h6v6h-6z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M4 4h6v6H4zM14 14h6v6h-6zM4 14h6v6H4zM14 4h6v6h-6z" />
+                </svg>
               </div>
-              <div><div class="setting-name">Always Show in Fullscreen</div><div class="setting-desc">Keep UI visible even in cinema mode</div></div>
+              <div>
+                <div class="setting-name">Always Show in Fullscreen</div>
+                <div class="setting-desc">Keep UI visible even in cinema mode</div>
+              </div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cinemaAlwaysShow"></button></div>
           </div>
@@ -249,9 +323,15 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+                </svg>
               </div>
-              <div><div class="setting-name">Cinema Hint</div><div class="setting-desc">Show a small hint when entering cinema</div></div>
+              <div>
+                <div class="setting-name">Cinema Hint</div>
+                <div class="setting-desc">Show a small hint when entering cinema</div>
+              </div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cinemaHint"></button></div>
           </div>
@@ -259,16 +339,24 @@
 
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.6"/><path d="M4 9h16M12 9v6M9 21l3-6 3 6"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="5" r="1.6" />
+              <path d="M4 9h16M12 9v6M9 21l3-6 3 6" />
+            </svg>
             <span>Accessibility</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <path d="M5 12h14M12 5v14" />
+                </svg>
               </div>
-              <div><div class="setting-name">Reduce Motion</div><div class="setting-desc">Minimise UI transitions and animations</div></div>
+              <div>
+                <div class="setting-name">Reduce Motion</div>
+                <div class="setting-desc">Minimise UI transitions and animations</div>
+              </div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="reduceMotion"></button></div>
           </div>
@@ -276,9 +364,15 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 3v18M3 12h18" />
+                </svg>
               </div>
-              <div><div class="setting-name">High Contrast</div><div class="setting-desc">Boost border and text contrast</div></div>
+              <div>
+                <div class="setting-name">High Contrast</div>
+                <div class="setting-desc">Boost border and text contrast</div>
+              </div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="highContrast"></button></div>
           </div>
@@ -286,16 +380,26 @@
 
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+              <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+            </svg>
             <span>Data</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <path d="M21 12a9 9 0 1 1-3-6.7" />
+                  <path d="M21 4v5h-5" />
+                </svg>
               </div>
-              <div><div class="setting-name">Reset Settings</div><div class="setting-desc">Restore all preferences to defaults</div></div>
+              <div>
+                <div class="setting-name">Reset Settings</div>
+                <div class="setting-desc">Restore all preferences to defaults</div>
+              </div>
             </div>
             <div class="setting-control"><button class="spill danger" id="resetSettings">RESET</button></div>
           </div>
@@ -311,7 +415,7 @@
   </section>
 
   <!-- ============================================================
-       VERTEX SHADER (shared by both templates)
+       VERTEX SHADER (shared)
        ============================================================ -->
   <script id="vs" type="x-shader/x-vertex">
     attribute vec2 a_position;
@@ -322,7 +426,7 @@
        LIQUID FRAGMENT SHADER TEMPLATE
        ============================================================ -->
   <script id="fs-template-liquid" type="x-shader/x-fragment">
-precision mediump float;
+    precision mediump float;
 uniform vec2 u_resolution, u_mouse;
 uniform float u_time, u_pulse, u_speed, u_soft, u_glow;
 uniform float u_scale, u_warp, u_pulseAmt;
@@ -381,10 +485,9 @@ void main(){
 
   <!-- ============================================================
        3D SCENE FRAGMENT SHADER TEMPLATE
-       Injects scene code at // __SCENE_BODY__
        ============================================================ -->
   <script id="fs-template-3d" type="x-shader/x-fragment">
-precision highp float;
+    precision highp float;
 
 uniform vec2 u_resolution, u_mouse;
 uniform float u_time, u_pulse, u_speed, u_soft, u_glow;
@@ -396,7 +499,7 @@ uniform float u_ambient;
 
 #define T (u_time * u_speed)
 
-// ---------- 2D helpers (kept for scene authors) ----------
+// ---------- 2D helpers ----------
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p){ return hash(p); }
 float fbm(vec2 p){
@@ -406,16 +509,15 @@ float fbm(vec2 p){
 }
 mat2 rot2(float a){ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
 
-// ---------- 3D noise ----------
+// ---------- 3D helpers ----------
 float hash3(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
 float noise3(vec3 p){
   vec3 i = floor(p), f = fract(p);
   f = f * f * (3.0 - 2.0 * f);
-  float a = mix(mix(mix(hash3(i + vec3(0,0,0)), hash3(i + vec3(1,0,0)), f.x),
-                    mix(hash3(i + vec3(0,1,0)), hash3(i + vec3(1,1,0)), f.x), f.y),
-                mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x),
-                    mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z);
-  return a;
+  return mix(mix(mix(hash3(i + vec3(0,0,0)), hash3(i + vec3(1,0,0)), f.x),
+                 mix(hash3(i + vec3(0,1,0)), hash3(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x),
+                 mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z);
 }
 float fbm3(vec3 p){
   float v = 0., a = .5;
@@ -423,12 +525,10 @@ float fbm3(vec3 p){
   return v;
 }
 
-// ---------- 3D rotations ----------
 vec3 rotX(vec3 p, float a){ float c = cos(a), s = sin(a); return vec3(p.x, c*p.y - s*p.z, s*p.y + c*p.z); }
 vec3 rotY(vec3 p, float a){ float c = cos(a), s = sin(a); return vec3(c*p.x + s*p.z, p.y, -s*p.x + c*p.z); }
 vec3 rotZ(vec3 p, float a){ float c = cos(a), s = sin(a); return vec3(c*p.x - s*p.y, s*p.x + c*p.y, p.z); }
 
-// ---------- SDF primitives ----------
 float sdSphere(vec3 p, float r){ return length(p) - r; }
 float sdBox(vec3 p, vec3 b){ vec3 q = abs(p) - b; return length(max(q, 0.)) + min(max(q.x, max(q.y, q.z)), 0.); }
 float sdPlane(vec3 p){ return p.y; }
@@ -454,7 +554,7 @@ float smin(float a, float b, float k){
 // ---------- scene body (injected) ----------
 // __SCENE_BODY__
 
-// ---------- default fallbacks ----------
+// ---------- fallbacks ----------
 #ifndef HAS_MATERIAL
 vec3 materialColor(vec3 p, vec3 n, vec3 rd){
   return mix(u_a, u_b, clamp(n.y * 0.5 + 0.5, 0., 1.));
@@ -465,11 +565,11 @@ vec3 materialColor(vec3 p, vec3 n, vec3 rd){
 vec3 emission(vec3 p){ return vec3(0.); }
 #endif
 
-// ---------- raymarch helpers ----------
+// ---------- raymarch ----------
 float raymarch(vec3 ro, vec3 rd, out vec3 p, out int steps){
   float dTotal = 0.;
   steps = 0;
-  for (int i = 0; i < 96; i++){
+  for (int i = 0; i < 80; i++){
     p = ro + rd * dTotal;
     float d = map(p);
     if (d < 0.0015) { steps = i; return dTotal; }
@@ -493,11 +593,11 @@ vec3 calcNormal(vec3 p){
 float softShadow(vec3 ro, vec3 rd, float mint, float maxt, float k){
   float res = 1.;
   float t = mint;
-  for (int i = 0; i < 20; i++){
+  for (int i = 0; i < 16; i++){
     float h = map(ro + rd * t);
     if (h < 0.001) return 0.;
     res = min(res, k * h / t);
-    t += clamp(h, 0.02, 0.3);
+    t += clamp(h, 0.03, 0.3);
     if (t > maxt) break;
   }
   return clamp(res, 0., 1.);
@@ -522,7 +622,7 @@ void main(){
 
   if (dHit >= 0.0){
     vec3 n = calcNormal(p);
-    vec3 L = normalize(-u_lightDir);
+    vec3 L = normalize(u_lightDir);
     float diff = max(0.0, dot(n, L));
     float rim = pow(1.0 - max(0.0, dot(n, -rd)), 3.0);
 
@@ -539,26 +639,20 @@ void main(){
         + rim * u_b * 0.35
         + emis;
 
-    // Fresnel sky reflection
     float fres = pow(1.0 - max(0.0, dot(n, -rd)), 4.0);
     vec3 sky = mix(u_a, u_b * 0.4, clamp(n.y * 0.5 + 0.5, 0., 1.));
     col = mix(col, sky, fres * 0.30);
-
-    // Depth fog
     col = mix(col, vec3(0.01, 0.02, 0.04), 1.0 - exp(-dHit * 0.10));
   } else {
-    // Sky gradient
     float sky = clamp(rd.y * 0.5 + 0.5, 0., 1.);
     col = mix(u_a * 0.6, u_b * 0.25, sky);
   }
 
-  // Pulse glow halo
   if (dHit >= 0.0){
     float pulse = exp(-abs(dHit - 0.8) * 6.0) * u_pulse;
     col += u_b * pulse * 0.25 * u_glow;
   }
 
-  // Tone map + gamma
   col = col / (1.0 + col);
   col = pow(max(col, 0.0), vec3(1.0 / 2.2));
 
@@ -586,7 +680,7 @@ void main(){
     }
 
     // ============================================================
-    // COLLECTIONS + MODE
+    // COLLECTIONS + MODE CONFIG
     // ============================================================
     const COLLECTIONS = { liquid: liquids, scene: scenes };
     const FILTER_SETS = {
@@ -604,8 +698,12 @@ void main(){
 
     let currentMode = 'liquid';
     let currentIndices = { liquid: 0, scene: 0 };
-    let activeFilter = 'all';
-    let current = 0;  // unified index into the active collection
+    let activeFilters = { liquid: 'all', scene: 'all' };
+    let cards = [];         // current mode's cards
+    let current = 0;        // unified index into active collection
+
+    function activeCollection() { return COLLECTIONS[currentMode]; }
+    function activeFilter() { return activeFilters[currentMode]; }
 
     // ============================================================
     // SETTINGS
@@ -819,20 +917,19 @@ void main(){
       return prog;
     }
 
-    const FALLBACK_BODY_LIQUID = 'v = fbm(p * 2.5 + t * .02);';
-    const FALLBACK_BODY_SCENE  = 'float map(vec3 p){ return p.y + 1.0; }';
+    const FALLBACK_LIQUID = 'v = fbm(p * 2.5 + t * .02);';
+    const FALLBACK_SCENE  = 'float map(vec3 p){ return p.y + 1.0; }';
 
     function buildLiquidSource(liquid) {
-      const body = (liquid.custom && liquid.custom.trim()) || FALLBACK_BODY_LIQUID;
+      const body = (liquid.custom && liquid.custom.trim()) || FALLBACK_LIQUID;
       return FS_LIQUID.replace('// __LIQUID_BODY__', body.endsWith('\n') ? body : body + '\n');
     }
     function buildSceneSource(scene) {
-      const body = (scene.custom && scene.custom.trim()) || FALLBACK_BODY_SCENE;
+      const body = (scene.custom && scene.custom.trim()) || FALLBACK_SCENE;
       return FS_SCENE.replace('// __SCENE_BODY__', body.endsWith('\n') ? body : body + '\n');
     }
 
-    // Cache keyed by "mode:name"
-    const programCache = new Map();
+    const programCache = new Map();  // key = mode + ':' + name
 
     function compileEntry(item, mode) {
       const isScene = mode === 'scene';
@@ -900,11 +997,11 @@ void main(){
     let tx = mx, ty = innerHeight - my;
     let pulseVal = 0;
 
-    // Camera state
-    let camTheta = 0.5;   // auto-advances in scene mode
-    let camPhi = 0.25;    // user-adjustable via drag
-    let camDist = 3.5;    // user-adjustable via wheel
-    let camUserTheta = 0; // user drag offset
+    // Scene camera state
+    let camTheta = 0;        // auto-advance angle
+    let camPhi = 0.25;       // elevation in radians
+    let camDist = 3.5;       // radial distance
+    let camUserTheta = 0;    // user drag offset
     let dragActive = false;
     let dragStartX = 0, dragStartY = 0;
     let dragThetaStart = 0, dragPhiStart = 0;
@@ -913,11 +1010,12 @@ void main(){
       tx = e.clientX * dpr;
       ty = (innerHeight - e.clientY) * dpr;
       if (cinemaMode) revealUiTemporarily();
+
       if (dragActive && currentMode === 'scene') {
         const dx = e.clientX - dragStartX;
         const dy = e.clientY - dragStartY;
         camUserTheta = dragThetaStart - dx * 0.008;
-        camPhi = Math.max(-0.6, Math.min(0.9, dragPhiStart + dy * 0.005));
+        camPhi = Math.max(-0.55, Math.min(0.9, dragPhiStart + dy * 0.005));
       }
     }, { passive: true });
 
@@ -937,15 +1035,14 @@ void main(){
 
     addEventListener('wheel', e => {
       if (currentMode === 'scene') {
-        camDist = Math.max(1.5, Math.min(10, camDist + e.deltaY * 0.005));
+        camDist = Math.max(1.5, Math.min(12, camDist + e.deltaY * 0.005));
       }
     }, { passive: true });
 
     // ============================================================
-    // DOM
+    // DOM REFS
     // ============================================================
     const grid = $('grid');
-    const cards = [];
     const vault = $('vault');
     const statusEl = $('status');
     const statusBox = $('statusBox');
@@ -957,16 +1054,565 @@ void main(){
     const infoEl = $('info');
     const vaultTitle = $('vaultTitle');
     const filtersEl = $('filters');
+    const modeTabsEl = $('modeTabs');
 
     // ============================================================
-    // FILTERS + MODE TABS
+    // FILTERS (rebuilt per mode)
     // ============================================================
     function buildFilters() {
       filtersEl.innerHTML = '';
       const set = FILTER_SETS[currentMode];
-      set.forEach((f, i) => {
+      const af = activeFilters[currentMode];
+      set.forEach(f => {
         const b = document.createElement('button');
         b.dataset.filter = f;
         b.textContent = f.toUpperCase();
-        if (f === activeFilter) b.classList.add('active');
-        b.addEventListener('click
+        if (f === af) b.classList.add('active');
+        b.addEventListener('click', () => {
+          activeFilters[currentMode] = f;
+          filtersEl.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+          applyFilter();
+        });
+        filtersEl.appendChild(b);
+      });
+    }
+
+    function applyFilter() {
+      const f = activeFilters[currentMode];
+      for (const c of cards) {
+        c.style.display = (f === 'all' || c.dataset.cat === f) ? '' : 'none';
+      }
+    }
+
+    // ============================================================
+    // CARD GENERATION
+    // ============================================================
+    function clearGrid() {
+      grid.innerHTML = '';
+      cards = [];
+    }
+
+    function addCard(item, i, mode) {
+      const c = document.createElement('article');
+      c.className = 'card';
+      c.dataset.cat = item.cat;
+      c.style.setProperty('--accent', item.b);
+      c.style.setProperty('--accent2', item.a);
+      c.innerHTML = `
+        <div class="preview"><canvas width="76" height="76"></canvas></div>
+        <div>
+          <h3></h3>
+          <small></small>
+          <span class="tag"></span>
+        </div>`;
+      c.querySelector('h3').textContent = item.name;
+      c.querySelector('small').textContent = item.desc || '';
+      c.querySelector('.tag').textContent = item.cat;
+      c.addEventListener('click', () => {
+        setItem(i, mode);
+        vault.classList.remove('open');
+      });
+      grid.appendChild(c);
+      cards.push(c);
+    }
+
+    function rebuildCards() {
+      clearGrid();
+      const col = activeCollection();
+      col.forEach((item, i) => addCard(item, i, currentMode));
+      setupMiniObservers();
+      applyFilter();
+      // Reapply card animation only if enabled
+      if (!settings.cardPreviewAnim) document.body.classList.add('no-card-anim');
+      else document.body.classList.remove('no-card-anim');
+    }
+
+    // ============================================================
+    // MODE SWITCHING
+    // ============================================================
+    function setMode(mode) {
+      if (mode === currentMode) return;
+      currentMode = mode;
+
+      // Tabs
+      modeTabsEl.querySelectorAll('.modeTab').forEach(t => {
+        t.classList.toggle('active', t.dataset.mode === mode);
+      });
+
+      // Body class for camera hint
+      document.body.classList.toggle('scene-mode', mode === 'scene');
+
+      // Vault title + hint text
+      vaultTitle.textContent = VAULT_TITLES[mode];
+      heroSub.textContent = HERO_SUBS[mode];
+
+      // Rebuild filters + cards
+      buildFilters();
+      rebuildCards();
+
+      // Info count
+      infoEl.textContent = activeCollection().length + ' distinct profiles';
+
+      // Restore last selected index in this mode
+      const idx = currentIndices[mode] || 0;
+      setItem(idx, mode);
+    }
+
+    modeTabsEl.querySelectorAll('.modeTab').forEach(t => {
+      t.addEventListener('click', () => setMode(t.dataset.mode));
+    });
+
+    // ============================================================
+    // SET ITEM (liquid or scene)
+    // ============================================================
+    function setItem(i, mode) {
+      mode = mode || currentMode;
+      const col = COLLECTIONS[mode];
+      if (i < 0 || i >= col.length) return;
+      current = i;
+      currentIndices[mode] = i;
+
+      const item = col[i];
+      hero.textContent = item.name;
+      nameEl.textContent = item.name;
+      kindEl.textContent = item.desc || '';
+
+      for (let n = 0; n < cards.length; n++) {
+        cards[n].classList.toggle('active', n === i);
+      }
+
+      hero.classList.remove('glow-pulse');
+      void hero.offsetWidth;
+      hero.classList.add('glow-pulse');
+
+      // On scene change, reset camera to the scene's suggested defaults
+      if (mode === 'scene') {
+        camTheta = 0;
+        camPhi = 0.25;
+        camUserTheta = 0;
+        camDist = item.camDist ?? 3.5;
+      }
+
+      // Warm the shader cache
+      try { getEntry(mode, item); }
+      catch (e) { console.error('Shader compile failed for', item.name, e); }
+    }
+
+    // ============================================================
+    // RENDER LOOP
+    // ============================================================
+    let currentEntry = null;
+    let lastTime = 0;
+    let raf = 0;
+
+    function draw(t) {
+      raf = requestAnimationFrame(draw);
+      if (document.hidden) return;
+      if (t - lastTime < 14) return;
+      lastTime = t;
+
+      mx += (tx - mx) * .08;
+      my += (ty - my) * .08;
+      pulseVal *= .92;
+
+      const col = activeCollection();
+      const item = col[current];
+      if (!item) return;
+
+      let entry;
+      try { entry = getEntry(currentMode, item); }
+      catch (e) {
+        // Fallback program per mode
+        const key = currentMode + ':__fallback__';
+        if (!programCache.has(key)) {
+          try {
+            const fallbackSrc = currentMode === 'scene'
+              ? FS_SCENE.replace('// __SCENE_BODY__', FALLBACK_SCENE)
+              : FS_LIQUID.replace('// __LIQUID_BODY__', FALLBACK_LIQUID);
+            const prog = compileProgram(VS_SRC, fallbackSrc);
+            programCache.set(key, {
+              program: prog,
+              attribPos: gl.getAttribLocation(prog, 'a_position'),
+              uniforms: {
+                res: gl.getUniformLocation(prog, 'u_resolution'),
+                mouse: gl.getUniformLocation(prog, 'u_mouse'),
+                time: gl.getUniformLocation(prog, 'u_time'),
+                pulse: gl.getUniformLocation(prog, 'u_pulse'),
+                a: gl.getUniformLocation(prog, 'u_a'),
+                b: gl.getUniformLocation(prog, 'u_b'),
+                speed: gl.getUniformLocation(prog, 'u_speed'),
+                soft: gl.getUniformLocation(prog, 'u_soft'),
+                glow: gl.getUniformLocation(prog, 'u_glow'),
+                scale: gl.getUniformLocation(prog, 'u_scale'),
+                warp: gl.getUniformLocation(prog, 'u_warp'),
+                pulseAmt: gl.getUniformLocation(prog, 'u_pulseAmt'),
+                camPos: gl.getUniformLocation(prog, 'u_camPos'),
+                camTarget: gl.getUniformLocation(prog, 'u_camTarget'),
+                lightDir: gl.getUniformLocation(prog, 'u_lightDir'),
+                lightCol: gl.getUniformLocation(prog, 'u_lightCol'),
+                ambient: gl.getUniformLocation(prog, 'u_ambient')
+              },
+              isScene: currentMode === 'scene'
+            });
+          } catch (e2) { console.error('Fallback compile failed', e2); }
+        }
+        entry = programCache.get(key);
+        if (!entry) return;
+      }
+
+      if (entry !== currentEntry) {
+        currentEntry = entry;
+        gl.useProgram(entry.program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+        gl.enableVertexAttribArray(entry.attribPos);
+        gl.vertexAttribPointer(entry.attribPos, 2, gl.FLOAT, false, 0, 0);
+      }
+
+      const U = entry.uniforms;
+      const speed   = (item.speed ?? .3) * settings.motionMult;
+      const glow    = (item.glow  ?? .45) * settings.glowMult;
+      const soft    = (item.soft  ?? .3);
+      const scale   = (item.scale ?? 1);
+      const warp    = (item.warp  ?? 0);
+      const pulseAmt= (item.pulse ?? 1);
+
+      gl.uniform2f(U.res, W, H);
+      gl.uniform2f(U.mouse, mx, my);
+      gl.uniform1f(U.time, t * .001);
+      gl.uniform1f(U.pulse, pulseVal);
+      gl.uniform3fv(U.a, rgb(item.a));
+      gl.uniform3fv(U.b, rgb(item.b));
+      gl.uniform1f(U.speed, speed);
+      gl.uniform1f(U.soft, soft);
+      gl.uniform1f(U.glow, glow);
+      gl.uniform1f(U.scale, scale);
+      gl.uniform1f(U.warp, warp);
+      gl.uniform1f(U.pulseAmt, pulseAmt);
+
+      if (entry.isScene) {
+        // Advance auto-orbit
+        camTheta += (item.camOrbit ?? 0.1) * 0.016;
+
+        const theta = camTheta + camUserTheta;
+        const phi = camPhi;
+        const dist = camDist;
+
+        const cpx = Math.sin(theta) * Math.cos(phi) * dist;
+        const cpy = Math.sin(phi) * dist;
+        const cpz = Math.cos(theta) * Math.cos(phi) * dist;
+        const targetY = item.camHeight ?? 0;
+
+        gl.uniform3f(U.camPos, cpx, cpy, cpz);
+        gl.uniform3f(U.camTarget, 0, targetY, 0);
+
+        const ld = item.lightDir || [0.5, 0.7, 0.6];
+        gl.uniform3f(U.lightDir, ld[0], ld[1], ld[2]);
+
+        const lc = rgb(item.lightCol || '#ffffff');
+        gl.uniform3fv(U.lightCol, lc);
+
+        gl.uniform1f(U.ambient, item.ambient ?? 0.15);
+      }
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    // ============================================================
+    // BACKGROUND COMPILATION
+    // ============================================================
+    function compileRestInBackground() {
+      const idle = window.requestIdleCallback || (fn => setTimeout(() => fn({ timeRemaining: () => 16 }), 40));
+      // Compile liquids first, then scenes
+      const queue = [];
+      liquids.forEach(l => queue.push({ mode: 'liquid', item: l }));
+      scenes.forEach(s => queue.push({ mode: 'scene', item: s }));
+
+      let i = 0;
+      function step(deadline) {
+        while (i < queue.length && deadline.timeRemaining() > 4) {
+          const { mode, item } = queue[i++];
+          if (!programCache.has(mode + ':' + item.name)) {
+            try { getEntry(mode, item); }
+            catch (e) { console.warn('Skipped ' + mode + ':' + item.name, e); }
+          }
+        }
+        if (i < queue.length) idle(step);
+      }
+      idle(step);
+    }
+
+    // ============================================================
+    // MINI CANVAS PREVIEWS
+    // ============================================================
+    let mini = [];
+    let miniIO = null;
+    let miniBusy = false;
+    let miniTimer = null;
+
+    function setupMiniObservers() {
+      if (miniIO) miniIO.disconnect();
+      mini = cards.map((c, i) => ({ c, i, phase: i * .37, visible: true }));
+
+      if ('IntersectionObserver' in window) {
+        miniIO = new IntersectionObserver(es => {
+          es.forEach(e => {
+            const o = mini.find(x => x.c === e.target);
+            if (o) o.visible = e.isIntersecting;
+          });
+        }, { root: grid, rootMargin: '120px' });
+        mini.forEach(o => miniIO.observe(o.c));
+      }
+    }
+
+    function drawMiniLiquid(x, w, h, l, q, phase) {
+      x.fillStyle = l.a;
+      x.fillRect(0, 0, w, h);
+      const g = x.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, l.a);
+      g.addColorStop(.55, l.b + 'cc');
+      g.addColorStop(1, l.a);
+      x.globalAlpha = .9;
+      x.fillStyle = g;
+      x.fillRect(0, 0, w, h);
+      x.globalAlpha = .45;
+      for (let k = 0; k < 3; k++) {
+        x.beginPath();
+        for (let n = 0; n <= 40; n++) {
+          const xx = n / 40 * w;
+          const yy = h * .48 + Math.sin(n * .28 + q * (1 + k * .16) + phase) * h * (.055 + k * .035);
+          if (n) x.lineTo(xx, yy); else x.moveTo(xx, yy);
+        }
+        x.strokeStyle = l.b;
+        x.lineWidth = 3 - k * .65;
+        x.stroke();
+      }
+      x.globalAlpha = 1;
+    }
+
+    function drawMiniScene(x, w, h, l, q) {
+      // Sky gradient
+      const g = x.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, l.a);
+      g.addColorStop(0.55, l.b + '30');
+      g.addColorStop(1, l.a);
+      x.fillStyle = g;
+      x.fillRect(0, 0, w, h);
+
+      // Horizon line
+      x.strokeStyle = l.b + '55';
+      x.lineWidth = 1;
+      x.beginPath();
+      x.moveTo(0, h * 0.72);
+      x.lineTo(w, h * 0.72);
+      x.stroke();
+
+      // Sphere
+      const cx = w * 0.5 + Math.sin(q) * w * 0.03;
+      const cy = h * 0.5 + Math.cos(q * 0.6) * h * 0.02;
+      const r = w * 0.26;
+
+      // Soft shadow on floor
+      const sh = x.createRadialGradient(cx, h * 0.72, 1, cx, h * 0.72, r * 1.4);
+      sh.addColorStop(0, 'rgba(0,0,0,0.45)');
+      sh.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = sh;
+      x.beginPath();
+      x.ellipse(cx, h * 0.72, r * 1.4, r * 0.28, 0, 0, Math.PI * 2);
+      x.fill();
+
+      // Sphere with top-left lighting
+      const sg = x.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.05, cx, cy, r);
+      sg.addColorStop(0, l.b);
+      sg.addColorStop(0.65, l.b + '99');
+      sg.addColorStop(1, l.a);
+      x.fillStyle = sg;
+      x.beginPath();
+      x.arc(cx, cy, r, 0, Math.PI * 2);
+      x.fill();
+
+      // Rim light
+      x.strokeStyle = l.b;
+      x.lineWidth = 1;
+      x.globalAlpha = 0.5 + 0.3 * Math.sin(q * 2);
+      x.beginPath();
+      x.arc(cx, cy, r, 0, Math.PI * 2);
+      x.stroke();
+      x.globalAlpha = 1;
+    }
+
+    function miniFrame(t) {
+      if (!settings.cardPreviewAnim) return;
+      if (miniBusy) { scheduleMiniFrame(); return; }
+      miniBusy = true;
+
+      const col = activeCollection();
+      const isScene = currentMode === 'scene';
+
+      for (let idx = 0; idx < mini.length; idx++) {
+        const o = mini[idx];
+        if (!o.visible) continue;
+        const c = o.c.querySelector('canvas');
+        if (!c) continue;
+        const x = c.getContext('2d');
+        const l = col[o.i];
+        if (!l) continue;
+        const q = t * .00045 * (l.speed || .3) + o.phase;
+        const w = c.width, h = c.height;
+
+        if (isScene) drawMiniScene(x, w, h, l, q);
+        else drawMiniLiquid(x, w, h, l, q, o.phase);
+      }
+
+      miniBusy = false;
+      scheduleMiniFrame();
+    }
+
+    function scheduleMiniFrame() {
+      clearTimeout(miniTimer);
+      miniTimer = setTimeout(() => requestAnimationFrame(miniFrame), 70);
+    }
+
+    // ============================================================
+    // VAULT UI
+    // ============================================================
+    $('vaultBtn').addEventListener('click', () => vault.classList.add('open'));
+    $('open').addEventListener('click', () => vault.classList.add('open'));
+    $('close').addEventListener('click', () => vault.classList.remove('open'));
+
+    const goEditor = () => { location.href = 'editor.html'; };
+    $('editorBtn').addEventListener('click', goEditor);
+    $('editorNav').addEventListener('click', goEditor);
+
+    function triggerPulse() {
+      pulseVal = 1;
+      statusEl.textContent = 'FLUID PULSE';
+      statusBox.classList.add('pulse');
+      setTimeout(() => {
+        statusEl.textContent = 'ENGINE ONLINE';
+        statusBox.classList.remove('pulse');
+      }, 700);
+    }
+
+    $('pulse').addEventListener('click', triggerPulse);
+
+    $('random').addEventListener('click', () => {
+      const col = activeCollection();
+      const idx = Math.floor(Math.random() * col.length);
+      setItem(idx, currentMode);
+      pulseVal = 1;
+    });
+
+    // ============================================================
+    // CINEMA
+    // ============================================================
+    let cinemaMode = false;
+    let uiRevealTimer = null;
+    let hintTimer = null;
+
+    function setCinema(on) {
+      cinemaMode = on;
+      if (on) {
+        if (settings.cinemaAlwaysShow) return;
+        document.body.classList.add('cinema');
+        if (settings.cinemaHint) {
+          cinemaHint.classList.add('show');
+          clearTimeout(hintTimer);
+          hintTimer = setTimeout(() => cinemaHint.classList.remove('show'), 3200);
+        }
+      } else {
+        document.body.classList.remove('cinema');
+        cinemaHint.classList.remove('show');
+        clearTimeout(uiRevealTimer);
+      }
+    }
+
+    function revealUiTemporarily() {
+      if (!cinemaMode || settings.cinemaAlwaysShow) return;
+      document.body.classList.remove('cinema');
+      clearTimeout(uiRevealTimer);
+      uiRevealTimer = setTimeout(() => {
+        if (cinemaMode) document.body.classList.add('cinema');
+      }, settings.cinemaDelay);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        const p = document.documentElement.requestFullscreen?.();
+        if (p && p.catch) p.catch(() => {});
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+
+    $('full').addEventListener('click', toggleFullscreen);
+
+    const fullIcon = $('fullIcon');
+    const fsPathEnter = 'M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3';
+    const fsPathExit  = 'M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M21 16h-3a2 2 0 0 0-2 2v3M3 16h3a2 2 0 0 1 2 2v3';
+    function updateFullIcon() {
+      const p = fullIcon.querySelector('path');
+      if (p) p.setAttribute('d', document.fullscreenElement ? fsPathExit : fsPathEnter);
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement) setCinema(true);
+      else setCinema(false);
+      updateFullIcon();
+    });
+    updateFullIcon();
+
+    // ============================================================
+    // KEYBOARD
+    // ============================================================
+    addEventListener('keydown', e => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        if (e.key === 'Escape') e.target.blur();
+        return;
+      }
+      if (e.key === 'Escape') {
+        vault.classList.remove('open');
+        settingsEl.classList.remove('open');
+      }
+      if (e.code === 'Space') { e.preventDefault(); triggerPulse(); }
+      if ((e.key === 'f' || e.key === 'F') && !e.metaKey && !e.ctrlKey) toggleFullscreen();
+      if ((e.key === 's' || e.key === 'S') && !e.metaKey && !e.ctrlKey) settingsEl.classList.toggle('open');
+      if (e.key === 'h' || e.key === 'H') {
+        if (cinemaMode) revealUiTemporarily();
+        else if (document.fullscreenElement) setCinema(true);
+      }
+      if (e.key === 'm' || e.key === 'M') {
+        setMode(currentMode === 'liquid' ? 'scene' : 'liquid');
+      }
+    });
+
+    grid.addEventListener('wheel', e => e.stopPropagation(), { passive: true });
+
+    // ============================================================
+    // BOOT
+    // ============================================================
+    applyAllSettings();
+
+    // Initialize scene-mode body class
+    document.body.classList.toggle('scene-mode', currentMode === 'scene');
+
+    // Build initial UI
+    buildFilters();
+    rebuildCards();
+
+    infoEl.textContent = activeCollection().length + ' distinct profiles';
+
+    // Show the first liquid
+    setItem(0, 'liquid');
+
+    scheduleMiniFrame();
+    raf = requestAnimationFrame(draw);
+
+    // Compile the rest of the library during idle time
+    if (window.requestIdleCallback) requestIdleCallback(compileRestInBackground);
+    else setTimeout(compileRestInBackground, 600);
+  </script>
+</body>
+
+</html>
