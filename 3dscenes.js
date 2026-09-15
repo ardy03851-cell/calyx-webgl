@@ -535,6 +535,96 @@ vec3 materialColor(vec3 p, vec3 n, vec3 rd){
 }
     `
   },
+
+  {
+    name: "Ancient Oak",
+    cat: "nature",
+    desc: "A highly detailed procedural tree model",
+    a: "#0c180e",
+    b: "#62a856",
+    speed: 0.15,
+    glow: 0.9,
+    camDist: 3.8,
+    camHeight: 0.5,
+    camOrbit: 0.08,
+    lightDir: [0.5, 0.8, 0.5],
+    lightCol: "#fffaf0",
+    ambient: 0.20,
+    custom: `
+#define HAS_MATERIAL
+float sdTrunk(vec3 p, out float bark) {
+    // Twist and taper trunk using noise
+    vec3 q = p;
+    float n = fbm3(q * 1.5 + vec3(0.0, q.y * 0.5, 0.0)) * 0.25;
+    q.x += n;
+    q.z += n;
+    
+    // Main tapered cylinder trunk
+    float r = 0.22 * (1.2 - clamp(q.y * 0.5, 0.0, 0.9));
+    float d = length(q.xz) - r;
+    
+    // Add large root flares at the base
+    float roots = length(p.xz) - (0.35 * exp(-p.y * 2.5));
+    d = smin(d, roots, 0.25);
+    
+    // Bark texture displacement
+    bark = fbm3(p * 8.0) * 0.04;
+    return d - bark;
+}
+
+float sdCanopy(vec3 p) {
+    // Multi-lobed fluffy organic canopy using smooth minimums on distorted spheres
+    vec3 q = p - vec3(0.0, 1.4, 0.0);
+    float d = sdSphere(q, 0.95);
+    
+    // Carve out organic irregularities and blend secondary lobes
+    d += fbm3(q * 2.2) * 0.35;
+    d = smin(d, sdSphere(q + vec3(0.5, -0.2, 0.3), 0.7), 0.3);
+    d = smin(d, sdSphere(q + vec3(-0.4, 0.1, -0.4), 0.65), 0.3);
+    d = smin(d, sdSphere(q + vec3(0.2, 0.5, -0.3), 0.6), 0.3);
+    return d;
+}
+
+float map(vec3 p) {
+    // Ground plane
+    float ground = p.y + 0.8;
+    
+    float bark;
+    float trunk = sdTrunk(p, bark);
+    float canopy = sdCanopy(p);
+    
+    // Combine tree parts smoothly
+    float tree = smin(trunk, canopy, 0.15);
+    
+    return min(ground, tree);
+}
+
+vec3 materialColor(vec3 p, vec3 n, vec3 rd) {
+    // Ground shading
+    if (p.y < -0.75) {
+        float pat = fbm(p.xz * 2.0);
+        return u_a * (0.5 + pat * 0.5);
+    }
+    
+    // Distinguish canopy (leaves) vs trunk/branches based on height and normal orientation
+    float isCanopy = smoothstep(0.4, 1.2, p.y) * (1.0 - smoothstep(0.7, 0.9, abs(n.y)));
+    
+    if (isCanopy > 0.3) {
+        // Leaf foliage color with subtle variation
+        float leafNoise = fbm3(p * 5.0);
+        vec3 leafCol = mix(u_b * 0.6, u_b * 1.3, leafNoise);
+        float fres = pow(1.0 - max(0.0, dot(n, -rd)), 2.0);
+        return mix(leafCol, u_b * 1.5, fres * 0.3);
+    } else {
+        // Bark / wood color
+        float woodNoise = fbm3(p * 4.0);
+        vec3 woodCol = mix(vec3(0.22, 0.14, 0.08), vec3(0.38, 0.26, 0.16), woodNoise);
+        return woodCol;
+    }
+}
+    `
+  },
+  
   {
     name: "Infinite Tunnel",
     cat: "abstract",
