@@ -6,1277 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Calyx — Fluid Laboratory</title>
   <link rel="icon" type="image/png" href="icon.png">
-  <style>
-    :root {
-      --ui-opacity: .72;
-      --ui-blur: 22px;
-      --vignette-strength: 1;
-      --cinema-delay: 2200ms;
-      --panel-a: rgba(7, 10, 17, var(--ui-opacity));
-      --panel-b: rgba(7, 10, 17, calc(var(--ui-opacity) + .12));
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none
-    }
-
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #030509;
-      color: #edf3fb;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif
-    }
-
-    button {
-      font: inherit
-    }
-
-    #gl {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: block
-    }
-
-    .vignette {
-      position: fixed;
-      inset: 0;
-      z-index: 2;
-      pointer-events: none;
-      background: radial-gradient(circle at 50% 45%, transparent 38%, #0009 100%);
-      opacity: var(--vignette-strength);
-      transition: opacity .4s ease
-    }
-
-    .ui-layer {
-      transition: opacity .4s cubic-bezier(.4, 0, .2, 1), transform .4s cubic-bezier(.4, 0, .2, 1)
-    }
-
-    /* HUD */
-    .hud {
-      position: fixed;
-      z-index: 10;
-      top: 18px;
-      left: 18px;
-      right: 18px;
-      display: flex;
-      justify-content: space-between;
-      pointer-events: none
-    }
-
-    .brand {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      pointer-events: auto
-    }
-
-    .brand img {
-      width: 40px;
-      height: 40px;
-      border: 1px solid rgba(255, 255, 255, .13);
-      border-radius: 15px 6px 15px 6px;
-      box-shadow: 0 10px 35px rgba(0, 0, 0, .53)
-    }
-
-    .brand b {
-      font-size: 12px;
-      letter-spacing: .22em;
-      text-transform: uppercase
-    }
-
-    .brand span {
-      display: block;
-      color: #788497;
-      font-size: 8px;
-      letter-spacing: .12em;
-      margin-top: 3px
-    }
-
-    .status {
-      pointer-events: auto;
-      padding: 9px 12px;
-      border: 1px solid rgba(255, 255, 255, .13);
-      background: var(--panel-a);
-      backdrop-filter: blur(var(--ui-blur));
-      border-radius: 13px 6px 13px 6px;
-      font-size: 9px;
-      letter-spacing: .13em;
-      color: #9da8bc;
-      transition: color .3s, background .3s
-    }
-
-    .status i {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #7ed7b9;
-      margin-right: 7px;
-      box-shadow: 0 0 8px #7ed7b9;
-      transition: background .3s, box-shadow .3s
-    }
-
-    /* RAIL */
-    .rail {
-      position: fixed;
-      z-index: 11;
-      left: 18px;
-      top: 50%;
-      transform: translateY(-50%);
-      padding: 7px;
-      width: 58px;
-      border: 1px solid rgba(255, 255, 255, .13);
-      background: var(--panel-a);
-      backdrop-filter: blur(var(--ui-blur));
-      border-radius: 19px 7px 19px 7px;
-      box-shadow: 0 20px 55px rgba(0, 0, 0, .56)
-    }
-
-    .rail button {
-      width: 42px;
-      height: 42px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: #8290a7;
-      border-radius: 13px 5px 13px 5px;
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      transition: .18s
-    }
-
-    .rail button:hover,
-    .rail button.on {
-      color: #fff;
-      background: rgba(255, 255, 255, .07);
-      border-color: rgba(255, 255, 255, .13)
-    }
-
-    .rail button:active {
-      transform: scale(.92)
-    }
-
-    .rail svg {
-      width: 18px;
-      height: 18px
-    }
-
-    .rail hr {
-      border: 0;
-      border-top: 1px solid rgba(255, 255, 255, .09);
-      margin: 7px 5px
-    }
-
-    /* CENTER */
-    .center {
-      position: fixed;
-      z-index: 4;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      pointer-events: none;
-      mix-blend-mode: screen
-    }
-
-    .center h1 {
-      font-weight: 500;
-      font-size: clamp(30px, 6vw, 74px);
-      letter-spacing: -.065em;
-      text-shadow: 0 0 50px rgba(116, 170, 255, .16);
-      transition: text-shadow .4s
-    }
-
-    .center p {
-      font-size: 9px;
-      letter-spacing: .35em;
-      color: #8995aa;
-      margin-top: 9px;
-      text-transform: uppercase
-    }
-
-    /* DOCK */
-    .dock {
-      position: fixed;
-      z-index: 12;
-      left: 50%;
-      bottom: 18px;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px;
-      background: var(--panel-b);
-      backdrop-filter: blur(calc(var(--ui-blur) + 3px));
-      border: 1px solid rgba(255, 255, 255, .13);
-      border-radius: 19px 7px 19px 7px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, .56)
-    }
-
-    .btn {
-      height: 40px;
-      border: 1px solid rgba(255, 255, 255, .09);
-      background: rgba(255, 255, 255, .035);
-      color: #b7c1d1;
-      padding: 0 13px;
-      border-radius: 12px 5px 12px 5px;
-      font-size: 9px;
-      letter-spacing: .12em;
-      cursor: pointer;
-      transition: .18s;
-      white-space: nowrap
-    }
-
-    .btn:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, .08)
-    }
-
-    .btn:active {
-      transform: scale(.96)
-    }
-
-    .btn.primary {
-      background: linear-gradient(135deg, rgba(66, 107, 255, .16), rgba(110, 241, 227, .06));
-      border-color: rgba(117, 150, 255, .22);
-      color: #fff
-    }
-
-    .read {
-      min-width: 145px;
-      padding: 0 7px
-    }
-
-    .read b {
-      font-size: 11px;
-      transition: opacity .25s;
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 200px
-    }
-
-    .read small {
-      display: block;
-      color: #69768d;
-      font-size: 8px;
-      letter-spacing: .11em;
-      text-transform: uppercase;
-      margin-top: 4px;
-      transition: opacity .25s;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 200px
-    }
-
-    /* CINEMA */
-    body.cinema .hud,
-    body.cinema .rail,
-    body.cinema .center,
-    body.cinema .dock,
-    body.cinema .camera-hint {
-      opacity: 0;
-      pointer-events: none
-    }
-
-    body.cinema .rail {
-      transform: translateY(-50%) translateX(-8px)
-    }
-
-    body.cinema .dock {
-      transform: translateX(-50%) translateY(8px)
-    }
-
-    body.cinema .hud {
-      transform: translateY(-8px)
-    }
-
-    body.cinema .center {
-      transform: translate(-50%, -50%) scale(.96)
-    }
-
-    body.cinema {
-      cursor: none
-    }
-
-    .cinema-hint {
-      position: fixed;
-      z-index: 15;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%) translateY(10px);
-      padding: 10px 18px;
-      background: var(--panel-b);
-      backdrop-filter: blur(var(--ui-blur));
-      border: 1px solid rgba(255, 255, 255, .13);
-      border-radius: 13px 5px 13px 5px;
-      font-size: 9px;
-      letter-spacing: .18em;
-      color: #9da8bc;
-      text-transform: uppercase;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .5s, transform .5s
-    }
-
-    body.cinema .cinema-hint.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0)
-    }
-
-    /* Camera hint */
-    .camera-hint {
-      position: fixed;
-      z-index: 13;
-      left: 50%;
-      bottom: 82px;
-      transform: translateX(-50%) translateY(8px);
-      padding: 8px 14px;
-      background: var(--panel-b);
-      backdrop-filter: blur(var(--ui-blur));
-      border: 1px solid rgba(255, 255, 255, .13);
-      border-radius: 10px 4px 10px 4px;
-      font-size: 8px;
-      letter-spacing: .18em;
-      color: #9da8bc;
-      text-transform: uppercase;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .3s, transform .3s
-    }
-
-    body.scene-mode .camera-hint {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0)
-    }
-
-    /* VAULT */
-    .vault {
-      position: fixed;
-      inset: 0;
-      z-index: 30;
-      padding: 18px;
-      display: grid;
-      grid-template-columns: 180px 1fr;
-      gap: 11px;
-      background: rgba(2, 4, 11, .85) url("bh.png") center/cover no-repeat;
-      backdrop-filter: blur(calc(var(--ui-blur) * .9));
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(1.015);
-      transition: opacity .25s, transform .25s
-    }
-
-    .vault.open {
-      opacity: 1;
-      pointer-events: auto;
-      transform: none
-    }
-
-    .nav,
-    .main {
-      border: 1px solid rgba(255, 255, 255, .13);
-      background: var(--panel-b);
-      box-shadow: inset 0 1px rgba(255, 255, 255, .07), 0 25px 80px rgba(0, 0, 0, .56);
-      backdrop-filter: blur(var(--ui-blur))
-    }
-
-    .nav {
-      border-radius: 23px 7px 23px 7px;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, .22) transparent
-    }
-
-    .nav::-webkit-scrollbar {
-      width: 4px
-    }
-
-    .nav::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, .22);
-      border-radius: 8px
-    }
-
-    .nav h2 {
-      font-size: 15px
-    }
-
-    .nav p {
-      font-size: 9px;
-      line-height: 1.6;
-      color: #68758c;
-      margin-top: 5px
-    }
-
-    /* Mode tabs */
-    .modeTabs {
-      display: flex;
-      gap: 3px;
-      padding: 3px;
-      background: rgba(255, 255, 255, .04);
-      border: 1px solid rgba(255, 255, 255, .06);
-      border-radius: 11px;
-      margin-top: 14px
-    }
-
-    .modeTab {
-      flex: 1;
-      min-width: 0;
-      height: 30px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: #75829a;
-      border-radius: 8px;
-      font-size: 8px;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: .18s;
-      white-space: nowrap;
-      padding: 0 6px;
-      overflow: hidden;
-      text-overflow: ellipsis
-    }
-
-    .modeTab:hover {
-      color: #c8d2e2
-    }
-
-    .modeTab.active {
-      background: rgba(255, 255, 255, .08);
-      color: #fff;
-      border-color: rgba(255, 255, 255, .13);
-      box-shadow: inset 0 1px rgba(255, 255, 255, .07)
-    }
-
-    .filters {
-      display: grid;
-      gap: 4px;
-      margin-top: 14px
-    }
-
-    .filters button {
-      border: 1px solid transparent;
-      background: transparent;
-      color: #7c889c;
-      text-align: left;
-      padding: 9px;
-      border-radius: 9px;
-      font-size: 9px;
-      cursor: pointer;
-      transition: .18s
-    }
-
-    .filters button.active,
-    .filters button:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, .06);
-      border-color: rgba(255, 255, 255, .09)
-    }
-
-    .nav .editor {
-      margin-top: 10px
-    }
-
-    .hint {
-      margin-top: 18px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(255, 255, 255, .09);
-      color: #647087;
-      font-size: 8px;
-      line-height: 1.8
-    }
-
-    .main {
-      min-width: 0;
-      border-radius: 23px 7px 23px 7px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden
-    }
-
-    .vhead {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding: 3px 2px 12px;
-      flex-shrink: 0
-    }
-
-    .vhead h2 {
-      font-size: 22px;
-      letter-spacing: -.04em
-    }
-
-    .vhead p {
-      font-size: 9px;
-      color: #68758c;
-      margin-top: 5px
-    }
-
-    /* Close buttons */
-    .close,
-    .settings-close {
-      width: 40px;
-      height: 40px;
-      border: 1px solid rgba(255, 255, 255, .13);
-      background: rgba(10, 14, 23, .72);
-      color: #9da8bc;
-      border-radius: 13px 5px 13px 5px;
-      font-size: 18px;
-      cursor: pointer;
-      transition: .18s;
-      display: grid;
-      place-items: center;
-      line-height: 1
-    }
-
-    .settings-close {
-      width: 38px;
-      height: 38px;
-      font-size: 17px;
-      border-radius: 12px 5px 12px 5px
-    }
-
-    .close:hover,
-    .settings-close:hover {
-      background: rgba(30, 36, 48, .9);
-      color: #fff;
-      border-color: rgba(255, 255, 255, .22)
-    }
-
-    .close:active,
-    .settings-close:active {
-      transform: scale(.92)
-    }
-
-    .grid {
-      min-height: 0;
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
-      gap: 9px;
-      padding: 2px 3px 18px;
-      overscroll-behavior: contain;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, .22) transparent;
-      scroll-behavior: smooth
-    }
-
-    .grid::-webkit-scrollbar {
-      width: 7px
-    }
-
-    .grid::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, .02);
-      border-radius: 8px
-    }
-
-    .grid::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, .22);
-      border-radius: 8px
-    }
-
-    .grid::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, .35)
-    }
-
-    /* CARD */
-    .card {
-      --accent: #7aa0ff;
-      --accent2: #0d1118;
-      position: relative;
-      min-height: 108px;
-      overflow: hidden;
-      display: grid;
-      grid-template-columns: 76px 1fr;
-      gap: 12px;
-      align-items: center;
-      padding: 10px;
-      border: 1px solid rgba(255, 255, 255, .09);
-      background: rgba(9, 12, 20, .91);
-      border-radius: 19px 6px 19px 6px;
-      cursor: pointer;
-      transition: transform .18s, border-color .18s, box-shadow .18s
-    }
-
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 0 0, var(--accent), transparent 48%);
-      opacity: .035;
-      pointer-events: none
-    }
-
-    body.card-hover .card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(255, 255, 255, .19)
-    }
-
-    body.card-hover .card.active {
-      border-color: var(--accent);
-      box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 15%, transparent)
-    }
-
-    body:not(.card-hover) .card.active {
-      border-color: var(--accent)
-    }
-
-    .preview {
-      width: 76px;
-      height: 76px;
-      border-radius: 20px 6px 20px 6px;
-      border: 1px solid rgba(255, 255, 255, .13);
-      overflow: hidden;
-      background: #000;
-      box-shadow: inset 0 1px rgba(255, 255, 255, .13), 0 10px 25px rgba(0, 0, 0, .53)
-    }
-
-    .preview canvas {
-      width: 100%;
-      height: 100%;
-      display: block
-    }
-
-    .card h3 {
-      font-size: 11px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis
-    }
-
-    .card small {
-      display: block;
-      color: #69768c;
-      font-size: 8px;
-      line-height: 1.5;
-      margin-top: 5px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis
-    }
-
-    .tag {
-      display: inline-block;
-      margin-top: 8px;
-      border: 1px solid rgba(255, 255, 255, .09);
-      color: #9aa6bb;
-      padding: 3px 5px;
-      border-radius: 5px;
-      font-size: 7px;
-      letter-spacing: .1em;
-      text-transform: uppercase
-    }
-
-    body.card-stroke .card {
-      border-color: transparent;
-      box-shadow: inset 0 1px rgba(255, 255, 255, .07), 0 10px 25px rgba(0, 0, 0, .53)
-    }
-
-    body.card-stroke .card::after {
-      content: "";
-      position: absolute;
-      inset: -1px;
-      border-radius: 20px 7px 20px 7px;
-      padding: 1.5px;
-      background:
-        linear-gradient(135deg, var(--accent2) 0%, var(--accent2) 32%, transparent 52%),
-        linear-gradient(315deg, var(--accent) 0%, var(--accent) 32%, transparent 52%);
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      mask-composite: exclude;
-      pointer-events: none;
-      filter: drop-shadow(0 0 4px var(--accent2)) drop-shadow(0 0 4px var(--accent));
-      opacity: .9;
-      z-index: 1;
-      transition: opacity .3s, filter .3s
-    }
-
-    body.card-stroke .card:hover::after {
-      filter: drop-shadow(0 0 7px var(--accent2)) drop-shadow(0 0 7px var(--accent));
-      opacity: 1
-    }
-
-    body.card-stroke .card.active::after {
-      filter: drop-shadow(0 0 9px var(--accent2)) drop-shadow(0 0 9px var(--accent));
-      opacity: 1
-    }
-
-    /* SETTINGS */
-    .settings {
-      position: fixed;
-      inset: 0;
-      z-index: 40;
-      padding: 22px;
-      display: grid;
-      place-items: center;
-      background: rgba(2, 4, 11, .8);
-      backdrop-filter: blur(28px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .3s
-    }
-
-    .settings.open {
-      opacity: 1;
-      pointer-events: auto
-    }
-
-    .settings-panel {
-      position: relative;
-      width: min(760px, 100%);
-      max-height: 100%;
-      background: rgba(7, 10, 17, .93);
-      border: 1px solid rgba(255, 255, 255, .13);
-      border-radius: 26px 8px 26px 8px;
-      box-shadow: 0 30px 90px rgba(0, 0, 0, .8), inset 0 1px rgba(255, 255, 255, .07);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      transform: scale(.96);
-      transition: transform .3s cubic-bezier(.34, 1.2, .64, 1)
-    }
-
-    .settings.open .settings-panel {
-      transform: scale(1)
-    }
-
-    .settings-panel::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: url("setting.png") center/cover no-repeat,
-        linear-gradient(135deg, #0a1222, #050810);
-      opacity: .12;
-      pointer-events: none;
-      border-radius: inherit;
-      z-index: 0
-    }
-
-    .settings-panel>* {
-      position: relative;
-      z-index: 1
-    }
-
-    .settings-head {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 20px 22px 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, .06);
-      flex-shrink: 0
-    }
-
-    .settings-head .gear {
-      width: 34px;
-      height: 34px;
-      display: grid;
-      place-items: center;
-      border: 1px solid rgba(255, 255, 255, .13);
-      background: linear-gradient(135deg, rgba(66, 107, 255, .16), rgba(110, 241, 227, .06));
-      border-radius: 12px 5px 12px 5px;
-      color: #8ca8ff
-    }
-
-    .settings-head .gear svg {
-      width: 18px;
-      height: 18px
-    }
-
-    .settings-head h2 {
-      font-size: 16px;
-      letter-spacing: .06em;
-      font-weight: 500
-    }
-
-    .settings-head small {
-      display: block;
-      color: #6b788c;
-      font-size: 9px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      margin-top: 3px
-    }
-
-    .settings-head .spacer {
-      flex: 1
-    }
-
-    .settings-body {
-      overflow-y: auto;
-      padding: 8px 22px 22px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, .19) transparent
-    }
-
-    .settings-body::-webkit-scrollbar {
-      width: 6px
-    }
-
-    .settings-body::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, .19);
-      border-radius: 8px
-    }
-
-    .sgroup {
-      margin-top: 18px
-    }
-
-    .sgroup-head {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding: 0 2px 8px;
-      color: #8ca8ff;
-      font-size: 9px;
-      letter-spacing: .22em;
-      text-transform: uppercase;
-      border-bottom: 1px solid rgba(255, 255, 255, .06);
-      margin-bottom: 4px
-    }
-
-    .sgroup-head svg {
-      width: 14px;
-      height: 14px;
-      stroke-width: 1.8;
-      opacity: .9
-    }
-
-    .sgroup-head .line {
-      flex: 1;
-      height: 1px;
-      background: rgba(255, 255, 255, .06)
-    }
-
-    .setting {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 12px 4px;
-      border-bottom: 1px solid rgba(255, 255, 255, .03);
-      transition: background .18s
-    }
-
-    .setting:last-child {
-      border-bottom: 0
-    }
-
-    .setting:hover {
-      background: rgba(255, 255, 255, .02);
-      border-radius: 10px
-    }
-
-    .setting-info {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      flex: 1;
-      min-width: 0
-    }
-
-    .setting-icon {
-      width: 30px;
-      height: 30px;
-      display: grid;
-      place-items: center;
-      border: 1px solid rgba(255, 255, 255, .1);
-      background: rgba(255, 255, 255, .024);
-      border-radius: 10px 4px 10px 4px;
-      color: #9aa8bf;
-      flex-shrink: 0
-    }
-
-    .setting-icon svg {
-      width: 15px;
-      height: 15px;
-      stroke-width: 1.8
-    }
-
-    .setting-name {
-      font-size: 11px;
-      color: #e2e9f3;
-      font-weight: 500
-    }
-
-    .setting-desc {
-      font-size: 8.5px;
-      color: #6b788c;
-      margin-top: 3px;
-      letter-spacing: .02em
-    }
-
-    .setting-control {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-      min-width: 190px;
-      justify-content: flex-end
-    }
-
-    /* Custom slider */
-    .setting-slider {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 130px;
-      height: 4px;
-      background: linear-gradient(90deg,
-          #8ca8ff 0%,
-          #6ef1e3 var(--pct, 50%),
-          rgba(255, 255, 255, .08) var(--pct, 50%),
-          rgba(255, 255, 255, .08) 100%);
-      border-radius: 4px;
-      outline: 0;
-      cursor: pointer;
-      transition: filter .18s;
-      will-change: background
-    }
-
-    .setting-slider:hover {
-      filter: brightness(1.15)
-    }
-
-    .setting-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 0 0 3px rgba(140, 168, 255, .2), 0 0 10px rgba(140, 168, 255, .8);
-      transition: transform .15s, box-shadow .15s;
-      cursor: pointer
-    }
-
-    .setting-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-      box-shadow: 0 0 0 4px rgba(140, 168, 255, .27), 0 0 14px rgba(140, 168, 255, .93)
-    }
-
-    .setting-slider::-moz-range-thumb {
-      width: 14px;
-      height: 14px;
-      border: 0;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 0 0 3px rgba(140, 168, 255, .2), 0 0 10px rgba(140, 168, 255, .8);
-      cursor: pointer
-    }
-
-    .setting-value {
-      font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
-      font-size: 10px;
-      color: #dbe5f4;
-      min-width: 52px;
-      text-align: right;
-      letter-spacing: .02em
-    }
-
-    /* Switch */
-    .switch {
-      position: relative;
-      width: 42px;
-      height: 24px;
-      background: rgba(255, 255, 255, .06);
-      border: 1px solid rgba(255, 255, 255, .13);
-      border-radius: 14px;
-      cursor: pointer;
-      transition: background .25s, border-color .25s;
-      padding: 0;
-      flex-shrink: 0
-    }
-
-    .switch::after {
-      content: "";
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 16px;
-      height: 16px;
-      background: #6a7893;
-      border-radius: 50%;
-      transition: .25s cubic-bezier(.34, 1.3, .64, 1)
-    }
-
-    .switch.on {
-      background: linear-gradient(135deg, rgba(66, 107, 255, .33), rgba(110, 241, 227, .2));
-      border-color: rgba(140, 168, 255, .53)
-    }
-
-    .switch.on::after {
-      left: 21px;
-      background: #cfe0ff;
-      box-shadow: 0 0 12px rgba(140, 168, 255, .8)
-    }
-
-    /* Quality selector */
-    .quality-selector {
-      display: flex;
-      gap: 2px;
-      padding: 2px;
-      background: rgba(255, 255, 255, .04);
-      border: 1px solid rgba(255, 255, 255, .06);
-      border-radius: 9px
-    }
-
-    .quality-selector button {
-      height: 26px;
-      padding: 0 8px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: #75829a;
-      border-radius: 7px 3px 7px 3px;
-      font-size: 7.5px;
-      letter-spacing: .1em;
-      cursor: pointer;
-      transition: .15s;
-      white-space: nowrap
-    }
-
-    .quality-selector button:hover {
-      color: #c8d2e2
-    }
-
-    .quality-selector button.active {
-      background: rgba(255, 255, 255, .1);
-      color: #fff;
-      border-color: rgba(255, 255, 255, .15)
-    }
-
-    .spill {
-      height: 32px;
-      padding: 0 12px;
-      border: 1px solid rgba(255, 255, 255, .1);
-      background: rgba(255, 255, 255, .03);
-      color: #b9c4d5;
-      border-radius: 10px 4px 10px 4px;
-      font-size: 9px;
-      letter-spacing: .12em;
-      cursor: pointer;
-      transition: .18s
-    }
-
-    .spill:hover {
-      background: rgba(255, 255, 255, .07);
-      color: #fff
-    }
-
-    .spill:active {
-      transform: scale(.95)
-    }
-
-    .spill.danger:hover {
-      background: rgba(255, 59, 59, .13);
-      border-color: rgba(255, 91, 91, .33);
-      color: #ffb0b0
-    }
-
-    .settings-foot {
-      padding: 14px 22px 18px;
-      border-top: 1px solid rgba(255, 255, 255, .06);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0
-    }
-
-    .settings-foot .saved-badge {
-      flex: 1;
-      font-size: 8px;
-      color: #5f6b7e;
-      letter-spacing: .14em;
-      text-transform: uppercase
-    }
-
-    .settings-foot .saved-badge.flash {
-      color: #7ed7b9
-    }
-
-    body.reduce-motion *,
-    body.reduce-motion *::before,
-    body.reduce-motion *::after {
-      animation-duration: .001ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: .001ms !important
-    }
-
-    body.high-contrast .rail,
-    body.high-contrast .dock,
-    body.high-contrast .card,
-    body.high-contrast .nav,
-    body.high-contrast .main,
-    body.high-contrast .status,
-    body.high-contrast .settings-panel {
-      border-color: rgba(255, 255, 255, .67) !important
-    }
-
-    body.high-contrast .center h1,
-    body.high-contrast .brand b {
-      color: #fff;
-      text-shadow: 0 0 24px rgba(255, 255, 255, .33)
-    }
-
-    @media(max-width:700px) {
-      .hud {
-        top: 10px;
-        left: 10px;
-        right: 10px
-      }
-
-      .rail {
-        left: 9px;
-        width: 52px
-      }
-
-      .rail button {
-        width: 36px;
-        height: 36px
-      }
-
-      .dock {
-        bottom: 9px;
-        max-width: calc(100% - 18px)
-      }
-
-      .read {
-        min-width: 105px
-      }
-
-      .read b,
-      .read small {
-        max-width: 140px
-      }
-
-      .vault {
-        padding: 9px;
-        grid-template-columns: 1fr
-      }
-
-      .nav {
-        display: none
-      }
-
-      .grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 7px
-      }
-
-      .card {
-        grid-template-columns: 1fr;
-        min-height: 145px
-      }
-
-      .preview {
-        width: 100%;
-        height: 86px
-      }
-
-      .settings {
-        padding: 10px
-      }
-
-      .setting {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px
-      }
-
-      .setting-control {
-        justify-content: flex-start;
-        min-width: 0
-      }
-
-      .setting-slider {
-        width: 100%
-      }
-
-      .camera-hint {
-        bottom: 72px;
-        font-size: 7px;
-        padding: 6px 10px
-      }
-    }
-
-    @media(max-width:400px) {
-      .read {
-        display: none
-      }
-
-      .grid {
-        grid-template-columns: 1fr 1fr
-      }
-
-      .card {
-        padding: 8px
-      }
-    }
-
-    .glow-pulse {
-      animation: glowPulse 1.2s ease-out
-    }
-
-    @keyframes glowPulse {
-      0% {
-        text-shadow: 0 0 50px rgba(116, 170, 255, .16)
-      }
-
-      30% {
-        text-shadow: 0 0 80px rgba(116, 170, 255, .53)
-      }
-
-      100% {
-        text-shadow: 0 0 50px rgba(116, 170, 255, .16)
-      }
-    }
-
-    .status.pulse i {
-      background: #ffb86b;
-      box-shadow: 0 0 14px #ffb86b
-    }
-
-    .status.pulse {
-      color: #ffb86b
-    }
-
-    .card {
-      animation: cardFade .35s ease-out both
-    }
-
-    body.no-card-anim .card {
-      animation: none
-    }
-
-    @keyframes cardFade {
-      from {
-        opacity: 0;
-        transform: translateY(6px)
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0)
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -1364,11 +94,9 @@
     <div class="settings-panel">
       <header class="settings-head">
         <div class="gear">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-            stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path
-              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
         </div>
         <div>
@@ -1381,22 +109,16 @@
 
       <div class="settings-body">
 
-        <!-- PERFORMANCE (new, first) -->
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
             <span>Performance</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
               </div>
               <div>
                 <div class="setting-name">Quality Mode</div>
@@ -1417,11 +139,7 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="3.5" />
-                  <path d="M12 3v3M12 18v3M5 12H2M22 12h-3" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 3v3M12 18v3M5 12H2M22 12h-3"/></svg>
               </div>
               <div>
                 <div class="setting-name">Live Shadows</div>
@@ -1432,28 +150,18 @@
           </div>
         </div>
 
-        <!-- APPEARANCE -->
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 3a9 9 0 0 1 0 18" />
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18"/></svg>
             <span>Appearance</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
-                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
-                  <circle cx="12" cy="12" r="2.5" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
               </div>
-              <div>
-                <div class="setting-name">UI Transparency</div>
-                <div class="setting-desc">Opacity of the floating panels</div>
-              </div>
+              <div><div class="setting-name">UI Transparency</div><div class="setting-desc">Opacity of the floating panels</div></div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="uiOpacity" min=".3" max="1" step=".01" value=".72">
@@ -1464,16 +172,9 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
-                  <circle cx="12" cy="12" r="4" />
-                  <path
-                    d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Panel Blur</div>
-                <div class="setting-desc">Frosted glass amount behind panels</div>
-              </div>
+              <div><div class="setting-name">Panel Blur</div><div class="setting-desc">Frosted glass amount behind panels</div></div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="uiBlur" min="0" max="40" step="1" value="22">
@@ -1484,15 +185,9 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 3v18" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Vignette</div>
-                <div class="setting-desc">Darkness at the edges of the screen</div>
-              </div>
+              <div><div class="setting-name">Vignette</div><div class="setting-desc">Darkness at the edges of the screen</div></div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="vignette" min="0" max="1.4" step=".01" value="1">
@@ -1501,28 +196,18 @@
           </div>
         </div>
 
-        <!-- VISUALS -->
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2" />
-              <circle cx="12" cy="12" r="3.2" />
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2"/><circle cx="12" cy="12" r="3.2"/></svg>
             <span>Visuals</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <path d="M12 3v3M9 6h6M8 9l4 12 4-12Z" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M9 6h6M8 9l4 12 4-12Z"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Glow Intensity</div>
-                <div class="setting-desc">Strength of highlights and glows</div>
-              </div>
+              <div><div class="setting-name">Glow Intensity</div><div class="setting-desc">Strength of highlights and glows</div></div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="glowMult" min="0" max="2" step=".01" value="1">
@@ -1533,14 +218,9 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
-                  <path d="M4 12h4l2-6 4 12 2-6h4" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M4 12h4l2-6 4 12 2-6h4"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Motion Speed</div>
-                <div class="setting-desc">Global multiplier for all scenes</div>
-              </div>
+              <div><div class="setting-name">Motion Speed</div><div class="setting-desc">Global multiplier for all scenes</div></div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="motionMult" min=".25" max="2" step=".01" value="1">
@@ -1551,16 +231,9 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <rect x="3" y="5" width="18" height="14" rx="2" />
-                  <path d="M3 9h18" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Card Accent Stroke</div>
-                <div class="setting-desc">Auto-coloured dual-corner shine using the scene's two main colours</div>
-              </div>
+              <div><div class="setting-name">Card Accent Stroke</div><div class="setting-desc">Auto-coloured dual-corner shine using the scene's two main colours</div></div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cardStroke"></button></div>
           </div>
@@ -1568,16 +241,9 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <path d="M5 12h14" />
-                  <path d="m13 6 6 6-6 6" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Card Hover Lift</div>
-                <div class="setting-desc">Cards rise slightly on hover</div>
-              </div>
+              <div><div class="setting-name">Card Hover Lift</div><div class="setting-desc">Cards rise slightly on hover</div></div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cardHover"></button></div>
           </div>
@@ -1585,43 +251,26 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 2" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Preview Animation</div>
-                <div class="setting-desc">Live canvas thumbnails inside cards</div>
-              </div>
+              <div><div class="setting-name">Preview Animation</div><div class="setting-desc">Live canvas thumbnails inside cards</div></div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cardPreviewAnim"></button></div>
           </div>
         </div>
 
-        <!-- CINEMA -->
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <path d="M2 8h20M7 4v4M17 4v4" />
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20M7 4v4M17 4v4"/></svg>
             <span>Cinema</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 8v5" />
-                  <circle cx="12" cy="16" r=".6" fill="currentColor" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".6" fill="currentColor"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Auto-hide Delay</div>
-                <div class="setting-desc">Time before UI fades after mouse moves</div>
-              </div>
+              <div><div class="setting-name">Auto-hide Delay</div><div class="setting-desc">Time before UI fades after mouse moves</div></div>
             </div>
             <div class="setting-control">
               <input type="range" class="setting-slider" data-setting="cinemaDelay" min="600" max="8000" step="100" value="2200">
@@ -1632,15 +281,9 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <path d="M4 4h6v6H4zM14 14h6v6h-6zM4 14h6v6H4zM14 4h6v6h-6z" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 14h6v6h-6zM4 14h6v6H4zM14 4h6v6h-6z"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Always Show in Fullscreen</div>
-                <div class="setting-desc">Keep UI visible even in cinema mode</div>
-              </div>
+              <div><div class="setting-name">Always Show in Fullscreen</div><div class="setting-desc">Keep UI visible even in cinema mode</div></div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cinemaAlwaysShow"></button></div>
           </div>
@@ -1648,41 +291,26 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Cinema Hint</div>
-                <div class="setting-desc">Show a small hint when entering cinema</div>
-              </div>
+              <div><div class="setting-name">Cinema Hint</div><div class="setting-desc">Show a small hint when entering cinema</div></div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="cinemaHint"></button></div>
           </div>
         </div>
 
-        <!-- ACCESSIBILITY -->
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="5" r="1.6" />
-              <path d="M4 9h16M12 9v6M9 21l3-6 3 6" />
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.6"/><path d="M4 9h16M12 9v6M9 21l3-6 3 6"/></svg>
             <span>Accessibility</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
-                  <path d="M5 12h14M12 5v14" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Reduce Motion</div>
-                <div class="setting-desc">Minimise UI transitions and animations</div>
-              </div>
+              <div><div class="setting-name">Reduce Motion</div><div class="setting-desc">Minimise UI transitions and animations</div></div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="reduceMotion"></button></div>
           </div>
@@ -1690,43 +318,26 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 3v18M3 12h18" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
               </div>
-              <div>
-                <div class="setting-name">High Contrast</div>
-                <div class="setting-desc">Boost border and text contrast</div>
-              </div>
+              <div><div class="setting-name">High Contrast</div><div class="setting-desc">Boost border and text contrast</div></div>
             </div>
             <div class="setting-control"><button class="switch" data-toggle="highContrast"></button></div>
           </div>
         </div>
 
-        <!-- DATA -->
         <div class="sgroup">
           <div class="sgroup-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="5" rx="9" ry="3" />
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-              <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
-            </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
             <span>Data</span><span class="line"></span>
           </div>
 
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
-                  <path d="M21 12a9 9 0 1 1-3-6.7" />
-                  <path d="M21 4v5h-5" />
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
               </div>
-              <div>
-                <div class="setting-name">Reset Settings</div>
-                <div class="setting-desc">Restore all preferences to defaults</div>
-              </div>
+              <div><div class="setting-name">Reset Settings</div><div class="setting-desc">Restore all preferences to defaults</div></div>
             </div>
             <div class="setting-control"><button class="spill danger" id="resetSettings">RESET</button></div>
           </div>
@@ -1749,7 +360,7 @@
 
   <!-- LIQUID FRAGMENT SHADER TEMPLATE -->
   <script id="fs-template-liquid" type="x-shader/x-fragment">
-    precision mediump float;
+precision mediump float;
 uniform vec2 u_resolution, u_mouse;
 uniform float u_time, u_pulse, u_speed, u_soft, u_glow;
 uniform float u_scale, u_warp, u_pulseAmt;
@@ -1808,7 +419,7 @@ void main(){
 
   <!-- 3D SCENE FRAGMENT SHADER TEMPLATE -->
   <script id="fs-template-3d" type="x-shader/x-fragment">
-    precision highp float;
+precision highp float;
 
 // __DEFINES__
 
@@ -2072,7 +683,6 @@ void main(){
       }, 300);
     }
 
-    // Resolve the effective quality config
     function resolveQuality() {
       let name = settings.quality || 'auto';
       if (name === 'auto') name = detectAutoQuality();
@@ -2142,7 +752,6 @@ void main(){
       document.querySelectorAll('[data-toggle]').forEach(btn => {
         btn.classList.toggle('on', !!settings[btn.dataset.toggle]);
       });
-      // Quality selector
       const qsel = $('qualitySelector');
       if (qsel) qsel.querySelectorAll('button').forEach(b => {
         b.classList.toggle('active', b.dataset.quality === settings.quality);
@@ -2193,7 +802,6 @@ void main(){
       });
     });
 
-    // Quality selector clicks
     const qualitySelectorEl = $('qualitySelector');
     if (qualitySelectorEl) {
       qualitySelectorEl.querySelectorAll('button').forEach(b => {
@@ -2360,9 +968,7 @@ void main(){
       return e;
     }
 
-    // Invalidate scene programs when quality/shadows change
     function onQualityChange() {
-      // Delete scene programs (they bake in the quality defines)
       for (const key of [...programCache.keys()]) {
         if (key.startsWith('scene:')) {
           const e = programCache.get(key);
@@ -2370,16 +976,14 @@ void main(){
           programCache.delete(key);
         }
       }
-      // Resize with new DPR cap
       resize();
-      // Recompile current if scene
       if (currentMode === 'scene' && currentEntry && currentEntry.isScene) {
         currentEntry = null;
       }
     }
 
     // ============================================================
-    // VIEWPORT (quality-aware)
+    // VIEWPORT
     // ============================================================
     let dpr = 1, W = 1, H = 1;
     function resize() {
