@@ -42,7 +42,14 @@
       inset: 0;
       z-index: 2;
       pointer-events: none;
-      background: radial-gradient(circle at 50% 45%, transparent 38%, #0009 100%)
+      background: radial-gradient(circle at 50% 45%, transparent 38%, #0009 100%);
+      transition: opacity .5s ease
+    }
+
+    /* ---------- UI WRAPPER (fades in cinema mode) ---------- */
+    .ui-layer {
+      transition: opacity .4s cubic-bezier(.4, 0, .2, 1),
+        transform .4s cubic-bezier(.4, 0, .2, 1)
     }
 
     .hud {
@@ -95,7 +102,7 @@
       font-size: 9px;
       letter-spacing: .13em;
       color: #9da8bc;
-      transition: color .3s
+      transition: color .3s, background .3s
     }
 
     .status i {
@@ -105,7 +112,8 @@
       border-radius: 50%;
       background: #7ed7b9;
       margin-right: 7px;
-      box-shadow: 0 0 8px #7ed7b9
+      box-shadow: 0 0 8px #7ed7b9;
+      transition: background .3s, box-shadow .3s
     }
 
     .rail {
@@ -141,6 +149,10 @@
       color: #fff;
       background: #fff0a;
       border-color: #fff2
+    }
+
+    .rail button:active {
+      transform: scale(.92)
     }
 
     .rail svg {
@@ -216,6 +228,10 @@
       background: #fff12
     }
 
+    .btn:active {
+      transform: scale(.96)
+    }
+
     .btn.primary {
       background: linear-gradient(135deg, #426bff28, #6ef1e30e);
       border-color: #7596ff35;
@@ -228,7 +244,8 @@
     }
 
     .read b {
-      font-size: 11px
+      font-size: 11px;
+      transition: opacity .25s
     }
 
     .read small {
@@ -237,10 +254,68 @@
       font-size: 8px;
       letter-spacing: .11em;
       text-transform: uppercase;
-      margin-top: 4px
+      margin-top: 4px;
+      transition: opacity .25s
     }
 
-    /* VAULT */
+    /* ========== CINEMA MODE ========== */
+    body.cinema .hud,
+    body.cinema .rail,
+    body.cinema .center,
+    body.cinema .dock {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-8px)
+    }
+
+    body.cinema .rail,
+    body.cinema .dock {
+      transform: translateY(8px)
+    }
+
+    body.cinema .rail {
+      transform: translateY(-50%) translateX(-8px)
+    }
+
+    body.cinema .dock {
+      transform: translateX(-50%) translateY(8px)
+    }
+
+    body.cinema .center {
+      transform: translate(-50%, -50%) scale(.96)
+    }
+
+    body.cinema {
+      cursor: none
+    }
+
+    /* Floating cinema hint */
+    .cinema-hint {
+      position: fixed;
+      z-index: 15;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      padding: 10px 18px;
+      background: #070a11c7;
+      backdrop-filter: blur(25px);
+      border: 1px solid #fff2;
+      border-radius: 13px 5px 13px 5px;
+      font-size: 9px;
+      letter-spacing: .18em;
+      color: #9da8bc;
+      text-transform: uppercase;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .5s, transform .5s
+    }
+
+    body.cinema .cinema-hint.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+
+    /* ========== VAULT ========== */
     .vault {
       position: fixed;
       inset: 0;
@@ -380,6 +455,10 @@
 
     .close:hover {
       background: #fff12
+    }
+
+    .close:active {
+      transform: scale(.92)
     }
 
     .grid {
@@ -556,7 +635,7 @@
       }
     }
 
-    /* Additional polish */
+    /* Polish */
     .glow-pulse {
       animation: glowPulse 1.2s ease-out
     }
@@ -583,14 +662,30 @@
     .status.pulse {
       color: #ffb86b
     }
+
+    .card {
+      animation: cardFade .35s ease-out both
+    }
+
+    @keyframes cardFade {
+      from {
+        opacity: 0;
+        transform: translateY(6px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
   </style>
 </head>
 
 <body>
   <canvas id="gl"></canvas>
-  <div class="vignette"></div>
+  <div class="vignette ui-layer" id="vignette"></div>
 
-  <div class="hud">
+  <div class="hud ui-layer">
     <div class="brand">
       <img src="icon.png" alt="">
       <div><b>Calyx</b><span>procedural fluid laboratory</span></div>
@@ -598,7 +693,7 @@
     <div class="status" id="statusBox"><i></i><span id="status">ENGINE ONLINE</span></div>
   </div>
 
-  <div class="rail">
+  <div class="rail ui-layer">
     <button class="on" id="vaultBtn" title="Liquid projects">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3C9 7 5 10.2 5 14.2a7 7 0 0 0 14 0C19 10.2 15 7 12 3Z"/></svg>
     </button>
@@ -609,21 +704,25 @@
     <button id="editorBtn" title="Preset editor">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
     </button>
-    <button id="full" title="Fullscreen">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+    <button id="full" title="Cinema mode (F)">
+      <svg id="fullIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/>
+      </svg>
     </button>
   </div>
 
-  <div class="center">
+  <div class="center ui-layer">
     <h1 id="hero">Deep Obsidian</h1>
     <p>move through the surface</p>
   </div>
 
-  <div class="dock">
+  <div class="dock ui-layer">
     <button class="btn primary" id="open">PROJECTS <span id="count">42</span></button>
     <div class="read"><b id="name">Deep Obsidian</b><small id="kind">Flowing strata</small></div>
     <button class="btn" id="random">RANDOM</button>
   </div>
+
+  <div class="cinema-hint" id="cinemaHint">Move mouse to reveal controls · ESC to exit</div>
 
   <section class="vault" id="vault">
     <aside class="nav">
@@ -662,7 +761,7 @@
     void main(){ gl_Position = vec4(a_position, 0., 1.); }
   </script>
 
-  <!-- Fragment shader: supports all motion types 0–25+ and more; robust default -->
+  <!-- Fragment shader -->
   <script id="fs" type="x-shader/x-fragment">
     precision mediump float;
     uniform vec2 u_resolution, u_mouse;
@@ -691,7 +790,6 @@
       float t = u_time * u_speed;
       float d = length(p);
 
-      // mouse repulsion
       vec2 md = p - mouse;
       float mdist = length(md);
       if (mdist < .8) {
@@ -699,7 +797,6 @@
       }
 
       float v = 0.;
-      // Extended motion set — all original + more variations; fallback to fbm
       if(u_motion == 0) {
         vec2 q = p; q.x += sin(q.y * 6. - t * .65) * .16;
         v = fbm(q * 2.7 + vec2(t * .06, -t * .03));
@@ -776,7 +873,6 @@
       } else if(u_motion == 25) {
         vec2 q = rot(p, t * .015); v = fbm(q * 2.8 + vec2(t * .05, 0.));
       } else {
-        // fallback for any unlisted motion id
         v = fbm(p * 2.5 + t * .02);
       }
 
@@ -795,11 +891,8 @@
     }
   </script>
 
-  <!-- MAIN SCRIPT — liquids imported via native ES module -->
+  <!-- MAIN SCRIPT -->
   <script type="module">
-    // ------------------------------------------------------------
-    // IMPORT LIQUIDS (separate file: liquids.js)
-    // ------------------------------------------------------------
     import liquids from './liquids.js';
 
     // ---- WebGL setup ----
@@ -861,10 +954,15 @@
     addEventListener("resize", resize, { passive: true });
     resize();
 
+    // ---- Pointer handling ----
+    let lastPointerMove = 0;
     addEventListener("pointermove", e => {
       tx = e.clientX * dpr;
       ty = (innerHeight - e.clientY) * dpr;
+      lastPointerMove = performance.now();
+      if (cinemaMode) revealUiTemporarily();
     }, { passive: true });
+
     addEventListener("pointerdown", () => pulse = 1, { passive: true });
 
     function rgb(hex) {
@@ -885,6 +983,7 @@
     const hero = document.getElementById("hero");
     const nameEl = document.getElementById("name");
     const kindEl = document.getElementById("kind");
+    const cinemaHint = document.getElementById("cinemaHint");
 
     // ---- Card generation ----
     function addCard(l, i) {
@@ -919,7 +1018,6 @@
       nameEl.textContent = l.name;
       kindEl.textContent = l.desc;
       cards.forEach((c, n) => c.classList.toggle("active", n === i));
-      // subtle glow animation
       hero.classList.remove("glow-pulse");
       void hero.offsetWidth;
       hero.classList.add("glow-pulse");
@@ -946,7 +1044,7 @@
       gl.uniform2f(U.res, W, H);
       gl.uniform2f(U.mouse, mx, my);
       gl.uniform1f(U.time, t * .001);
-      gl.uniform1i(U.motion, l.motion % 32); // supports up to 31 motion types
+      gl.uniform1i(U.motion, l.motion % 32);
       gl.uniform1f(U.pulse, pulse);
       gl.uniform3fv(U.a, rgb(l.a));
       gl.uniform3fv(U.b, rgb(l.b));
@@ -959,7 +1057,7 @@
 
     raf = requestAnimationFrame(drawMain);
 
-    // ---- Mini canvas previews (live thumbnails) ----
+    // ---- Mini canvas previews ----
     const mini = cards.map((c, i) => ({ c, i, phase: i * .37, visible: true }));
     const io = "IntersectionObserver" in window ? new IntersectionObserver(es => {
       es.forEach(e => {
@@ -1037,10 +1135,68 @@
       pulse = 1;
     };
 
-    document.getElementById("full").onclick = () => {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
-      else document.exitFullscreen?.();
-    };
+    // ============================================================
+    // CINEMA MODE — fullscreen hides all UI
+    // ============================================================
+    let cinemaMode = false;
+    let uiRevealTimer = null;
+    let hintTimer = null;
+
+    function setCinema(on) {
+      cinemaMode = on;
+      if (on) {
+        document.body.classList.add("cinema");
+        // show floating hint briefly
+        cinemaHint.classList.add("show");
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => cinemaHint.classList.remove("show"), 3200);
+      } else {
+        document.body.classList.remove("cinema");
+        cinemaHint.classList.remove("show");
+        clearTimeout(uiRevealTimer);
+      }
+    }
+
+    function revealUiTemporarily() {
+      if (!cinemaMode) return;
+      document.body.classList.remove("cinema");
+      clearTimeout(uiRevealTimer);
+      uiRevealTimer = setTimeout(() => {
+        if (cinemaMode) document.body.classList.add("cinema");
+      }, 2200);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        const p = document.documentElement.requestFullscreen?.();
+        // setCinema will be triggered by fullscreenchange
+        if (p && p.catch) p.catch(() => {});
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+
+    document.getElementById("full").onclick = toggleFullscreen;
+
+    // Sync cinema state with real fullscreen state
+    document.addEventListener("fullscreenchange", () => {
+      if (document.fullscreenElement) {
+        setCinema(true);
+      } else {
+        setCinema(false);
+      }
+    });
+
+    // Swap fullscreen icon based on state
+    const fullIcon = document.getElementById("fullIcon");
+    const fsPathEnter = "M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3";
+    const fsPathExit  = "M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M21 16h-3a2 2 0 0 0-2 2v3M3 16h3a2 2 0 0 1 2 2v3";
+    function updateFullIcon() {
+      const path = fullIcon.querySelector("path");
+      if (path) path.setAttribute("d", document.fullscreenElement ? fsPathExit : fsPathEnter);
+    }
+    document.addEventListener("fullscreenchange", updateFullIcon);
+    updateFullIcon();
 
     // ---- Filter buttons ----
     document.querySelectorAll(".filters button").forEach(b => {
@@ -1056,26 +1212,29 @@
 
     // ---- Keyboard ----
     addEventListener("keydown", e => {
-      if (e.key === "Escape") vault.classList.remove("open");
+      if (e.key === "Escape") {
+        // browser handles exiting fullscreen; also close vault
+        vault.classList.remove("open");
+      }
       if (e.code === "Space") {
         e.preventDefault();
         triggerPulse();
       }
+      if (e.key === "f" || e.key === "F") {
+        // Only toggle if not typing in an input (none here, but future-proof)
+        if (!e.metaKey && !e.ctrlKey) toggleFullscreen();
+      }
+      if (e.key === "h" || e.key === "H") {
+        // manual toggle of UI visibility
+        if (cinemaMode) revealUiTemporarily();
+        else if (document.fullscreenElement) setCinema(true);
+      }
     });
 
-    // ---- Scroll polishing: smooth wheel inside grid is native; add parallax feel ----
+    // ---- Scroll polish ----
     grid.addEventListener("wheel", (e) => {
-      // let browser handle scroll; just prevent page bounce if needed
       e.stopPropagation();
     }, { passive: true });
-
-    // ---- Extra polish: subtle card entrance animation ----
-    const style = document.createElement('style');
-    style.textContent = `
-      .card { animation: cardFade .35s ease-out both; }
-      @keyframes cardFade { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
-    `;
-    document.head.appendChild(style);
   </script>
 </body>
 
