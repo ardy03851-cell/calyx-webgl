@@ -1,487 +1,1219 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Ocean Explorer</title>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html,body { width:100%; height:100%; overflow:hidden; background:#000; touch-action:none;
-    -webkit-user-select:none; user-select:none; font-family:'Segoe UI',sans-serif; }
-  #gameCanvas { position:fixed; inset:0; display:block; }
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Vibrant Marble World 3D - iPad Physics Simulator</title>
 
-  /* ---------- UI ---------- */
-  #hud { position:fixed; top:14px; left:14px; color:#dff4ff; z-index:10; pointer-events:none;
-    text-shadow:0 1px 4px rgba(0,0,0,.6); }
-  #hud h1 { font-size:18px; font-weight:600; letter-spacing:2px; opacity:.9; }
-  #hud p  { font-size:12px; opacity:.7; margin-top:2px; }
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
 
-  #modeBtn { position:fixed; top:14px; right:14px; z-index:10;
-    background:rgba(10,40,60,.55); color:#dff4ff; border:1px solid rgba(160,220,255,.4);
-    border-radius:14px; padding:12px 18px; font-size:15px; backdrop-filter:blur(8px);
-    -webkit-backdrop-filter:blur(8px); cursor:pointer; }
-  #modeBtn:active { background:rgba(40,110,150,.7); }
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: none;
+      margin: 0;
+      padding: 0;
+    }
 
-  /* virtual joystick */
-  #joy { position:fixed; bottom:36px; left:36px; width:130px; height:130px; z-index:10;
-    border-radius:50%; background:rgba(120,200,255,.12); border:2px solid rgba(160,220,255,.35);
-    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
-  #stick { position:absolute; left:50%; top:50%; width:56px; height:56px; border-radius:50%;
-    background:rgba(180,230,255,.45); transform:translate(-50%,-50%); box-shadow:0 0 12px rgba(120,200,255,.5); }
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b1528;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #fff;
+    }
 
-  #hint { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); color:#cfeaff;
-    font-size:11px; opacity:.55; z-index:10; pointer-events:none; text-align:center; }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
 
-  #title { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; background:radial-gradient(ellipse at center, rgba(4,30,50,.85), rgba(0,5,12,.97));
-    color:#dff4ff; transition:opacity 1s; }
-  #title h1 { font-size:clamp(30px,7vw,64px); letter-spacing:8px; font-weight:200; }
-  #title p  { margin:14px 0 30px; opacity:.6; letter-spacing:2px; font-size:13px; }
-  #playBtn { background:none; border:1px solid rgba(160,220,255,.6); color:#dff4ff;
-    padding:16px 52px; font-size:17px; letter-spacing:4px; border-radius:30px; cursor:pointer; }
-  #playBtn:active { background:rgba(120,200,255,.2); }
-</style>
+    .hud-panel {
+      position: absolute;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 20px;
+      padding: 14px 18px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+      pointer-events: auto;
+    }
+
+    #header-panel {
+      top: 16px;
+      left: 16px;
+      min-width: 230px;
+    }
+
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #fff 0%, #ffe600 50%, #ff5e00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.84rem;
+      color: #e2e8f0;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      color: #ffffff;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    #controls-panel {
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    select,
+    button {
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      color: #fff;
+      padding: 9px 15px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      outline: none;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    select option {
+      background: #1e293b;
+      color: #fff;
+    }
+
+    select:hover,
+    button:hover {
+      background: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    #joystick-zone {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.18);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #joystick-knob {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffffff, #ffaa00);
+      box-shadow: 0 4px 20px rgba(255, 170, 0, 0.6);
+      position: absolute;
+      pointer-events: none;
+    }
+
+    #action-buttons {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      gap: 14px;
+      z-index: 10;
+    }
+
+    .btn-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-jump {
+      background: linear-gradient(135deg, #ff0077 0%, #ff8800 100%);
+    }
+
+    .btn-reset {
+      background: linear-gradient(135deg, #00e5ff 0%, #0077ff 100%);
+      color: #fff;
+    }
+
+    #gyro-btn {
+      display: none;
+      background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+      color: #fff;
+    }
+
+    #toast-msg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: rgba(255, 255, 255, 0.9);
+      color: #0f172a;
+      padding: 16px 32px;
+      border-radius: 30px;
+      font-size: 1.4rem;
+      font-weight: 900;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #toast-msg.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    #camera-hint {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 9;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(8, 12, 20, .38);
+      border: 1px solid rgba(255, 255, 255, .18);
+      color: rgba(255, 255, 255, .78);
+      font-size: .72rem;
+      font-weight: 700;
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+      opacity: .8;
+    }
+
+    .road-label {
+      font-size: .72rem;
+      opacity: .72;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+  </style>
 </head>
+
 <body>
 
-<canvas id="gameCanvas"></canvas>
+  <div id="canvas-container"></div>
+  <div id="camera-hint">Drag the world to look around • joystick/WASD to roll</div>
 
-<div id="hud"><h1>OCEAN EXPLORER</h1><p id="coord">0° N · 0° E</p></div>
-<button id="modeBtn">🚤 Boat</button>
-<div id="joy"><div id="stick"></div></div>
-<div id="hint">Left stick: move · drag right side: look around</div>
+  <div id="toast-msg">VICTORY GOAL! 🌟</div>
 
-<div id="title">
-  <h1>OCEAN EXPLORER</h1>
-  <p>AN ENDLESS SEA AWAITS</p>
-  <button id="playBtn">SET SAIL</button>
-</div>
+  <div id="header-panel" class="hud-panel">
+    <h1>MARBLE UNIVERSE</h1>
+    <div class="stat-row"><span>Speed:</span> <span id="val-speed" class="stat-value">0.0 m/s</span></div>
+    <div class="stat-row"><span>Zone:</span> <span id="val-surface" class="stat-value">Sky Launchpad</span></div>
+    <div class="stat-row"><span>Stars:</span> <span id="val-stars" class="stat-value">0 / 4 ⭐</span></div>
+    <div class="stat-row"><span>Weight:</span> <span id="val-mass" class="stat-value">1.2 kg</span></div>
+  </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="particles.js"></script>
-<script src="models/boat.js"></script>
-<script src="models/island.js"></script>
-<script src="models/fish.js"></script>
-<script src="models/buoy.js"></script>
-<script>
-/* ============================================================
-   OCEAN EXPLORER — main engine
-   Infinite procedural ocean · boat + swim modes · iPad touch
-   ============================================================ */
-'use strict';
+  <div id="controls-panel" class="hud-panel">
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <label style="font-size: 0.85rem; font-weight: 700; color: #fff;">Material:</label>
+      <select id="mat-select">
+        <option value="glass">💎 Glass Swirl (Balanced)</option>
+        <option value="chrome">🛡️ Heavy Steel (High Density)</option>
+        <option value="rubber">🔴 Super Rubber (High Bounce)</option>
+        <option value="wood">🪵 Polish Oak (Wood Grip)</option>
+        <option value="butter">🧈 Butter Sphere (Zero Friction)</option>
+        <option value="gold">👑 Royal Gold (Heavy Specular)</option>
+        <option value="ice">🧊 Glacial Ice (Ultra Slippery)</option>
+        <option value="lava">🔥 Magma Core (Glow Power)</option>
+        <option value="rainbow">🌈 Rainbow Hologram (Chroma)</option>
+        <option value="neon">⚡ Neon Spark (Speed Boost)</option>
+      </select>
+    </div>
 
-// ---------- renderer / scene ----------
-const canvas = document.getElementById('gameCanvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight);
+    <div style="display: flex; gap: 8px;">
+      <button id="gyro-btn">📱 Enable Gyro</button>
+      <button id="cam-btn">📷 Camera: Follow</button>
+    </div>
+  </div>
 
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x9db8c8, 0.0016);
+  <div id="joystick-zone">
+    <div id="joystick-knob"></div>
+  </div>
 
-const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.1, 4000);
+  <div id="action-buttons">
+    <button id="btn-jump-action" class="btn-circle btn-jump">JUMP</button>
+    <button id="btn-reset-action" class="btn-circle btn-reset">RESET</button>
+  </div>
 
-// ---------- sky (gradient dome + sun) ----------
-const skyGeo = new THREE.SphereGeometry(1800, 24, 16);
-const skyMat = new THREE.ShaderMaterial({
-  side: THREE.BackSide, depthWrite:false, fog:false,
-  uniforms: { uTime:{value:0} },
-  vertexShader: `varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-  fragmentShader: `
-    varying vec3 vP; uniform float uTime;
-    void main(){
-      float h = normalize(vP).y;
-      vec3 horizon = vec3(0.78,0.72,0.62);           // warm haze
-      vec3 mid     = vec3(0.45,0.62,0.78);
-      vec3 zenith  = vec3(0.12,0.28,0.48);
-      vec3 col = mix(horizon, mid, smoothstep(0.0,0.25,h));
-      col = mix(col, zenith, smoothstep(0.25,0.8,h));
-      // sun glow
-      vec3 sunDir = normalize(vec3(0.5,0.35,0.4));
-      float s = max(dot(normalize(vP), sunDir), 0.0);
-      col += vec3(1.0,0.85,0.6)*pow(s, 220.0)*1.4;   // disc
-      col += vec3(1.0,0.8,0.55)*pow(s, 6.0)*0.22;    // haze
-      // slow drifting clouds
-      float cl = sin(vP.x*0.004+uTime*0.02)*sin(vP.z*0.005-uTime*0.015);
-      cl = smoothstep(0.55,0.95,cl)*smoothstep(0.05,0.3,h)*0.25;
-      col = mix(col, vec3(0.95,0.93,0.9), cl);
-      gl_FragColor = vec4(col,1.0);
-    }`
-});
-scene.add(new THREE.Mesh(skyGeo, skyMat));
+  <script>
+    /* =========================================================================
+       1. GLOBAL CONFIG & MATERIALS
+       ========================================================================= */
+    const CONFIG = {
+      gravity: -20.5,
+      marbleRadius: 0.85,
+      fixedStep: 1 / 120,
+      maxSpeed: 18,
+      driveForce: 30,
+      cameraDistance: 13,
+      cameraHeight: 7,
+      cameraSmooth: 0.075
+    };
 
-// ---------- lights ----------
-const sun = new THREE.DirectionalLight(0xfff2dd, 1.15);
-sun.position.set(120, 90, 90);
-scene.add(sun);
-scene.add(new THREE.HemisphereLight(0xbdd8ee, 0x0a2436, 0.75));
+    const MARBLE_PRESETS = {
+      glass:   { name: 'Glass Swirl', mass: 1.2, friction: 0.15, bounce: 0.65, color: 0x00d2ff, roughness: 0.05, metalness: 0.1, transmission: 0.9, opacity: 0.9, emissive: 0x000000 },
+      chrome:  { name: 'Heavy Steel', mass: 6.5, friction: 0.2, bounce: 0.15, color: 0xe2e8f0, roughness: 0.02, metalness: 0.98, transmission: 0.0, opacity: 1.0, emissive: 0x000000 },
+      rubber:  { name: 'Super Rubber', mass: 0.8, friction: 0.85, bounce: 0.95, color: 0xff0055, roughness: 0.5, metalness: 0.0, transmission: 0.0, opacity: 1.0, emissive: 0x000000 },
+      wood:    { name: 'Polish Oak', mass: 1.1, friction: 0.5, bounce: 0.35, color: 0xa0522d, roughness: 0.7, metalness: 0.0, transmission: 0.0, opacity: 1.0, emissive: 0x000000 },
+      butter:  { name: 'Butter Sphere', mass: 0.6, friction: 0.001, bounce: 0.05, color: 0xffea00, roughness: 0.2, metalness: 0.0, transmission: 0.25, opacity: 0.95, emissive: 0x111100 },
+      gold:    { name: 'Royal Gold', mass: 5.0, friction: 0.25, bounce: 0.3, color: 0xffd700, roughness: 0.1, metalness: 0.95, transmission: 0.0, opacity: 1.0, emissive: 0x221a00 },
+      ice:     { name: 'Glacial Ice', mass: 0.9, friction: 0.005, bounce: 0.1, color: 0xa5f3fc, roughness: 0.02, metalness: 0.05, transmission: 0.85, opacity: 0.85, emissive: 0x001122 },
+      lava:    { name: 'Magma Core', mass: 3.5, friction: 0.4, bounce: 0.2, color: 0xff3300, roughness: 0.4, metalness: 0.2, transmission: 0.0, opacity: 1.0, emissive: 0xff2200 },
+      rainbow: { name: 'Rainbow Hologram', mass: 1.0, friction: 0.2, bounce: 0.7, color: 0xffffff, roughness: 0.1, metalness: 0.8, transmission: 0.3, opacity: 0.95, emissive: 0x220033 },
+      neon:    { name: 'Neon Spark', mass: 1.0, friction: 0.1, bounce: 0.8, color: 0x00ffcc, roughness: 0.1, metalness: 0.1, transmission: 0.0, opacity: 1.0, emissive: 0x00ffaa }
+    };
 
-// ---------- INFINITE OCEAN (Gerstner waves in shader) ----------
-const WAVE_UNIFORMS = {
-  uTime:      { value: 0 },
-  uSunDir:    { value: new THREE.Vector3(0.6,0.5,0.45).normalize() },
-  uCamPos:    { value: new THREE.Vector3() },
-  uFogColor:  { value: new THREE.Color(0x9db8c8) },
-  uFogDensity:{ value: 0.0016 }
-};
+    let currentPresetKey = 'glass';
 
-const oceanMat = new THREE.ShaderMaterial({
-  uniforms: WAVE_UNIFORMS,
-  vertexShader: `
-    uniform float uTime;
-    varying vec3 vNormal; varying vec3 vWorld; varying float vFoam;
-    // 4 Gerstner waves — returns displaced pos + accumulates normal
-    vec3 gerstner(vec2 xz, out vec3 nrm, out float foam){
-      vec3 p = vec3(xz.x, 0.0, xz.y);
-      vec3 n = vec3(0.0,1.0,0.0); foam = 0.0;
-      // dir, steepness, wavelength, speed
-      vec2 D[4]; float S[4]; float L[4]; float V[4];
-      D[0]=normalize(vec2(1.0,0.3));  S[0]=0.22; L[0]=38.0; V[0]=5.5;
-      D[1]=normalize(vec2(-0.6,1.0)); S[1]=0.18; L[1]=21.0; V[1]=4.2;
-      D[2]=normalize(vec2(0.8,-0.7)); S[2]=0.14; L[2]=11.0; V[2]=3.1;
-      D[3]=normalize(vec2(-0.3,-1.0));S[3]=0.10; L[3]=6.0;  V[3]=2.4;
-      for(int i=0;i<4;i++){
-        float k = 6.28318/L[i];
-        float f = k*(dot(D[i],xz)-V[i]*uTime);
-        float a = S[i]/k;
-        p.x += D[i].x*a*cos(f);
-        p.z += D[i].y*a*cos(f);
-        p.y += a*sin(f);
-        n.x -= D[i].x*S[i]*cos(f);
-        n.z -= D[i].y*S[i]*cos(f);
-        n.y -= S[i]*sin(f)*0.5;
-        foam += max(sin(f),0.0)*S[i];
+    /* =========================================================================
+       2. PROCEDURAL HIGH-RES TEXTURE GENERATORS
+       ========================================================================= */
+    function createTileTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 512, 512);
+
+      const tileSize = 64;
+      for (let x = 0; x < 512; x += tileSize) {
+        for (let y = 0; y < 512; y += tileSize) {
+          ctx.fillStyle = ((x / tileSize + y / tileSize) % 2 === 0) ? '#1e293b' : '#334155';
+          ctx.fillRect(x + 2, y + 2, tileSize - 4, tileSize - 4);
+          ctx.strokeStyle = '#00f2fe';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 4, y + 4, tileSize - 8, tileSize - 8);
+        }
       }
-      nrm = normalize(n); return p;
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+      return tex;
     }
-    void main(){
-      vec3 n; float f;
-      vec3 wp = (modelMatrix*vec4(position,1.0)).xyz;
-      vec3 p = gerstner(wp.xz, n, f);
-      vNormal = n; vFoam = f;
-      vWorld = vec3(p.x, p.y, p.z);
-      gl_Position = projectionMatrix*viewMatrix*vec4(vWorld,1.0);
-    }`,
-  fragmentShader: `
-    uniform vec3 uSunDir; uniform vec3 uCamPos;
-    uniform vec3 uFogColor; uniform float uFogDensity; uniform float uTime;
-    varying vec3 vNormal; varying vec3 vWorld; varying float vFoam;
-    void main(){
-      vec3 N = normalize(vNormal);
-      // fine ripple detail (fake normal perturbation)
-      N.xz += 0.06*vec2(sin(vWorld.x*1.7+uTime*2.0), cos(vWorld.z*1.5+uTime*1.7));
-      N = normalize(N);
-      vec3 V = normalize(uCamPos - vWorld);
-      float fres = pow(1.0-max(dot(N,V),0.0), 3.0);
-      vec3 deep = vec3(0.015,0.10,0.17);
-      vec3 shallow = vec3(0.05,0.32,0.40);
-      vec3 skyRef = vec3(0.55,0.70,0.82);
-      vec3 col = mix(deep, shallow, max(N.y,0.0)*0.6 + vFoam*0.4);
-      col = mix(col, skyRef, fres*0.75);
-      // sun specular
-      vec3 H = normalize(uSunDir+V);
-      col += vec3(1.0,0.9,0.7)*pow(max(dot(N,H),0.0), 260.0)*2.2;
-      col += vec3(1.0,0.9,0.7)*pow(max(dot(N,H),0.0), 24.0)*0.12;
-      // foam on crests
-      float foam = smoothstep(0.55,0.85,vFoam)*0.5;
-      col = mix(col, vec3(0.9,0.95,0.97), foam);
-      // fog
-      float d = length(uCamPos-vWorld);
-      float fogF = 1.0-exp(-uFogDensity*uFogDensity*d*d);
-      col = mix(col, uFogColor, fogF);
-      gl_FragColor = vec4(col,1.0);
-    }`
-});
 
-// ocean = grid of tiles that follow the player → infinite
-const TILE = 160, GRID = 9, oceanTiles = [];
-const tileGeo = new THREE.PlaneGeometry(TILE, TILE, 48, 48);
-tileGeo.rotateX(-Math.PI/2);
-for (let i=0;i<GRID*GRID;i++){
-  const m = new THREE.Mesh(tileGeo, oceanMat);
-  m.frustumCulled = false;
-  scene.add(m); oceanTiles.push(m);
-}
-function updateOceanTiles(px, pz){
-  const half = Math.floor(GRID/2);
-  const cx = Math.round(px/TILE), cz = Math.round(pz/TILE);
-  let i = 0;
-  for (let gx=-half; gx<=half; gx++)
-    for (let gz=-half; gz<=half; gz++){
-      oceanTiles[i].position.set((cx+gx)*TILE, 0, (cz+gz)*TILE);
-      i++;
+    function createWoodPlankTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#824d26';
+      ctx.fillRect(0, 0, 512, 512);
+
+      ctx.fillStyle = '#633818';
+      for (let y = 0; y < 512; y += 64) {
+        ctx.fillRect(0, y, 512, 4);
+      }
+
+      ctx.strokeStyle = 'rgba(60, 30, 10, 0.15)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 200; i++) {
+        ctx.beginPath();
+        const y = Math.random() * 512;
+        ctx.moveTo(0, y);
+        ctx.bezierCurveTo(170, y + Math.random()*20 - 10, 340, y + Math.random()*20 - 10, 512, y);
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+      return tex;
     }
-}
 
-// CPU copy of the waves (for boat physics / floating objects)
-function waveHeight(x, z, t){
-  const W = [
-    [1,0.3,0.22,38,5.5],[-0.6,1,0.18,21,4.2],[0.8,-0.7,0.14,11,3.1],[-0.3,-1,0.10,6,2.4]
-  ];
-  let y = 0;
-  for (const [dx,dz,s,l,v] of W){
-    const len = Math.hypot(dx,dz), nx=dx/len, nz=dz/len;
-    const k = Math.PI*2/l, a = s/k;
-    y += a*Math.sin(k*((nx*x+nz*z)-v*t));
-  }
-  return y;
-}
-
-// ---------- game state ----------
-const state = {
-  mode: 'boat',           // 'boat' | 'swim'
-  time: 0,
-  boat: { pos:new THREE.Vector3(0,0,0), heading:0, speed:0 },
-  swim: { pos:new THREE.Vector3(6,0,0), heading:0, speed:0 },
-  camYaw: 0, camPitch: 0.32
-};
-
-// ---------- load models (from /models scripts) ----------
-const boat = Models.Boat(); scene.add(boat.group);
-const registry = [];   // spawned world objects (islands, buoys, fish schools...)
-
-// ---------- infinite world content: seeded chunks ----------
-const CHUNK = 300;
-const spawned = new Map(); // "cx,cz" -> array of objects
-function hash(x,z){ let h=(x*374761393+z*668265263)|0; h=(h^(h>>13))*1274126177; return ((h^(h>>16))>>>0)/4294967295; }
-
-function spawnChunk(cx, cz){
-  const key = cx+','+cz, objs = [];
-  const r = hash(cx,cz);
-  if (r < 0.35){ // island
-    const isl = Models.Island(r);
-    isl.group.position.set(cx*CHUNK + (hash(cx,cz+7)-0.5)*CHUNK*0.7, 0, cz*CHUNK + (hash(cx+3,cz)-0.5)*CHUNK*0.7);
-    scene.add(isl.group); objs.push(isl);
-  }
-  if (r > 0.5 && r < 0.7){ // buoy
-    const b = Models.Buoy();
-    b.group.position.set(cx*CHUNK+(hash(cx,cz+11)-0.5)*CHUNK, 0, cz*CHUNK+(hash(cx+5,cz)-0.5)*CHUNK);
-    scene.add(b.group); objs.push(b);
-  }
-  // fish schools everywhere
-  const school = Models.FishSchool(3+Math.floor(r*5));
-  school.group.position.set(cx*CHUNK+(hash(cx,cz+13)-0.5)*CHUNK, -2.5, cz*CHUNK+(hash(cx+9,cz)-0.5)*CHUNK);
-  scene.add(school.group); objs.push(school);
-  spawned.set(key, objs);
-}
-function updateChunks(px, pz){
-  const cx = Math.round(px/CHUNK), cz = Math.round(pz/CHUNK);
-  for (let x=cx-1;x<=cx+1;x++) for (let z=cz-1;z<=cz+1;z++){
-    if (!spawned.has(x+','+z)) spawnChunk(x,z);
-  }
-  for (const [key, objs] of spawned){
-    const [kx,kz] = key.split(',').map(Number);
-    if (Math.abs(kx-cx)>2 || Math.abs(kz-cz)>2){
-      objs.forEach(o=>scene.remove(o.group));
-      spawned.delete(key);
+    function createButterTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffea64';
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.fillStyle = '#f5d020';
+      for (let i = 0; i < 60; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random()*512, Math.random()*512, Math.random()*25+5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+      return tex;
     }
-  }
-}
 
-// ---------- particles ----------
-const particles = new ParticleSystem(scene, 1500);
+    function createIceTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#bae6fd';
+      ctx.fillRect(0, 0, 512, 512);
 
-// ---------- INPUT (iPad touch + mouse/keys) ----------
-const input = { mx:0, mz:0, lookDX:0, lookDY:0 };
-const keys = {};
-addEventListener('keydown', e=>keys[e.key.toLowerCase()]=true);
-addEventListener('keyup',   e=>keys[e.key.toLowerCase()]=false);
-
-// virtual joystick
-const joy = document.getElementById('joy'), stick = document.getElementById('stick');
-let joyId = null, joyCX=0, joyCY=0;
-joy.addEventListener('touchstart', e=>{
-  const t = e.changedTouches[0]; joyId = t.identifier;
-  const r = joy.getBoundingClientRect(); joyCX=r.left+r.width/2; joyCY=r.top+r.height/2;
-  e.preventDefault();
-},{passive:false});
-addEventListener('touchmove', e=>{
-  for (const t of e.changedTouches){
-    if (t.identifier===joyId){
-      let dx=(t.clientX-joyCX)/55, dy=(t.clientY-joyCY)/55;
-      const m=Math.hypot(dx,dy); if(m>1){dx/=m;dy/=m;}
-      input.mx=dx; input.mz=dy;
-      stick.style.transform=`translate(calc(-50% + ${dx*38}px), calc(-50% + ${dy*38}px))`;
-    } else if (t.identifier===lookId){
-      input.lookDX += t.clientX-lookX; input.lookDY += t.clientY-lookY;
-      lookX=t.clientX; lookY=t.clientY;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 40; i++) {
+        ctx.beginPath();
+        ctx.moveTo(Math.random()*512, Math.random()*512);
+        ctx.lineTo(Math.random()*512, Math.random()*512);
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+      return tex;
     }
-  }
-  e.preventDefault();
-},{passive:false});
-addEventListener('touchend', e=>{
-  for (const t of e.changedTouches){
-    if (t.identifier===joyId){ joyId=null; input.mx=input.mz=0;
-      stick.style.transform='translate(-50%,-50%)'; }
-    if (t.identifier===lookId) lookId=null;
-  }
-});
-// right-half look drag
-let lookId=null, lookX=0, lookY=0;
-addEventListener('touchstart', e=>{
-  for (const t of e.changedTouches)
-    if (t.clientX > innerWidth*0.4 && lookId===null && !e.target.closest('#modeBtn,#title')){
-      lookId=t.identifier; lookX=t.clientX; lookY=t.clientY;
+
+    function createMarbleTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 512, 256);
+      grad.addColorStop(0, '#00c6ff'); grad.addColorStop(1, '#0072ff');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, 512, 256);
+
+      ctx.lineWidth = 22; ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        ctx.moveTo(0, 50 * i + 20);
+        ctx.bezierCurveTo(150, 110 * i, 350, 20 * i, 512, 50 * i + 30);
+      }
+      ctx.stroke();
+      return new THREE.CanvasTexture(canvas);
     }
-},{passive:true});
-// mouse look
-let mDown=false, mX=0, mY=0;
-addEventListener('mousedown', e=>{ if(e.target===canvas){mDown=true;mX=e.clientX;mY=e.clientY;} });
-addEventListener('mousemove', e=>{ if(mDown){ input.lookDX+=e.clientX-mX; input.lookDY+=e.clientY-mY; mX=e.clientX;mY=e.clientY; }});
-addEventListener('mouseup', ()=>mDown=false);
 
-// mode toggle
-document.getElementById('modeBtn').addEventListener('click', ()=>{
-  if (state.mode==='boat'){
-    state.mode='swim';
-    state.swim.pos.copy(state.boat.pos).add(new THREE.Vector3(3,0,0));
-    state.swim.heading = state.boat.heading;
-    document.getElementById('modeBtn').textContent='🏊 Swim';
-    particles.burst(state.swim.pos.x, 0.3, state.swim.pos.z, 40, 'splash');
-  } else {
-    state.mode='boat';
-    state.boat.pos.copy(state.swim.pos);
-    document.getElementById('modeBtn').textContent='🚤 Boat';
-    particles.burst(state.boat.pos.x, 0.3, state.boat.pos.z, 40, 'splash');
-  }
-});
-
-// ---------- main loop ----------
-const clock = new THREE.Clock();
-function active(){ return state.mode==='boat' ? state.boat : state.swim; }
-
-function animate(){
-  requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.05);
-  state.time += dt;
-  const t = state.time;
-
-  // keyboard → input
-  let ix = input.mx, iz = input.mz;
-  if (keys['w']||keys['arrowup']) iz=-1;
-  if (keys['s']||keys['arrowdown']) iz=1;
-  if (keys['a']||keys['arrowleft']) ix=-1;
-  if (keys['d']||keys['arrowright']) ix=1;
-
-  // camera orbit from look input
-  state.camYaw   -= input.lookDX*0.004;
-  state.camPitch  = THREE.MathUtils.clamp(state.camPitch + input.lookDY*0.003, 0.05, 1.1);
-  input.lookDX = input.lookDY = 0;
-
-  const A = active();
-  const isBoat = state.mode==='boat';
-  const maxSpd = isBoat ? 14 : 4.5;
-
-  // movement relative to camera yaw
-  const fwd = new THREE.Vector3(-Math.sin(state.camYaw),0,-Math.cos(state.camYaw));
-  const right = new THREE.Vector3(-fwd.z,0,fwd.x);
-  const move = new THREE.Vector3().addScaledVector(fwd,-iz).addScaledVector(right,ix);
-  if (move.lengthSq()>0.01){
-    move.normalize();
-    const target = Math.atan2(move.x, move.z);
-    let d = target - A.heading;
-    while (d>Math.PI) d-=Math.PI*2; while (d<-Math.PI) d+=Math.PI*2;
-    A.heading += d * Math.min(1, dt*(isBoat?2.2:5));
-    A.speed += (maxSpd - A.speed)*dt*(isBoat?0.8:2.5);
-  } else {
-    A.speed += (0 - A.speed)*dt*(isBoat?0.5:3);
-  }
-  A.pos.x += Math.sin(A.heading)*A.speed*dt;
-  A.pos.z += Math.cos(A.heading)*A.speed*dt;
-
-  // ---- boat physics: sample wave at 3 points → pitch/roll/bob ----
-  const b = state.boat;
-  const hC = waveHeight(b.pos.x, b.pos.z, t);
-  const hF = waveHeight(b.pos.x+Math.sin(b.heading)*3, b.pos.z+Math.cos(b.heading)*3, t);
-  const hS = waveHeight(b.pos.x+Math.cos(b.heading)*2, b.pos.z-Math.sin(b.heading)*2, t);
-  boat.group.position.set(b.pos.x, hC+0.35, b.pos.z);
-  boat.group.rotation.set(0, -b.heading, 0);
-  boat.group.rotateX((hF-hC)*0.22);
-  boat.group.rotateZ((hS-hC)*0.28);
-  boat.update(t, dt, b.speed);
-
-  // boat wake + bow spray
-  if (isBoat && b.speed>3){
-    const bx = b.pos.x-Math.sin(b.heading)*4, bz = b.pos.z-Math.cos(b.heading)*4;
-    particles.emit(bx, waveHeight(bx,bz,t)+0.2, bz, 2, 'wake', b.speed);
-    if (b.speed>9){
-      const fx = b.pos.x+Math.sin(b.heading)*4.5, fz = b.pos.z+Math.cos(b.heading)*4.5;
-      particles.emit(fx, waveHeight(fx,fz,t)+0.4, fz, 3, 'spray', b.speed);
+    function createMagmaTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#110500'; ctx.fillRect(0, 0, 512, 256);
+      ctx.strokeStyle = '#ff3300'; ctx.lineWidth = 10;
+      for(let i=0; i<15; i++) {
+        ctx.beginPath();
+        ctx.moveTo(Math.random()*512, Math.random()*256);
+        ctx.lineTo(Math.random()*512, Math.random()*256);
+        ctx.stroke();
+      }
+      return new THREE.CanvasTexture(canvas);
     }
-  }
 
-  // ---- swimmer ----
-  const s = state.swim;
-  if (!isBoat){
-    const hS2 = waveHeight(s.pos.x, s.pos.z, t);
-    s.pos.y = hS2 + 0.15;
-    if (s.speed>1 && Math.random()<0.3)
-      particles.burst(s.pos.x, s.pos.y+0.1, s.pos.z, 2, 'splash');
-  }
+    /* =========================================================================
+       3. THREE.JS & CANNON.JS ENVIRONMENT SETUP
+       ========================================================================= */
+    const container = document.getElementById('canvas-container');
+    
+    const scene = new THREE.Scene();
 
-  // swimmer visual: simple head + arms bobbing
-  swimmer.position.copy(s.pos);
-  swimmer.visible = !isBoat;
-  swimmer.rotation.y = -s.heading;
-  swimmer.children[1].rotation.x = Math.sin(t*6)*0.9;   // arm paddle
-  swimmer.children[2].rotation.x = -Math.sin(t*6)*0.9;
+    // Vibrant Positive Sky Background
+    const canvasSky = document.createElement('canvas');
+    canvasSky.width = 512; canvasSky.height = 512;
+    const ctxSky = canvasSky.getContext('2d');
+    const skyGrad = ctxSky.createLinearGradient(0, 0, 0, 512);
+    skyGrad.addColorStop(0, '#38ef7d');
+    skyGrad.addColorStop(0.3, '#11998e');
+    skyGrad.addColorStop(0.7, '#6ee7b7');
+    skyGrad.addColorStop(1, '#a7f3d0');
+    ctxSky.fillStyle = skyGrad; ctxSky.fillRect(0, 0, 512, 512);
+    const skyTex = new THREE.CanvasTexture(canvasSky);
+    scene.background = skyTex;
+    scene.fog = new THREE.FogExp2(0x11998e, 0.005);
 
-  // ---- camera ----
-  const anchor = isBoat ? boat.group.position : s.pos;
-  const dist = isBoat ? 16 : 8, height = isBoat ? 6 : 3;
-  const co = new THREE.Vector3(
-    Math.sin(state.camYaw)*Math.cos(state.camPitch),
-    Math.sin(state.camPitch),
-    Math.cos(state.camYaw)*Math.cos(state.camPitch)
-  ).multiplyScalar(dist);
-  const camTarget = anchor.clone().add(co).add(new THREE.Vector3(0,height*0.4,0));
-  camera.position.lerp(camTarget, 1-Math.pow(0.001, dt));
-  const minY = waveHeight(camera.position.x, camera.position.z, t)+1.2;
-  if (camera.position.y < minY) camera.position.y = minY;
-  camera.lookAt(anchor.x, anchor.y+2, anchor.z);
+    // Camera
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 14, 22);
 
-  // ---- world ----
-  WAVE_UNIFORMS.uTime.value = t;
-  WAVE_UNIFORMS.uCamPos.value.copy(camera.position);
-  skyMat.uniforms.uTime.value = t;
-  scene.children[0].position.copy(camera.position); // sky follows
-  updateOceanTiles(A.pos.x, A.pos.z);
-  updateChunks(A.pos.x, A.pos.z);
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: "high-performance",
+      logarithmicDepthBuffer: false
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.12;
+    container.appendChild(renderer.domElement);
 
-  // update spawned models (floating, fish swimming...)
-  for (const objs of spawned.values())
-    for (const o of objs) o.update && o.update(t, dt, waveHeight);
+    // Procedural Cube Map for Bright Specular Reflections
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    const envScene = new THREE.Scene();
+    envScene.background = skyTex;
+    const envMap = pmremGenerator.fromScene(envScene).texture;
+    scene.environment = envMap;
 
-  particles.update(dt, camera);
+    // Orbit Controls
+    const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.05;
+    orbitControls.maxPolarAngle = Math.PI / 2 - 0.08;
+    orbitControls.minDistance = 6;
+    orbitControls.maxDistance = 28;
+    orbitControls.enablePan = false;
+    orbitControls.rotateSpeed = 0.42;
+    orbitControls.zoomSpeed = 0.65;
+    orbitControls.enabled = false;
 
-  document.getElementById('coord').textContent =
-    `${Math.abs(A.pos.z/10).toFixed(1)}° ${A.pos.z>=0?'N':'S'} · ${Math.abs(A.pos.x/10).toFixed(1)}° ${A.pos.x>=0?'E':'W'}`;
+    // CANNON Physics World with Sub-Step Stability
+    const world = new CANNON.World();
+    world.gravity.set(0, CONFIG.gravity, 0);
+    world.broadphase = new CANNON.SAPBroadphase(world);
+    world.allowSleep = true;
+    world.solver.iterations = 20;
+    world.solver.tolerance = 0.001;
 
-  renderer.render(scene, camera);
-}
+    // Materials
+    const marbleMatPhys = new CANNON.Material('marble');
+    const defaultTrackMatPhys = new CANNON.Material('defaultTrack');
+    const butterMatPhys = new CANNON.Material('butter');
+    const grassMatPhys = new CANNON.Material('grass');
+    const iceMatPhys = new CANNON.Material('ice');
+    const bumperMatPhys = new CANNON.Material('bumper');
 
-// simple swimmer mesh
-const swimmer = new THREE.Group();
-const skin = new THREE.MeshLambertMaterial({color:0xd9a077});
-swimmer.add(new THREE.Mesh(new THREE.SphereGeometry(0.35,10,8), skin)); // head
-swimmer.children[0].position.y = 0.35;
-const armG = new THREE.SphereGeometry(0.14,6,5);
-const armL = new THREE.Mesh(armG, skin); armL.position.set(-0.45,0.15,0); swimmer.add(armL);
-const armR = new THREE.Mesh(armG, skin); armR.position.set( 0.45,0.15,0); swimmer.add(armR);
-swimmer.visible = false;
-scene.add(swimmer);
+    world.defaultContactMaterial.friction = 0.24;
+    world.defaultContactMaterial.restitution = 0.28;
+    world.addContactMaterial(new CANNON.ContactMaterial(marbleMatPhys, defaultTrackMatPhys, { friction: 0.26, restitution: 0.38, contactEquationStiffness: 1e7 }));
+    world.addContactMaterial(new CANNON.ContactMaterial(marbleMatPhys, butterMatPhys, { friction: 0.008, restitution: 0.08 }));
+    world.addContactMaterial(new CANNON.ContactMaterial(marbleMatPhys, grassMatPhys, { friction: 0.72, restitution: 0.12 }));
+    world.addContactMaterial(new CANNON.ContactMaterial(marbleMatPhys, iceMatPhys, { friction: 0.012, restitution: 0.14 }));
+    world.addContactMaterial(new CANNON.ContactMaterial(marbleMatPhys, bumperMatPhys, { friction: 0.18, restitution: 0.9 }));
 
-// ---------- resize / start ----------
-addEventListener('resize', ()=>{
-  camera.aspect = innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
-document.getElementById('playBtn').addEventListener('click', ()=>{
-  const el = document.getElementById('title');
-  el.style.opacity=0; setTimeout(()=>el.remove(), 1000);
-});
-animate();
-</script>
+    /* =========================================================================
+       4. LIGHTING & ENVIRONMENT PARTICLES
+       ========================================================================= */
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfffbef, 1.4);
+    sunLight.position.set(40, 60, 20);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 180;
+    const d = 50;
+    sunLight.shadow.camera.left = -d; sunLight.shadow.camera.right = d;
+    sunLight.shadow.camera.top = d; sunLight.shadow.camera.bottom = -d;
+    scene.add(sunLight);
+
+    const rimLight = new THREE.PointLight(0x00f2fe, 2, 50);
+    rimLight.position.set(-20, 20, 40);
+    scene.add(rimLight);
+
+    // Atmosphere Floating Dust Particles
+    const dustCount = 200;
+    const dustGeo = new THREE.BufferGeometry();
+    const dustPos = new Float32Array(dustCount * 3);
+    for(let i=0; i<dustCount*3; i+=3) {
+      dustPos[i] = (Math.random() - 0.5) * 100;
+      dustPos[i+1] = Math.random() * 40 - 5;
+      dustPos[i+2] = Math.random() * 140;
+    }
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+    const dustMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.3, transparent: true, opacity: 0.6 });
+    const dustParticles = new THREE.Points(dustGeo, dustMat);
+    scene.add(dustParticles);
+
+    /* =========================================================================
+       5. MARBLE & TRAIL SYSTEM
+       ========================================================================= */
+    const marbleGeo = new THREE.SphereGeometry(CONFIG.marbleRadius, 32, 32);
+    const marbleTex = createMarbleTexture();
+    
+    let marbleVisMat = new THREE.MeshStandardMaterial({
+      map: marbleTex,
+      roughness: 0.05,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.9,
+      envMapIntensity: 1.2
+    });
+
+    const marbleMesh = new THREE.Mesh(marbleGeo, marbleVisMat);
+    marbleMesh.castShadow = true;
+    scene.add(marbleMesh);
+
+    // Physics Body
+    const marbleShape = new CANNON.Sphere(CONFIG.marbleRadius);
+    const marbleBody = new CANNON.Body({
+      mass: MARBLE_PRESETS.glass.mass,
+      shape: marbleShape,
+      material: marbleMatPhys,
+      linearDamping: 0.08,
+      angularDamping: 0.12,
+      allowSleep: false
+    });
+    marbleBody.fixedRotation = false;
+    marbleBody.position.set(0, 12, 0);
+    world.addBody(marbleBody);
+
+    // Marble Trail Sparkle Particle System
+    const trailCount = 40;
+    const trailGeo = new THREE.BufferGeometry();
+    const trailPos = new Float32Array(trailCount * 3);
+    trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+    const trailMat = new THREE.PointsMaterial({ color: 0x00f2fe, size: 0.25, transparent: true, opacity: 0.8 });
+    const trailParticles = new THREE.Points(trailGeo, trailMat);
+    scene.add(trailParticles);
+    let trailIndex = 0;
+
+    function updateMarbleMaterial(presetKey) {
+      currentPresetKey = presetKey;
+      const preset = MARBLE_PRESETS[presetKey];
+
+      marbleBody.mass = preset.mass;
+      marbleBody.updateMassProperties();
+      
+      const cm = world.contactmaterials[0];
+      cm.friction = preset.friction;
+      cm.restitution = preset.bounce;
+
+      marbleMesh.material.color.setHex(preset.color);
+      marbleMesh.material.roughness = preset.roughness;
+      marbleMesh.material.metalness = preset.metalness;
+      marbleMesh.material.opacity = preset.opacity;
+      marbleMesh.material.transparent = preset.opacity < 1.0;
+      marbleMesh.material.emissive.setHex(preset.emissive);
+
+      if (presetKey === 'glass') marbleMesh.material.map = marbleTex;
+      else if (presetKey === 'lava') marbleMesh.material.map = createMagmaTexture();
+      else marbleMesh.material.map = null;
+
+      marbleMesh.material.needsUpdate = true;
+      document.getElementById('val-mass').innerText = preset.mass.toFixed(1) + ' kg';
+      trailMat.color.setHex(preset.color === 0xffffff ? 0x00f2fe : preset.color);
+    }
+
+    /* =========================================================================
+       6. TRACK WORLD BUILDER (TEXTURED ISLANDS & OBSTACLES)
+       ========================================================================= */
+    const trackGroup = new THREE.Group();
+    scene.add(trackGroup);
+
+    // Textures
+    const tileTex = createTileTexture();
+    const woodTex = createWoodPlankTexture();
+    const butterTex = createButterTexture();
+    const iceTex = createIceTexture();
+
+    function createBoxTrack(width, height, depth, pos, rot = [0,0,0], physMat = defaultTrackMatPhys, textureType = 'tile', color = 0xffffff) {
+      const geo = new THREE.BoxGeometry(width, height, depth);
+      
+      let mat;
+      if (textureType === 'butter') {
+        mat = new THREE.MeshStandardMaterial({ map: butterTex, roughness: 0.1, metalness: 0.0 });
+        butterTex.repeat.set(width / 4, depth / 4);
+      } else if (textureType === 'wood') {
+        mat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.6, metalness: 0.0 });
+        woodTex.repeat.set(width / 4, depth / 4);
+      } else if (textureType === 'ice') {
+        mat = new THREE.MeshStandardMaterial({ map: iceTex, roughness: 0.02, metalness: 0.1, transparent: true, opacity: 0.9 });
+        iceTex.repeat.set(width / 4, depth / 4);
+      } else if (textureType === 'plain') {
+        mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.7, metalness: 0.05 });
+      } else {
+        mat = new THREE.MeshStandardMaterial({ map: tileTex, color: color, roughness: 0.3 });
+        tileTex.repeat.set(Math.max(1, width / 4), Math.max(1, depth / 4));
+      }
+
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(...pos);
+      mesh.rotation.set(...rot);
+      mesh.receiveShadow = true;
+      mesh.castShadow = true;
+      trackGroup.add(mesh);
+
+      const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
+      const body = new CANNON.Body({ mass: 0, material: physMat });
+      body.addShape(shape);
+      body.position.set(...pos);
+      body.quaternion.setFromEuler(...rot);
+      world.addBody(body);
+
+      return { mesh, body };
+    }
+
+    // --- ROAD / TRACK DETAIL HELPERS ---
+    function createRoad(width, depth, pos, rot = [0,0,0], roadColor = 0x252b35) {
+      const road = createBoxTrack(width, 0.34, depth, [pos[0], pos[1], pos[2]], rot, defaultTrackMatPhys, 'plain', roadColor);
+      road.mesh.material = new THREE.MeshStandardMaterial({
+        color: roadColor, roughness: 0.78, metalness: 0.05
+      });
+
+      // center line
+      const lineGroup = new THREE.Group();
+      const segment = 2.2, gap = 1.35;
+      for (let z = -depth/2 + 1.5; z < depth/2 - 1; z += segment + gap) {
+        const g = new THREE.BoxGeometry(Math.max(0.10, width * 0.025), 0.035, segment);
+        const m = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
+        const q = new THREE.Mesh(g, m);
+        q.position.set(pos[0], pos[1] + 0.19, pos[2] + z);
+        q.rotation.y = rot[1];
+        q.rotation.x = rot[0];
+        q.castShadow = false;
+        lineGroup.add(q);
+      }
+      trackGroup.add(lineGroup);
+
+      // raised curbs + edge reflectors
+      [-1, 1].forEach(side => {
+        const curb = createBoxTrack(0.22, 0.22, depth, [
+          pos[0] + side * (width/2 + 0.08), pos[1] + 0.16, pos[2]
+        ], rot, defaultTrackMatPhys, 'plain', side < 0 ? 0xff304f : 0xffd84d);
+        curb.mesh.material.roughness = 0.48;
+      });
+      return road;
+    }
+
+    // --- WORLD SECTIONS ---
+
+    // 1. Sky Launchpad
+    createBoxTrack(10, 1, 10, [0, 10, 0], [0,0,0], defaultTrackMatPhys, 'tile', 0x38bdf8);
+
+    // 2. Wooden Plank Bridge
+    createRoad(6.2, 18, [0, 6.5, 12], [0.35, 0, 0], 0x303640);
+    // wooden side beams underneath the road
+    createBoxTrack(0.45, 0.75, 18, [-3.25, 6.05, 12], [0.35,0,0], defaultTrackMatPhys, 'wood');
+    createBoxTrack(0.45, 0.75, 18, [3.25, 6.05, 12], [0.35,0,0], defaultTrackMatPhys, 'wood');
+
+    // 3. BUTTER STICK (Slippery Slide)
+    createBoxTrack(5, 1.2, 24, [0, 1.8, 30], [0.25, 0, 0], butterMatPhys, 'butter');
+    createBoxTrack(0.4, 1.6, 24, [-2.6, 2.4, 30], [0.25, 0, 0], defaultTrackMatPhys, 'wood');
+    createBoxTrack(0.4, 1.6, 24, [2.6, 2.4, 30], [0.25, 0, 0], defaultTrackMatPhys, 'wood');
+
+    // 4. Intermediate Platform + Speed Booster
+    createRoad(12, 12, [0, -2, 46], [0,0,0], 0x252b35);
+
+    const boostGeo = new THREE.BoxGeometry(4, 0.2, 6);
+    const boostMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
+    const boostMesh = new THREE.Mesh(boostGeo, boostMat);
+    boostMesh.position.set(0, -1.4, 46);
+    trackGroup.add(boostMesh);
+
+    // 5. GLACIAL ICE SKATING RING
+    createBoxTrack(16, 1, 16, [0, -4, 62], [0, 0, 0], iceMatPhys, 'ice');
+
+    // 6. REALISTIC DYNAMIC GRASS VALLEY
+    const valleyWidth = 24, valleyDepth = 32;
+    const valleyPos = [0, -7, 86];
+    createBoxTrack(valleyWidth, 1, valleyDepth, valleyPos, [-0.08, 0, 0], grassMatPhys, 'tile', 0x15803d);
+
+    // Instanced Grass Blades
+    const grassBladeGeo = new THREE.ConeGeometry(0.14, 1.1, 3);
+    grassBladeGeo.translate(0, 0.55, 0);
+    const grassBladeMat = new THREE.MeshLambertMaterial({ color: 0x4ade80, side: THREE.DoubleSide });
+
+    const grassCount = 2000;
+    const grassMesh = new THREE.InstancedMesh(grassBladeGeo, grassBladeMat, grassCount);
+    const dummy = new THREE.Object3D();
+    const grassPositions = [];
+    const grassRotations = [];
+
+    for (let i = 0; i < grassCount; i++) {
+      const gx = (Math.random() - 0.5) * (valleyWidth - 2);
+      const gz = (Math.random() - 0.5) * (valleyDepth - 2) + valleyPos[2];
+      const gy = valleyPos[1] + 0.5;
+
+      const rotX = (Math.random() - 0.5) * 0.3;
+      const rotZ = (Math.random() - 0.5) * 0.3;
+      const scaleY = 0.7 + Math.random() * 0.6;
+
+      dummy.position.set(gx, gy, gz);
+      dummy.rotation.set(rotX, 0, rotZ);
+      dummy.scale.set(1, scaleY, 1);
+      dummy.updateMatrix();
+
+      grassMesh.setMatrixAt(i, dummy.matrix);
+      grassPositions.push(new THREE.Vector3(gx, gy, gz));
+      grassRotations.push(new THREE.Euler(rotX, 0, rotZ));
+    }
+    trackGroup.add(grassMesh);
+
+    // 7. SUPER SPRING JUMP PAD
+    const jumpPadGeo = new THREE.CylinderGeometry(2, 2.2, 0.4, 32);
+    const jumpPadMat = new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0x880022, roughness: 0.2 });
+    const jumpPadMesh = new THREE.Mesh(jumpPadGeo, jumpPadMat);
+    jumpPadMesh.position.set(0, -6.3, 100);
+    trackGroup.add(jumpPadMesh);
+
+    // 8. PINBALL BUMPERS ZONE
+    const bumperPositions = [[-5, -5.3, 112], [0, -5.3, 117], [5, -5.3, 112]];
+    const bumperMeshes = [];
+
+    bumperPositions.forEach(p => {
+      const bGeo = new THREE.CylinderGeometry(1.3, 1.3, 1.2, 16);
+      const bMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0x443300, metalness: 0.8, roughness: 0.1 });
+      const bMesh = new THREE.Mesh(bGeo, bMat);
+      bMesh.position.set(...p);
+      bMesh.castShadow = true;
+      trackGroup.add(bMesh);
+      bumperMeshes.push(bMesh);
+
+      const bShape = new CANNON.Cylinder(1.3, 1.3, 1.2, 16);
+      const bBody = new CANNON.Body({ mass: 0, material: bumperMatPhys });
+      bBody.addShape(bShape);
+      bBody.position.set(...p);
+      world.addBody(bBody);
+    });
+
+    createRoad(18, 20, [0, -6, 114], [0,0,0], 0x20252e);
+
+    // 9. COLLECTIBLE STARS
+    const starGeo = new THREE.OctahedronGeometry(0.7);
+    const starMat = new THREE.MeshStandardMaterial({ color: 0xffea00, emissive: 0xffaa00, roughness: 0.1 });
+    const stars = [];
+    const starPositions = [
+      [0, 8, 12],
+      [0, 3.5, 30],
+      [0, -2, 62],
+      [0, -4.5, 86]
+    ];
+
+    let collectedStarsCount = 0;
+    starPositions.forEach(p => {
+      const sMesh = new THREE.Mesh(starGeo, starMat);
+      sMesh.position.set(...p);
+      scene.add(sMesh);
+      stars.push({ mesh: sMesh, collected: false });
+    });
+
+    // 10. VICTORY GOAL RING
+    const ringGeo = new THREE.TorusGeometry(3.5, 0.4, 16, 32);
+    const ringMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, emissive: 0x00bb88, metalness: 0.9 });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.position.set(0, -2, 128);
+    scene.add(ringMesh);
+
+    /* =========================================================================
+       7. AUDIO SYNTHESIZER (WEB AUDIO API)
+       ========================================================================= */
+    let audioCtx = null;
+    let rollGain = null;
+
+    function initAudio() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      const bufferSize = audioCtx.sampleRate * 2;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+      const whiteNoise = audioCtx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+      whiteNoise.loop = true;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 350;
+
+      rollGain = audioCtx.createGain();
+      rollGain.gain.value = 0.0;
+
+      whiteNoise.connect(filter);
+      filter.connect(rollGain);
+      rollGain.connect(audioCtx.destination);
+      whiteNoise.start();
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.2, vol = 0.3) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    marbleBody.addEventListener('collide', (e) => {
+      const vel = e.contact.getImpactVelocityAlongNormal();
+      if (vel > 1.2) playTone(80 + vel * 20, 'sine', 0.15, Math.min(vel / 12, 0.5));
+    });
+
+    /* =========================================================================
+       8. INPUT, CAMERA & GYRO
+       ========================================================================= */
+    const joystickZone = document.getElementById('joystick-zone');
+    const joystickKnob = document.getElementById('joystick-knob');
+    let moveInput = { x: 0, y: 0 };
+    let joystickActive = false;
+
+    function setPointerCaptureSafe(el, e) {
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+
+    joystickZone.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); initAudio(); joystickActive = true;
+      setPointerCaptureSafe(joystickZone, e); updateJoystick(e);
+    });
+    joystickZone.addEventListener('pointermove', (e) => {
+      if (joystickActive) { e.preventDefault(); updateJoystick(e); }
+    });
+    joystickZone.addEventListener('pointerup', stopJoystick);
+    joystickZone.addEventListener('pointercancel', stopJoystick);
+    function stopJoystick() {
+      joystickActive = false;
+      moveInput.x = 0; moveInput.y = 0;
+      joystickKnob.style.transform = 'translate(0px, 0px)';
+    }
+    function updateJoystick(e) {
+      const rect = joystickZone.getBoundingClientRect();
+      let dx = e.clientX - (rect.left + rect.width / 2);
+      let dy = e.clientY - (rect.top + rect.height / 2);
+      const maxR = rect.width * 0.34;
+      const dist = Math.hypot(dx, dy);
+      if (dist > maxR) { dx = dx / dist * maxR; dy = dy / dist * maxR; }
+      joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+      moveInput.x = THREE.MathUtils.clamp(dx / maxR, -1, 1);
+      moveInput.y = THREE.MathUtils.clamp(dy / maxR, -1, 1);
+    }
+
+    // Right-side drag rotates the follow camera without stealing the joystick.
+    let cameraDrag = false, lastCamX = 0, lastCamY = 0;
+    renderer.domElement.addEventListener('pointerdown', e => {
+      if (e.clientX < window.innerWidth * 0.48) return;
+      if (e.target !== renderer.domElement) return;
+      cameraDrag = true; lastCamX = e.clientX; lastCamY = e.clientY;
+      setPointerCaptureSafe(renderer.domElement, e);
+    });
+    renderer.domElement.addEventListener('pointermove', e => {
+      if (!cameraDrag || camMode !== 'follow') return;
+      const dx = e.clientX - lastCamX, dy = e.clientY - lastCamY;
+      lastCamX = e.clientX; lastCamY = e.clientY;
+      cameraYaw -= dx * 0.006;
+      cameraPitch = THREE.MathUtils.clamp(cameraPitch - dy * 0.004, -0.28, 0.38);
+    });
+    renderer.domElement.addEventListener('pointerup', () => cameraDrag = false);
+    renderer.domElement.addEventListener('pointercancel', () => cameraDrag = false);
+
+    // Gyro
+    let gyroEnabled = false;
+    const gyroBtn = document.getElementById('gyro-btn');
+    if (window.DeviceOrientationEvent) {
+      gyroBtn.style.display = 'inline-block';
+      gyroBtn.addEventListener('click', async () => {
+        initAudio();
+        try {
+          if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            const state = await DeviceOrientationEvent.requestPermission();
+            if (state !== 'granted') return;
+          }
+          window.addEventListener('deviceorientation', handleGyro, { passive: true });
+          gyroEnabled = true; gyroBtn.innerText = '📱 Gyro Active';
+        } catch (_) {}
+      });
+    }
+    function handleGyro(e) {
+      if (!gyroEnabled) return;
+      moveInput.x = THREE.MathUtils.clamp((e.gamma || 0) / 28, -1, 1);
+      moveInput.y = THREE.MathUtils.clamp(((e.beta || 0) - 8) / 28, -1, 1);
+    }
+
+    // Keyboard fallback
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      initAudio(); keys[e.code] = true;
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+      if (e.code === 'Space') jumpMarble();
+    });
+    window.addEventListener('keyup', e => keys[e.code] = false);
+
+    document.getElementById('btn-jump-action').addEventListener('pointerdown', e => {
+      e.preventDefault(); jumpMarble();
+    });
+    document.getElementById('btn-reset-action').addEventListener('pointerdown', e => {
+      e.preventDefault(); resetMarble();
+    });
+
+    function jumpMarble() {
+      initAudio();
+      // Stable jump gate: don't jump while strongly airborne.
+      if (Math.abs(marbleBody.velocity.y) < 1.15) {
+        marbleBody.wakeUp();
+        marbleBody.velocity.y = Math.max(marbleBody.velocity.y, 0) + 9.8;
+        playTone(400, 'triangle', 0.25, 0.4);
+      }
+    }
+
+    function resetMarble() {
+      marbleBody.position.set(0, 12, 0);
+      marbleBody.quaternion.set(0,0,0,1);
+      marbleBody.velocity.set(0,0,0);
+      marbleBody.angularVelocity.set(0,0,0);
+      marbleBody.wakeUp();
+      collectedStarsCount = 0;
+      stars.forEach(star => { star.collected = false; star.mesh.visible = true; });
+      document.getElementById('val-stars').innerText = '0 / 4 ⭐';
+      cameraYaw = 0; cameraPitch = 0.10;
+    }
+
+    let camMode = 'follow';
+    let cameraYaw = 0;
+    let cameraPitch = 0.10;
+    const camBtn = document.getElementById('cam-btn');
+    camBtn.addEventListener('click', () => {
+      camMode = camMode === 'follow' ? 'orbit' : 'follow';
+      camBtn.innerText = camMode === 'follow' ? '📷 Camera: Follow' : '📷 Camera: Free Orbit';
+      orbitControls.enabled = camMode === 'orbit';
+      if (camMode === 'orbit') orbitControls.target.copy(marbleBody.position);
+    });
+
+    document.getElementById('mat-select').addEventListener('change', e => updateMarbleMaterial(e.target.value));
+
+    /* =========================================================================
+       9. STABLE PHYSICS + CAMERA-RELATIVE MOVEMENT
+       ========================================================================= */
+    const fixedTimeStep = CONFIG.fixedStep;
+    let lastTime = performance.now();
+    let accumulator = 0;
+    let boostCooldown = 0;
+    let springCooldown = 0;
+
+    const tmpForward = new THREE.Vector3();
+    const tmpRight = new THREE.Vector3();
+    const tmpDesired = new THREE.Vector3();
+    const tmpCam = new THREE.Vector3();
+    const tmpLook = new THREE.Vector3();
+
+    function getInput() {
+      let ix = moveInput.x, iy = moveInput.y;
+      if (keys['KeyA'] || keys['ArrowLeft']) ix = -1;
+      if (keys['KeyD'] || keys['ArrowRight']) ix = 1;
+      if (keys['KeyW'] || keys['ArrowUp']) iy = -1;
+      if (keys['KeyS'] || keys['ArrowDown']) iy = 1;
+      const len = Math.hypot(ix, iy);
+      if (len > 1) { ix /= len; iy /= len; }
+      return { ix, iy };
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      accumulator += dt;
+      boostCooldown = Math.max(0, boostCooldown - dt);
+      springCooldown = Math.max(0, springCooldown - dt);
+
+      const input = getInput();
+
+      // Camera-relative ground movement. This fixes "left/right goes the wrong way"
+      // when the camera has been rotated.
+      tmpForward.set(-Math.sin(cameraYaw), 0, -Math.cos(cameraYaw)).normalize();
+      tmpRight.set(Math.cos(cameraYaw), 0, -Math.sin(cameraYaw)).normalize();
+      tmpDesired.copy(tmpRight).multiplyScalar(input.ix)
+        .addScaledVector(tmpForward, -input.iy);
+      const inputStrength = Math.min(1, tmpDesired.length());
+
+      if (inputStrength > 0.001) {
+        tmpDesired.normalize();
+        const force = CONFIG.driveForce * marbleBody.mass * inputStrength;
+        marbleBody.applyForce(
+          new CANNON.Vec3(tmpDesired.x * force, 0, tmpDesired.z * force),
+          marbleBody.position
+        );
+        // Realistic rolling spin around the horizontal axis.
+        marbleBody.angularVelocity.x += tmpDesired.z * inputStrength * 0.12;
+        marbleBody.angularVelocity.z -= tmpDesired.x * inputStrength * 0.12;
+      }
+
+      // Fixed accumulator prevents variable-frame physics from changing where the ball lands.
+      let steps = 0;
+      while (accumulator >= fixedTimeStep && steps < 8) {
+        world.step(fixedTimeStep);
+        accumulator -= fixedTimeStep;
+        steps++;
+      }
+      if (steps === 8) accumulator = 0;
+
+      const pos = marbleBody.position;
+
+      // Speed limit prevents explosive stacking of forces / bumpers.
+      const horizontalSpeed = Math.hypot(marbleBody.velocity.x, marbleBody.velocity.z);
+      const maxSpeed = currentPresetKey === 'neon' ? 23 : CONFIG.maxSpeed;
+      if (horizontalSpeed > maxSpeed) {
+        const scale = maxSpeed / horizontalSpeed;
+        marbleBody.velocity.x *= scale;
+        marbleBody.velocity.z *= scale;
+      }
+
+      // Boost only once per pass, rather than applying an impulse every frame.
+      if (boostCooldown <= 0 && Math.abs(pos.x) < 2.5 && Math.abs(pos.z - 46) < 3 && pos.y > -2.5) {
+        marbleBody.applyImpulse(new CANNON.Vec3(0, 0, 18 * marbleBody.mass), pos);
+        boostCooldown = 0.9;
+        playTone(600, 'sawtooth', 0.15, 0.3);
+      }
+
+      if (springCooldown <= 0 && Math.abs(pos.x) < 2 && Math.abs(pos.z - 100) < 2 && pos.y < -4.5) {
+        marbleBody.velocity.y = 16;
+        springCooldown = 0.8;
+        playTone(800, 'sine', 0.3, 0.5);
+      }
+
+      // Stars
+      stars.forEach(star => {
+        if (!star.collected && star.mesh.position.distanceTo(pos) < 1.6) {
+          star.collected = true;
+          star.mesh.visible = false;
+          collectedStarsCount++;
+          document.getElementById('val-stars').innerText = `${collectedStarsCount} / 4 ⭐`;
+          playTone(900 + collectedStarsCount * 200, 'sine', 0.3, 0.5);
+        }
+      });
+
+      if (ringMesh.position.distanceTo(pos) < 3.0) {
+        const toast = document.getElementById('toast-msg');
+        toast.classList.add('show');
+        clearTimeout(window._victoryTimer);
+        window._victoryTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+      }
+
+      // Visual sync
+      marbleMesh.position.copy(pos);
+      marbleMesh.quaternion.copy(marbleBody.quaternion);
+
+      // Trail fades by age instead of looking like a static line.
+      const pArr = trailParticles.geometry.attributes.position.array;
+      for (let i = 0; i < trailCount; i++) {
+        const age = (i - trailIndex + trailCount) % trailCount;
+        const strength = 1 - age / trailCount;
+        const j = i * 3;
+        if (i === trailIndex) {
+          pArr[j] = pos.x; pArr[j+1] = pos.y; pArr[j+2] = pos.z;
+        } else {
+          pArr[j+1] -= 0.01 * (1 - strength);
+        }
+      }
+      trailIndex = (trailIndex + 1) % trailCount;
+      trailParticles.geometry.attributes.position.needsUpdate = true;
+
+      // Grass interaction, now only update nearby blades for performance.
+      const bendRadius = 2.8;
+      const minGX = Math.max(0, Math.floor(grassPositions.length * 0));
+      for (let i = 0; i < grassCount; i++) {
+        const gPos = grassPositions[i];
+        const dist = gPos.distanceTo(pos);
+        if (dist < bendRadius) {
+          const pushDir = new THREE.Vector3().subVectors(gPos, pos).normalize();
+          const bend = (1 - dist / bendRadius) * 1.15;
+          dummy.position.copy(gPos);
+          dummy.rotation.set(
+            grassRotations[i].x + pushDir.z * bend,
+            0,
+            grassRotations[i].z - pushDir.x * bend
+          );
+          dummy.updateMatrix();
+          grassMesh.setMatrixAt(i, dummy.matrix);
+        }
+      }
+      grassMesh.instanceMatrix.needsUpdate = true;
+
+      stars.forEach(star => { if (star.mesh.visible) { star.mesh.rotation.y += 0.035; star.mesh.rotation.x += 0.01; } });
+      ringMesh.rotation.z += 0.018;
+      ringMesh.rotation.y += 0.012;
+
+      const speed = marbleBody.velocity.length();
+      if (rollGain && audioCtx) rollGain.gain.setTargetAtTime(Math.min(speed / 30, 0.32), audioCtx.currentTime, 0.05);
+
+      if (pos.y < -30 || !Number.isFinite(pos.x + pos.y + pos.z)) resetMarble();
+
+      // Smooth follow camera that looks where the ball is travelling.
+      if (camMode === 'follow') {
+        const horizontalVelocity = new THREE.Vector3(marbleBody.velocity.x, 0, marbleBody.velocity.z);
+        if (horizontalVelocity.lengthSq() > 0.8) {
+          const travelYaw = Math.atan2(-horizontalVelocity.x, -horizontalVelocity.z);
+          // only gently follow travel direction; manual camera drag still wins.
+          let delta = Math.atan2(Math.sin(travelYaw-cameraYaw), Math.cos(travelYaw-cameraYaw));
+          cameraYaw += delta * 0.012;
+        }
+
+        const cosP = Math.cos(cameraPitch), sinP = Math.sin(cameraPitch);
+        tmpCam.set(
+          pos.x + Math.sin(cameraYaw) * cosP * CONFIG.cameraDistance,
+          pos.y + CONFIG.cameraHeight + sinP * CONFIG.cameraDistance,
+          pos.z + Math.cos(cameraYaw) * cosP * CONFIG.cameraDistance
+        );
+        camera.position.lerp(tmpCam, CONFIG.cameraSmooth);
+        tmpLook.set(pos.x, pos.y + 0.7, pos.z);
+        camera.lookAt(tmpLook);
+      } else {
+        orbitControls.target.lerp(new THREE.Vector3(pos.x, pos.y, pos.z), 0.15);
+        orbitControls.update();
+      }
+
+      document.getElementById('val-speed').innerText = speed.toFixed(1) + ' m/s';
+      let zoneName = "Sky Launchpad";
+      if (pos.z > 20 && pos.z < 38) zoneName = "Butter Slide 🧈";
+      else if (pos.z >= 38 && pos.z < 54) zoneName = "Booster Island ⚡";
+      else if (pos.z >= 54 && pos.z < 72) zoneName = "Glacial Ice 🧊";
+      else if (pos.z >= 72 && pos.z < 96) zoneName = "Grass Valley 🌿";
+      else if (pos.z >= 96 && pos.z < 105) zoneName = "Spring Launcher 🚀";
+      else if (pos.z >= 105) zoneName = "Pinball Arena 💥";
+      document.getElementById('val-surface').innerText = zoneName;
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    });
+
+    updateMarbleMaterial('glass');
+    animate();
+  </script>
 </body>
+
 </html>
