@@ -7,6 +7,17 @@
   <title>Calyx — Fluid Laboratory</title>
   <link rel="icon" type="image/png" href="icon.png">
   <style>
+    :root {
+      --ui-opacity: 0.72;
+      --ui-blur: 22px;
+      --vignette-strength: 1;
+      --glow-mult: 1;
+      --motion-mult: 1;
+      --cinema-delay: 2200ms;
+      --panel-a: rgba(7, 10, 17, var(--ui-opacity));
+      --panel-b: rgba(7, 10, 17, calc(var(--ui-opacity) + 0.12));
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -43,15 +54,16 @@
       z-index: 2;
       pointer-events: none;
       background: radial-gradient(circle at 50% 45%, transparent 38%, #0009 100%);
-      transition: opacity .5s ease
+      opacity: var(--vignette-strength);
+      transition: opacity .4s ease
     }
 
-    /* ---------- UI WRAPPER (fades in cinema mode) ---------- */
     .ui-layer {
       transition: opacity .4s cubic-bezier(.4, 0, .2, 1),
         transform .4s cubic-bezier(.4, 0, .2, 1)
     }
 
+    /* ===================== HUD ===================== */
     .hud {
       position: fixed;
       z-index: 10;
@@ -96,8 +108,8 @@
       pointer-events: auto;
       padding: 9px 12px;
       border: 1px solid #fff2;
-      background: #070a10b8;
-      backdrop-filter: blur(18px);
+      background: var(--panel-a);
+      backdrop-filter: blur(var(--ui-blur));
       border-radius: 13px 6px 13px 6px;
       font-size: 9px;
       letter-spacing: .13em;
@@ -116,6 +128,7 @@
       transition: background .3s, box-shadow .3s
     }
 
+    /* ===================== RAIL ===================== */
     .rail {
       position: fixed;
       z-index: 11;
@@ -125,8 +138,8 @@
       padding: 7px;
       width: 58px;
       border: 1px solid #fff2;
-      background: #070a11b8;
-      backdrop-filter: blur(22px);
+      background: var(--panel-a);
+      backdrop-filter: blur(var(--ui-blur));
       border-radius: 19px 7px 19px 7px;
       box-shadow: 0 20px 55px #0009
     }
@@ -166,6 +179,7 @@
       margin: 7px 5px
     }
 
+    /* ===================== CENTER HERO ===================== */
     .center {
       position: fixed;
       z-index: 4;
@@ -193,6 +207,7 @@
       text-transform: uppercase
     }
 
+    /* ===================== DOCK ===================== */
     .dock {
       position: fixed;
       z-index: 12;
@@ -203,8 +218,8 @@
       align-items: center;
       gap: 8px;
       padding: 7px;
-      background: #070a11c7;
-      backdrop-filter: blur(25px);
+      background: var(--panel-b);
+      backdrop-filter: blur(calc(var(--ui-blur) + 3px));
       border: 1px solid #fff2;
       border-radius: 19px 7px 19px 7px;
       box-shadow: 0 20px 60px #0009
@@ -258,19 +273,13 @@
       transition: opacity .25s
     }
 
-    /* ========== CINEMA MODE ========== */
+    /* ===================== CINEMA MODE ===================== */
     body.cinema .hud,
     body.cinema .rail,
     body.cinema .center,
     body.cinema .dock {
       opacity: 0;
-      pointer-events: none;
-      transform: translateY(-8px)
-    }
-
-    body.cinema .rail,
-    body.cinema .dock {
-      transform: translateY(8px)
+      pointer-events: none
     }
 
     body.cinema .rail {
@@ -281,6 +290,10 @@
       transform: translateX(-50%) translateY(8px)
     }
 
+    body.cinema .hud {
+      transform: translateY(-8px)
+    }
+
     body.cinema .center {
       transform: translate(-50%, -50%) scale(.96)
     }
@@ -289,7 +302,6 @@
       cursor: none
     }
 
-    /* Floating cinema hint */
     .cinema-hint {
       position: fixed;
       z-index: 15;
@@ -297,8 +309,8 @@
       left: 50%;
       transform: translateX(-50%) translateY(10px);
       padding: 10px 18px;
-      background: #070a11c7;
-      backdrop-filter: blur(25px);
+      background: var(--panel-b);
+      backdrop-filter: blur(var(--ui-blur));
       border: 1px solid #fff2;
       border-radius: 13px 5px 13px 5px;
       font-size: 9px;
@@ -315,7 +327,7 @@
       transform: translateX(-50%) translateY(0)
     }
 
-    /* ========== VAULT ========== */
+    /* ===================== VAULT ===================== */
     .vault {
       position: fixed;
       inset: 0;
@@ -325,7 +337,7 @@
       grid-template-columns: 180px 1fr;
       gap: 11px;
       background: #02040bd9 url("bh.png") center/cover no-repeat;
-      backdrop-filter: blur(20px);
+      backdrop-filter: blur(calc(var(--ui-blur) * .9));
       opacity: 0;
       pointer-events: none;
       transform: scale(1.015);
@@ -341,8 +353,9 @@
     .nav,
     .main {
       border: 1px solid #fff2;
-      background: #070a11df;
-      box-shadow: inset 0 1px #fff1, 0 25px 80px #0009
+      background: var(--panel-b);
+      box-shadow: inset 0 1px #fff1, 0 25px 80px #0009;
+      backdrop-filter: blur(var(--ui-blur))
     }
 
     .nav {
@@ -494,8 +507,10 @@
       background: #ffffff58
     }
 
+    /* ===================== CARD ===================== */
     .card {
       --accent: #7aa0ff;
+      --accent2: #0d1118;
       position: relative;
       min-height: 108px;
       overflow: hidden;
@@ -570,6 +585,449 @@
       text-transform: uppercase
     }
 
+    /* ===================== AUTO ACCENT STROKE ===================== */
+    body.card-stroke .card {
+      border-color: transparent;
+      box-shadow: inset 0 1px #fff1, 0 10px 25px #0008
+    }
+
+    body.card-stroke .card::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: 20px 7px 20px 7px;
+      padding: 1.5px;
+      background:
+        linear-gradient(135deg, var(--accent2) 0%, var(--accent2) 32%, transparent 52%),
+        linear-gradient(315deg, var(--accent) 0%, var(--accent) 32%, transparent 52%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+      filter: drop-shadow(0 0 4px var(--accent2)) drop-shadow(0 0 4px var(--accent));
+      opacity: .9;
+      z-index: 1;
+      transition: opacity .3s, filter .3s
+    }
+
+    body.card-stroke .card:hover::after {
+      filter: drop-shadow(0 0 7px var(--accent2)) drop-shadow(0 0 7px var(--accent));
+      opacity: 1
+    }
+
+    body.card-stroke .card.active::after {
+      filter: drop-shadow(0 0 9px var(--accent2)) drop-shadow(0 0 9px var(--accent));
+      opacity: 1
+    }
+
+    /* ===================== SETTINGS MODAL ===================== */
+    .settings {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      padding: 22px;
+      display: grid;
+      place-items: center;
+      background: #02040bcc;
+      backdrop-filter: blur(28px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s
+    }
+
+    .settings.open {
+      opacity: 1;
+      pointer-events: auto
+    }
+
+    .settings-panel {
+      position: relative;
+      width: min(760px, 100%);
+      max-height: 100%;
+      background: #070a11ee;
+      border: 1px solid #fff2;
+      border-radius: 26px 8px 26px 8px;
+      box-shadow: 0 30px 90px #000c, inset 0 1px #fff1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: scale(.96);
+      transition: transform .3s cubic-bezier(.34, 1.2, .64, 1)
+    }
+
+    .settings.open .settings-panel {
+      transform: scale(1)
+    }
+
+    /* setting.png layer behind content */
+    .settings-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        url("setting.png") center/cover no-repeat,
+        linear-gradient(135deg, #0a1222, #050810);
+      opacity: .12;
+      pointer-events: none;
+      border-radius: inherit;
+      z-index: 0
+    }
+
+    .settings-panel>* {
+      position: relative;
+      z-index: 1
+    }
+
+    .settings-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid #fff10;
+      flex-shrink: 0
+    }
+
+    .settings-head .gear {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #fff2;
+      background: linear-gradient(135deg, #426bff28, #6ef1e30e);
+      border-radius: 12px 5px 12px 5px;
+      color: #8ca8ff
+    }
+
+    .settings-head .gear svg {
+      width: 18px;
+      height: 18px
+    }
+
+    .settings-head h2 {
+      font-size: 16px;
+      letter-spacing: .06em;
+      font-weight: 500
+    }
+
+    .settings-head small {
+      display: block;
+      color: #6b788c;
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-top: 3px
+    }
+
+    .settings-head .spacer {
+      flex: 1
+    }
+
+    .settings-close {
+      width: 38px;
+      height: 38px;
+      border: 1px solid #fff2;
+      background: #fff08;
+      color: #fff;
+      border-radius: 12px 5px 12px 5px;
+      font-size: 17px;
+      cursor: pointer;
+      transition: .18s
+    }
+
+    .settings-close:hover {
+      background: #fff12
+    }
+
+    .settings-close:active {
+      transform: scale(.92)
+    }
+
+    .settings-body {
+      overflow-y: auto;
+      padding: 8px 22px 22px;
+      scrollbar-width: thin;
+      scrollbar-color: #ffffff30 transparent
+    }
+
+    .settings-body::-webkit-scrollbar {
+      width: 6px
+    }
+
+    .settings-body::-webkit-scrollbar-thumb {
+      background: #ffffff30;
+      border-radius: 8px
+    }
+
+    .sgroup {
+      margin-top: 18px
+    }
+
+    .sgroup-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 2px 8px;
+      color: #8ca8ff;
+      font-size: 9px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      border-bottom: 1px solid #fff10;
+      margin-bottom: 4px
+    }
+
+    .sgroup-head svg {
+      width: 14px;
+      height: 14px;
+      stroke-width: 1.8;
+      opacity: .9
+    }
+
+    .sgroup-head .line {
+      flex: 1;
+      height: 1px;
+      background: #fff10
+    }
+
+    /* setting row */
+    .setting {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 4px;
+      border-bottom: 1px solid #ffffff08;
+      transition: background .18s
+    }
+
+    .setting:last-child {
+      border-bottom: 0
+    }
+
+    .setting:hover {
+      background: #ffffff05;
+      border-radius: 10px
+    }
+
+    .setting-info {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      flex: 1;
+      min-width: 0
+    }
+
+    .setting-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #fff1a;
+      background: #ffffff06;
+      border-radius: 10px 4px 10px 4px;
+      color: #9aa8bf;
+      flex-shrink: 0
+    }
+
+    .setting-icon svg {
+      width: 15px;
+      height: 15px;
+      stroke-width: 1.8
+    }
+
+    .setting-name {
+      font-size: 11px;
+      color: #e2e9f3;
+      font-weight: 500
+    }
+
+    .setting-desc {
+      font-size: 8.5px;
+      color: #6b788c;
+      margin-top: 3px;
+      letter-spacing: .02em
+    }
+
+    .setting-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      min-width: 190px;
+      justify-content: flex-end
+    }
+
+    /* custom slider */
+    .setting-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 130px;
+      height: 4px;
+      background: linear-gradient(90deg,
+          #8ca8ff 0%,
+          #6ef1e3 var(--pct, 50%),
+          #ffffff14 var(--pct, 50%),
+          #ffffff14 100%);
+      border-radius: 4px;
+      outline: 0;
+      cursor: pointer;
+      transition: filter .18s
+    }
+
+    .setting-slider:hover {
+      filter: brightness(1.15)
+    }
+
+    .setting-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 3px #8ca8ff33, 0 0 10px #8ca8ffcc;
+      transition: transform .15s, box-shadow .15s;
+      cursor: pointer
+    }
+
+    .setting-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 4px #8ca8ff44, 0 0 14px #8ca8ffee
+    }
+
+    .setting-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: 0;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 3px #8ca8ff33, 0 0 10px #8ca8ffcc;
+      cursor: pointer
+    }
+
+    .setting-value {
+      font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+      font-size: 10px;
+      color: #dbe5f4;
+      min-width: 52px;
+      text-align: right;
+      letter-spacing: .02em
+    }
+
+    /* switch */
+    .switch {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      background: #ffffff10;
+      border: 1px solid #fff2;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background .25s, border-color .25s;
+      padding: 0;
+      flex-shrink: 0
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: #6a7893;
+      border-radius: 50%;
+      transition: .25s cubic-bezier(.34, 1.3, .64, 1)
+    }
+
+    .switch.on {
+      background: linear-gradient(135deg, #426bff55, #6ef1e333);
+      border-color: #8ca8ff88
+    }
+
+    .switch.on::after {
+      left: 21px;
+      background: #cfe0ff;
+      box-shadow: 0 0 12px #8ca8ffcc
+    }
+
+    /* pill buttons inside settings */
+    .spill {
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid #fff1a;
+      background: #ffffff08;
+      color: #b9c4d5;
+      border-radius: 10px 4px 10px 4px;
+      font-size: 9px;
+      letter-spacing: .12em;
+      cursor: pointer;
+      transition: .18s
+    }
+
+    .spill:hover {
+      background: #ffffff12;
+      color: #fff
+    }
+
+    .spill:active {
+      transform: scale(.95)
+    }
+
+    .spill.danger:hover {
+      background: #ff3b3b22;
+      border-color: #ff5b5b55;
+      color: #ffb0b0
+    }
+
+    /* footer of settings */
+    .settings-foot {
+      padding: 14px 22px 18px;
+      border-top: 1px solid #fff10;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0
+    }
+
+    .settings-foot .saved-badge {
+      flex: 1;
+      font-size: 8px;
+      color: #5f6b7e;
+      letter-spacing: .14em;
+      text-transform: uppercase
+    }
+
+    .settings-foot .saved-badge.flash {
+      color: #7ed7b9
+    }
+
+    /* reduce motion + high contrast modes */
+    body.reduce-motion *,
+    body.reduce-motion *::before,
+    body.reduce-motion *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important
+    }
+
+    body.high-contrast .panel,
+    body.high-contrast .rail,
+    body.high-contrast .dock,
+    body.high-contrast .card,
+    body.high-contrast .nav,
+    body.high-contrast .main,
+    body.high-contrast .status,
+    body.high-contrast .settings-panel {
+      border-color: #ffffffaa !important
+    }
+
+    body.high-contrast .center h1,
+    body.high-contrast .brand b {
+      color: #fff;
+      text-shadow: 0 0 24px #ffffff55
+    }
+
+    /* responsive */
     @media(max-width:700px) {
       .hud {
         top: 10px;
@@ -619,6 +1077,25 @@
         width: 100%;
         height: 86px
       }
+
+      .settings {
+        padding: 10px
+      }
+
+      .setting {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px
+      }
+
+      .setting-control {
+        justify-content: flex-start;
+        min-width: 0
+      }
+
+      .setting-slider {
+        width: 100%
+      }
     }
 
     @media(max-width:400px) {
@@ -635,7 +1112,6 @@
       }
     }
 
-    /* Polish */
     .glow-pulse {
       animation: glowPulse 1.2s ease-out
     }
@@ -665,6 +1141,10 @@
 
     .card {
       animation: cardFade .35s ease-out both
+    }
+
+    body.no-card-anim .card {
+      animation: none
     }
 
     @keyframes cardFade {
@@ -698,11 +1178,17 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3C9 7 5 10.2 5 14.2a7 7 0 0 0 14 0C19 10.2 15 7 12 3Z"/></svg>
     </button>
     <hr>
-    <button id="pulse" title="Pulse">
+    <button id="pulse" title="Pulse (Space)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>
     </button>
     <button id="editorBtn" title="Preset editor">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+    </button>
+    <button id="settingsBtn" title="Settings (S)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
     </button>
     <button id="full" title="Cinema mode (F)">
       <svg id="fullIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -724,6 +1210,7 @@
 
   <div class="cinema-hint" id="cinemaHint">Move mouse to reveal controls · ESC to exit</div>
 
+  <!-- ===================== VAULT ===================== -->
   <section class="vault" id="vault">
     <aside class="nav">
       <h2>Projects</h2>
@@ -755,13 +1242,365 @@
     </main>
   </section>
 
-  <!-- Vertex shader -->
+  <!-- ===================== SETTINGS ===================== -->
+  <section class="settings" id="settings">
+    <div class="settings-panel">
+      <header class="settings-head">
+        <div class="gear">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </div>
+        <div>
+          <h2>Settings</h2>
+          <small>Personalise your laboratory</small>
+        </div>
+        <div class="spacer"></div>
+        <button class="settings-close" id="settingsClose" title="Close">×</button>
+      </header>
+
+      <div class="settings-body">
+
+        <!-- APPEARANCE -->
+        <div class="sgroup">
+          <div class="sgroup-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 3a9 9 0 0 1 0 18" />
+            </svg>
+            <span>Appearance</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="2.5" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">UI Transparency</div>
+                <div class="setting-desc">Opacity of the floating panels</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <input type="range" class="setting-slider" data-setting="uiOpacity" min="0.3" max="1" step="0.01" value="0.72">
+              <span class="setting-value" data-value-for="uiOpacity">72%</span>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path
+                    d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Panel Blur</div>
+                <div class="setting-desc">Frosted glass amount behind panels</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <input type="range" class="setting-slider" data-setting="uiBlur" min="0" max="40" step="1" value="22">
+              <span class="setting-value" data-value-for="uiBlur">22px</span>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 3v18" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Vignette</div>
+                <div class="setting-desc">Darkness at the edges of the screen</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <input type="range" class="setting-slider" data-setting="vignette" min="0" max="1.4" step="0.01" value="1">
+              <span class="setting-value" data-value-for="vignette">100%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- VISUALS -->
+        <div class="sgroup">
+          <div class="sgroup-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2" />
+              <circle cx="12" cy="12" r="3.2" />
+            </svg>
+            <span>Visuals</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M12 3v3M9 6h6M8 9l4 12 4-12Z" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Glow Intensity</div>
+                <div class="setting-desc">Strength of highlights and glows</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <input type="range" class="setting-slider" data-setting="glowMult" min="0" max="2" step="0.01" value="1">
+              <span class="setting-value" data-value-for="glowMult">1.00×</span>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <path d="M4 12h4l2-6 4 12 2-6h4" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Motion Speed</div>
+                <div class="setting-desc">Global multiplier for all liquids</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <input type="range" class="setting-slider" data-setting="motionMult" min="0.25" max="2" step="0.01" value="1">
+              <span class="setting-value" data-value-for="motionMult">1.00×</span>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="M3 9h18" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Card Accent Stroke</div>
+                <div class="setting-desc">Auto-coloured dual-corner shine using the liquid's two main colours</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <button class="switch" data-toggle="cardStroke"></button>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M5 12h14" />
+                  <path d="m13 6 6 6-6 6" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Card Hover Lift</div>
+                <div class="setting-desc">Cards rise slightly on hover</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <button class="switch" data-toggle="cardHover"></button>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Preview Animation</div>
+                <div class="setting-desc">Live canvas thumbnails inside cards</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <button class="switch" data-toggle="cardPreviewAnim"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CINEMA -->
+        <div class="sgroup">
+          <div class="sgroup-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M2 8h20M7 4v4M17 4v4" />
+            </svg>
+            <span>Cinema</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 8v5" />
+                  <circle cx="12" cy="16" r=".6" fill="currentColor" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Auto-hide Delay</div>
+                <div class="setting-desc">Time before UI fades after mouse moves</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <input type="range" class="setting-slider" data-setting="cinemaDelay" min="600" max="8000" step="100" value="2200">
+              <span class="setting-value" data-value-for="cinemaDelay">2.2s</span>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M4 4h6v6H4zM14 14h6v6h-6zM4 14h6v6H4zM14 4h6v6h-6z" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Always Show in Fullscreen</div>
+                <div class="setting-desc">Keep UI visible even in cinema mode</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <button class="switch" data-toggle="cinemaAlwaysShow"></button>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Cinema Hint</div>
+                <div class="setting-desc">Show a small hint when entering cinema</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <button class="switch" data-toggle="cinemaHint"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACCESSIBILITY -->
+        <div class="sgroup">
+          <div class="sgroup-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="5" r="1.6" />
+              <path d="M4 9h16M12 9v6M9 21l3-6 3 6" />
+            </svg>
+            <span>Accessibility</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <path d="M5 12h14M12 5v14" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Reduce Motion</div>
+                <div class="setting-desc">Minimise UI transitions and animations</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <button class="switch" data-toggle="reduceMotion"></button>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 3v18M3 12h18" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">High Contrast</div>
+                <div class="setting-desc">Boost border and text contrast</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <button class="switch" data-toggle="highContrast"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- DATA -->
+        <div class="sgroup">
+          <div class="sgroup-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+              <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+            </svg>
+            <span>Data</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                  <path d="M21 12a9 9 0 1 1-3-6.7" />
+                  <path d="M21 4v5h-5" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Reset Settings</div>
+                <div class="setting-desc">Restore all preferences to defaults</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <button class="spill danger" id="resetSettings">RESET</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <footer class="settings-foot">
+        <span class="saved-badge" id="savedBadge">Preferences saved locally</span>
+        <button class="spill" id="settingsResetAll">RESET ALL</button>
+        <button class="spill" id="settingsDone">DONE</button>
+      </footer>
+    </div>
+  </section>
+
+  <!-- ===================== SHADERS ===================== -->
   <script id="vs" type="x-shader/x-vertex">
     attribute vec2 a_position;
     void main(){ gl_Position = vec4(a_position, 0., 1.); }
   </script>
 
-  <!-- Fragment shader -->
   <script id="fs" type="x-shader/x-fragment">
     precision mediump float;
     uniform vec2 u_resolution, u_mouse;
@@ -891,11 +1730,172 @@
     }
   </script>
 
-  <!-- MAIN SCRIPT -->
+  <!-- ===================== MAIN SCRIPT ===================== -->
   <script type="module">
     import liquids from './liquids.js';
 
-    // ---- WebGL setup ----
+    // ---------- SETTINGS SYSTEM ----------
+    const DEFAULT_SETTINGS = {
+      uiOpacity: 0.72,
+      uiBlur: 22,
+      vignette: 1,
+      glowMult: 1,
+      motionMult: 1,
+      cardStroke: false,
+      cardHover: true,
+      cardPreviewAnim: true,
+      cinemaDelay: 2200,
+      cinemaAlwaysShow: false,
+      cinemaHint: true,
+      reduceMotion: false,
+      highContrast: false
+    };
+
+    let settings = { ...DEFAULT_SETTINGS };
+
+    function loadSettings() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('calyx.settings') || '{}');
+        Object.assign(settings, saved);
+      } catch (e) { /* ignore */ }
+      applySettings();
+    }
+
+    function saveSettings() {
+      try {
+        localStorage.setItem('calyx.settings', JSON.stringify(settings));
+      } catch (e) { /* ignore */ }
+    }
+
+    function applySettings() {
+      const root = document.documentElement;
+      root.style.setProperty('--ui-opacity', settings.uiOpacity);
+      root.style.setProperty('--ui-blur', settings.uiBlur + 'px');
+      root.style.setProperty('--vignette-strength', settings.vignette);
+      root.style.setProperty('--glow-mult', settings.glowMult);
+      root.style.setProperty('--motion-mult', settings.motionMult);
+      root.style.setProperty('--cinema-delay', settings.cinemaDelay + 'ms');
+
+      document.body.classList.toggle('card-stroke', settings.cardStroke);
+      document.body.classList.toggle('no-card-anim', !settings.cardPreviewAnim);
+      document.body.classList.toggle('reduce-motion', settings.reduceMotion);
+      document.body.classList.toggle('high-contrast', settings.highContrast);
+
+      // Sync UI controls
+      document.querySelectorAll('[data-setting]').forEach(input => {
+        const key = input.dataset.setting;
+        const val = settings[key];
+        input.value = val;
+        updateSliderPct(input);
+      });
+      document.querySelectorAll('[data-value-for]').forEach(el => {
+        const key = el.dataset.valueFor;
+        el.textContent = formatSettingValue(key, settings[key]);
+      });
+      document.querySelectorAll('[data-toggle]').forEach(btn => {
+        const key = btn.dataset.toggle;
+        btn.classList.toggle('on', !!settings[key]);
+      });
+    }
+
+    function updateSliderPct(input) {
+      const min = parseFloat(input.min);
+      const max = parseFloat(input.max);
+      const val = parseFloat(input.value);
+      const pct = ((val - min) / (max - min)) * 100;
+      input.style.setProperty('--pct', pct + '%');
+    }
+
+    function formatSettingValue(key, val) {
+      switch (key) {
+        case 'uiOpacity': return Math.round(val * 100) + '%';
+        case 'uiBlur': return Math.round(val) + 'px';
+        case 'vignette': return Math.round(val * 100) + '%';
+        case 'glowMult': return val.toFixed(2) + '×';
+        case 'motionMult': return val.toFixed(2) + '×';
+        case 'cinemaDelay': return (val / 1000).toFixed(1) + 's';
+        default: return String(val);
+      }
+    }
+
+    // Wire up settings input events
+    document.querySelectorAll('[data-setting]').forEach(input => {
+      updateSliderPct(input);
+      input.addEventListener('input', () => {
+        const key = input.dataset.setting;
+        const val = parseFloat(input.value);
+        settings[key] = val;
+        updateSliderPct(input);
+        const out = document.querySelector(`[data-value-for="${key}"]`);
+        if (out) out.textContent = formatSettingValue(key, val);
+        applySettings();
+        saveSettings();
+        flashSavedBadge();
+      });
+    });
+
+    document.querySelectorAll('[data-toggle]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.toggle;
+        settings[key] = !settings[key];
+        btn.classList.toggle('on', settings[key]);
+        applySettings();
+        saveSettings();
+        flashSavedBadge();
+        // If preview animation toggled off, stop the mini loop
+        if (key === 'cardPreviewAnim') {
+          if (!settings[key]) clearTimeout(miniTimer);
+          else scheduleMiniFrame();
+        }
+      });
+    });
+
+    let savedBadgeTimer = null;
+    function flashSavedBadge() {
+      const badge = document.getElementById('savedBadge');
+      badge.textContent = 'Preferences saved';
+      badge.classList.add('flash');
+      clearTimeout(savedBadgeTimer);
+      savedBadgeTimer = setTimeout(() => {
+        badge.textContent = 'Preferences saved locally';
+        badge.classList.remove('flash');
+      }, 1400);
+    }
+
+    document.getElementById('resetSettings').addEventListener('click', () => {
+      settings = { ...DEFAULT_SETTINGS };
+      applySettings();
+      saveSettings();
+      flashSavedBadge();
+    });
+
+    document.getElementById('settingsResetAll').addEventListener('click', () => {
+      settings = { ...DEFAULT_SETTINGS };
+      applySettings();
+      saveSettings();
+      flashSavedBadge();
+    });
+
+    document.getElementById('settingsDone').addEventListener('click', () => {
+      document.getElementById('settings').classList.remove('open');
+    });
+
+    // Settings modal open/close
+    const settingsEl = document.getElementById('settings');
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+      settingsEl.classList.add('open');
+    });
+    document.getElementById('settingsClose').addEventListener('click', () => {
+      settingsEl.classList.remove('open');
+    });
+    settingsEl.addEventListener('click', (e) => {
+      if (e.target === settingsEl) settingsEl.classList.remove('open');
+    });
+
+    // Load settings first, before anything else
+    loadSettings();
+
+    // ---------- WebGL setup ----------
     const canvas = document.getElementById("gl");
     const gl = canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer: false });
     if (!gl) {
@@ -954,12 +1954,11 @@
     addEventListener("resize", resize, { passive: true });
     resize();
 
-    // ---- Pointer handling ----
-    let lastPointerMove = 0;
+    let cinemaMode = false;
+
     addEventListener("pointermove", e => {
       tx = e.clientX * dpr;
       ty = (innerHeight - e.clientY) * dpr;
-      lastPointerMove = performance.now();
       if (cinemaMode) revealUiTemporarily();
     }, { passive: true });
 
@@ -967,6 +1966,7 @@
 
     function rgb(hex) {
       hex = hex.replace("#", "");
+      if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
       return [
         parseInt(hex.slice(0, 2), 16) / 255,
         parseInt(hex.slice(2, 4), 16) / 255,
@@ -974,7 +1974,7 @@
       ];
     }
 
-    // ---- DOM refs ----
+    // ---------- DOM refs ----------
     const grid = document.getElementById("grid");
     const cards = [];
     const vault = document.getElementById("vault");
@@ -985,12 +1985,13 @@
     const kindEl = document.getElementById("kind");
     const cinemaHint = document.getElementById("cinemaHint");
 
-    // ---- Card generation ----
+    // ---------- Card generation ----------
     function addCard(l, i) {
       const c = document.createElement("article");
       c.className = "card";
       c.dataset.cat = l.cat;
       c.style.setProperty("--accent", l.b);
+      c.style.setProperty("--accent2", l.a);
       c.innerHTML = `
         <div class="preview"><canvas width="76" height="76"></canvas></div>
         <div>
@@ -1025,7 +2026,7 @@
 
     setLiquid(0);
 
-    // ---- Main render loop ----
+    // ---------- Render loop ----------
     function drawMain(t) {
       if (document.hidden) {
         raf = requestAnimationFrame(drawMain);
@@ -1048,16 +2049,16 @@
       gl.uniform1f(U.pulse, pulse);
       gl.uniform3fv(U.a, rgb(l.a));
       gl.uniform3fv(U.b, rgb(l.b));
-      gl.uniform1f(U.speed, l.speed || .3);
+      gl.uniform1f(U.speed, (l.speed || .3) * settings.motionMult);
       gl.uniform1f(U.soft, .3);
-      gl.uniform1f(U.glow, .45);
+      gl.uniform1f(U.glow, .45 * settings.glowMult);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       raf = requestAnimationFrame(drawMain);
     }
 
     raf = requestAnimationFrame(drawMain);
 
-    // ---- Mini canvas previews ----
+    // ---------- Mini canvas previews ----------
     const mini = cards.map((c, i) => ({ c, i, phase: i * .37, visible: true }));
     const io = "IntersectionObserver" in window ? new IntersectionObserver(es => {
       es.forEach(e => {
@@ -1069,8 +2070,11 @@
     mini.forEach(o => io?.observe(o.c));
 
     let miniBusy = false;
+    let miniTimer = null;
+
     function miniFrame(t) {
-      if (miniBusy) return;
+      if (!settings.cardPreviewAnim) return;
+      if (miniBusy) { scheduleMiniFrame(); return; }
       miniBusy = true;
       mini.forEach(o => {
         if (!o.visible) return;
@@ -1106,11 +2110,17 @@
         x.globalAlpha = 1;
       });
       miniBusy = false;
-      setTimeout(() => requestAnimationFrame(miniFrame), 70);
+      scheduleMiniFrame();
     }
-    requestAnimationFrame(miniFrame);
 
-    // ---- Vault UI ----
+    function scheduleMiniFrame() {
+      clearTimeout(miniTimer);
+      miniTimer = setTimeout(() => requestAnimationFrame(miniFrame), 70);
+    }
+
+    scheduleMiniFrame();
+
+    // ---------- Vault UI ----------
     document.getElementById("vaultBtn").onclick = () => vault.classList.add("open");
     document.getElementById("open").onclick = () => vault.classList.add("open");
     document.getElementById("close").onclick = () => vault.classList.remove("open");
@@ -1135,21 +2145,20 @@
       pulse = 1;
     };
 
-    // ============================================================
-    // CINEMA MODE — fullscreen hides all UI
-    // ============================================================
-    let cinemaMode = false;
+    // ---------- Cinema mode ----------
     let uiRevealTimer = null;
     let hintTimer = null;
 
     function setCinema(on) {
       cinemaMode = on;
       if (on) {
+        if (settings.cinemaAlwaysShow) return;
         document.body.classList.add("cinema");
-        // show floating hint briefly
-        cinemaHint.classList.add("show");
-        clearTimeout(hintTimer);
-        hintTimer = setTimeout(() => cinemaHint.classList.remove("show"), 3200);
+        if (settings.cinemaHint) {
+          cinemaHint.classList.add("show");
+          clearTimeout(hintTimer);
+          hintTimer = setTimeout(() => cinemaHint.classList.remove("show"), 3200);
+        }
       } else {
         document.body.classList.remove("cinema");
         cinemaHint.classList.remove("show");
@@ -1158,18 +2167,17 @@
     }
 
     function revealUiTemporarily() {
-      if (!cinemaMode) return;
+      if (!cinemaMode || settings.cinemaAlwaysShow) return;
       document.body.classList.remove("cinema");
       clearTimeout(uiRevealTimer);
       uiRevealTimer = setTimeout(() => {
         if (cinemaMode) document.body.classList.add("cinema");
-      }, 2200);
+      }, settings.cinemaDelay);
     }
 
     function toggleFullscreen() {
       if (!document.fullscreenElement) {
         const p = document.documentElement.requestFullscreen?.();
-        // setCinema will be triggered by fullscreenchange
         if (p && p.catch) p.catch(() => {});
       } else {
         document.exitFullscreen?.();
@@ -1178,16 +2186,12 @@
 
     document.getElementById("full").onclick = toggleFullscreen;
 
-    // Sync cinema state with real fullscreen state
     document.addEventListener("fullscreenchange", () => {
-      if (document.fullscreenElement) {
-        setCinema(true);
-      } else {
-        setCinema(false);
-      }
+      if (document.fullscreenElement) setCinema(true);
+      else setCinema(false);
+      updateFullIcon();
     });
 
-    // Swap fullscreen icon based on state
     const fullIcon = document.getElementById("fullIcon");
     const fsPathEnter = "M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3";
     const fsPathExit  = "M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M21 16h-3a2 2 0 0 0-2 2v3M3 16h3a2 2 0 0 1 2 2v3";
@@ -1195,10 +2199,9 @@
       const path = fullIcon.querySelector("path");
       if (path) path.setAttribute("d", document.fullscreenElement ? fsPathExit : fsPathEnter);
     }
-    document.addEventListener("fullscreenchange", updateFullIcon);
     updateFullIcon();
 
-    // ---- Filter buttons ----
+    // ---------- Filters ----------
     document.querySelectorAll(".filters button").forEach(b => {
       b.onclick = () => {
         document.querySelectorAll(".filters button").forEach(x => x.classList.remove("active"));
@@ -1210,31 +2213,36 @@
       };
     });
 
-    // ---- Keyboard ----
+    // ---------- Keyboard ----------
     addEventListener("keydown", e => {
+      const tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+        if (e.key === "Escape") e.target.blur();
+        return;
+      }
+
       if (e.key === "Escape") {
-        // browser handles exiting fullscreen; also close vault
         vault.classList.remove("open");
+        settingsEl.classList.remove("open");
       }
       if (e.code === "Space") {
         e.preventDefault();
         triggerPulse();
       }
       if (e.key === "f" || e.key === "F") {
-        // Only toggle if not typing in an input (none here, but future-proof)
         if (!e.metaKey && !e.ctrlKey) toggleFullscreen();
       }
+      if (e.key === "s" || e.key === "S") {
+        if (!e.metaKey && !e.ctrlKey) settingsEl.classList.toggle("open");
+      }
       if (e.key === "h" || e.key === "H") {
-        // manual toggle of UI visibility
         if (cinemaMode) revealUiTemporarily();
         else if (document.fullscreenElement) setCinema(true);
       }
     });
 
-    // ---- Scroll polish ----
-    grid.addEventListener("wheel", (e) => {
-      e.stopPropagation();
-    }, { passive: true });
+    // ---------- Scroll polish ----------
+    grid.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
   </script>
 </body>
 
