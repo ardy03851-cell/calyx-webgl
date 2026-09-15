@@ -85,9 +85,9 @@
     .brand img {
       width: 40px;
       height: 40px;
-      border: 1px solid #fff2;
+      border: 1px solid rgba(255, 255, 255, .13);
       border-radius: 15px 6px 15px 6px;
-      box-shadow: 0 10px 35px #0008
+      box-shadow: 0 10px 35px rgba(0, 0, 0, .53)
     }
 
     .brand b {
@@ -107,7 +107,7 @@
     .status {
       pointer-events: auto;
       padding: 9px 12px;
-      border: 1px solid #fff2;
+      border: 1px solid rgba(255, 255, 255, .13);
       background: var(--panel-a);
       backdrop-filter: blur(var(--ui-blur));
       border-radius: 13px 6px 13px 6px;
@@ -137,11 +137,11 @@
       transform: translateY(-50%);
       padding: 7px;
       width: 58px;
-      border: 1px solid #fff2;
+      border: 1px solid rgba(255, 255, 255, .13);
       background: var(--panel-a);
       backdrop-filter: blur(var(--ui-blur));
       border-radius: 19px 7px 19px 7px;
-      box-shadow: 0 20px 55px #0009
+      box-shadow: 0 20px 55px rgba(0, 0, 0, .56)
     }
 
     .rail button {
@@ -160,8 +160,8 @@
     .rail button:hover,
     .rail button.on {
       color: #fff;
-      background: #fff0a;
-      border-color: #fff2
+      background: rgba(255, 255, 255, .07);
+      border-color: rgba(255, 255, 255, .13)
     }
 
     .rail button:active {
@@ -175,7 +175,7 @@
 
     .rail hr {
       border: 0;
-      border-top: 1px solid #fff12;
+      border-top: 1px solid rgba(255, 255, 255, .09);
       margin: 7px 5px
     }
 
@@ -195,7 +195,7 @@
       font-weight: 500;
       font-size: clamp(30px, 6vw, 74px);
       letter-spacing: -.065em;
-      text-shadow: 0 0 50px #74aaff2a;
+      text-shadow: 0 0 50px rgba(116, 170, 255, .16);
       transition: text-shadow .4s
     }
 
@@ -220,15 +220,15 @@
       padding: 7px;
       background: var(--panel-b);
       backdrop-filter: blur(calc(var(--ui-blur) + 3px));
-      border: 1px solid #fff2;
+      border: 1px solid rgba(255, 255, 255, .13);
       border-radius: 19px 7px 19px 7px;
-      box-shadow: 0 20px 60px #0009
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .56)
     }
 
     .btn {
       height: 40px;
-      border: 1px solid #fff13;
-      background: #fff08;
+      border: 1px solid rgba(255, 255, 255, .09);
+      background: rgba(255, 255, 255, .035);
       color: #b7c1d1;
       padding: 0 13px;
       border-radius: 12px 5px 12px 5px;
@@ -240,7 +240,7 @@
 
     .btn:hover {
       color: #fff;
-      background: #fff12
+      background: rgba(255, 255, 255, .08)
     }
 
     .btn:active {
@@ -248,8 +248,8 @@
     }
 
     .btn.primary {
-      background: linear-gradient(135deg, #426bff28, #6ef1e30e);
-      border-color: #7596ff35;
+      background: linear-gradient(135deg, rgba(66, 107, 255, .16), rgba(110, 241, 227, .06));
+      border-color: rgba(117, 150, 255, .22);
       color: #fff
     }
 
@@ -311,7 +311,7 @@
       padding: 10px 18px;
       background: var(--panel-b);
       backdrop-filter: blur(var(--ui-blur));
-      border: 1px solid #fff2;
+      border: 1px solid rgba(255, 255, 255, .13);
       border-radius: 13px 5px 13px 5px;
       font-size: 9px;
       letter-spacing: .18em;
@@ -336,7 +336,7 @@
       display: grid;
       grid-template-columns: 180px 1fr;
       gap: 11px;
-      background: #02040bd9 url("bh.png") center/cover no-repeat;
+      background: rgba(2, 4, 11, .85) url("bh.png") center/cover no-repeat;
       backdrop-filter: blur(calc(var(--ui-blur) * .9));
       opacity: 0;
       pointer-events: none;
@@ -352,9 +352,9 @@
 
     .nav,
     .main {
-      border: 1px solid #fff2;
+      border: 1px solid rgba(255, 255, 255, .13);
       background: var(--panel-b);
-      box-shadow: inset 0 1px #fff1, 0 25px 80px #0009;
+      box-shadow: inset 0 1px rgba(255, 255, 255, .07), 0 25px 80px rgba(0, 0, 0, .56);
       backdrop-filter: blur(var(--ui-blur))
     }
 
@@ -365,7 +365,7 @@
       flex-direction: column;
       overflow-y: auto;
       scrollbar-width: thin;
-      scrollbar-color: #ffffff38 transparent
+      scrollbar-color: rgba(255, 255, 255, .22) transparent
     }
 
     .nav::-webkit-scrollbar {
@@ -373,7 +373,7 @@
     }
 
     .nav::-webkit-scrollbar-thumb {
-      background: #ffffff38;
+      background: rgba(255, 255, 255, .22);
       border-radius: 8px
     }
 
@@ -409,8 +409,8 @@
     .filters button.active,
     .filters button:hover {
       color: #fff;
-      background: #fff09;
-      border-color: #fff15
+      background: rgba(255, 255, 255, .06);
+      border-color: rgba(255, 255, 255, .09)
     }
 
     .nav .editor {
@@ -420,7 +420,7 @@
     .hint {
       margin-top: auto;
       padding-top: 12px;
-      border-top: 1px solid #fff12;
+      border-top: 1px solid rgba(255, 255, 255, .09);
       color: #647087;
       font-size: 8px;
       line-height: 1.8
@@ -454,20 +454,26 @@
       margin-top: 5px
     }
 
+    /* Dark, subtle close button — no more white blob */
     .close {
       width: 40px;
       height: 40px;
-      border: 1px solid #fff2;
-      background: #fff08;
-      color: #fff;
+      border: 1px solid rgba(255, 255, 255, .13);
+      background: rgba(10, 14, 23, .72);
+      color: #9da8bc;
       border-radius: 13px 5px 13px 5px;
       font-size: 18px;
       cursor: pointer;
-      transition: .18s
+      transition: .18s;
+      display: grid;
+      place-items: center;
+      line-height: 1
     }
 
     .close:hover {
-      background: #fff12
+      background: rgba(30, 36, 48, .9);
+      color: #fff;
+      border-color: rgba(255, 255, 255, .22)
     }
 
     .close:active {
@@ -485,7 +491,7 @@
       padding: 2px 3px 18px;
       overscroll-behavior: contain;
       scrollbar-width: thin;
-      scrollbar-color: #ffffff38 transparent;
+      scrollbar-color: rgba(255, 255, 255, .22) transparent;
       scroll-behavior: smooth
     }
 
@@ -494,17 +500,17 @@
     }
 
     .grid::-webkit-scrollbar-track {
-      background: #ffffff05;
+      background: rgba(255, 255, 255, .02);
       border-radius: 8px
     }
 
     .grid::-webkit-scrollbar-thumb {
-      background: #ffffff38;
+      background: rgba(255, 255, 255, .22);
       border-radius: 8px
     }
 
     .grid::-webkit-scrollbar-thumb:hover {
-      background: #ffffff58
+      background: rgba(255, 255, 255, .35)
     }
 
     /* ===================== CARD ===================== */
@@ -519,8 +525,8 @@
       gap: 12px;
       align-items: center;
       padding: 10px;
-      border: 1px solid #fff13;
-      background: #090c14e8;
+      border: 1px solid rgba(255, 255, 255, .09);
+      background: rgba(9, 12, 20, .91);
       border-radius: 19px 6px 19px 6px;
       cursor: pointer;
       transition: transform .18s, border-color .18s, box-shadow .18s
@@ -537,7 +543,7 @@
 
     .card:hover {
       transform: translateY(-2px);
-      border-color: #fff3
+      border-color: rgba(255, 255, 255, .19)
     }
 
     .card.active {
@@ -549,10 +555,10 @@
       width: 76px;
       height: 76px;
       border-radius: 20px 6px 20px 6px;
-      border: 1px solid #fff2;
+      border: 1px solid rgba(255, 255, 255, .13);
       overflow: hidden;
       background: #000;
-      box-shadow: inset 0 1px #fff2, 0 10px 25px #0008
+      box-shadow: inset 0 1px rgba(255, 255, 255, .13), 0 10px 25px rgba(0, 0, 0, .53)
     }
 
     .preview canvas {
@@ -576,7 +582,7 @@
     .tag {
       display: inline-block;
       margin-top: 8px;
-      border: 1px solid #fff15;
+      border: 1px solid rgba(255, 255, 255, .09);
       color: #9aa6bb;
       padding: 3px 5px;
       border-radius: 5px;
@@ -588,7 +594,7 @@
     /* ===================== AUTO ACCENT STROKE ===================== */
     body.card-stroke .card {
       border-color: transparent;
-      box-shadow: inset 0 1px #fff1, 0 10px 25px #0008
+      box-shadow: inset 0 1px rgba(255, 255, 255, .07), 0 10px 25px rgba(0, 0, 0, .53)
     }
 
     body.card-stroke .card::after {
@@ -629,7 +635,7 @@
       padding: 22px;
       display: grid;
       place-items: center;
-      background: #02040bcc;
+      background: rgba(2, 4, 11, .8);
       backdrop-filter: blur(28px);
       opacity: 0;
       pointer-events: none;
@@ -645,10 +651,10 @@
       position: relative;
       width: min(760px, 100%);
       max-height: 100%;
-      background: #070a11ee;
-      border: 1px solid #fff2;
+      background: rgba(7, 10, 17, .93);
+      border: 1px solid rgba(255, 255, 255, .13);
       border-radius: 26px 8px 26px 8px;
-      box-shadow: 0 30px 90px #000c, inset 0 1px #fff1;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, .8), inset 0 1px rgba(255, 255, 255, .07);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -660,7 +666,6 @@
       transform: scale(1)
     }
 
-    /* setting.png layer behind content */
     .settings-panel::before {
       content: "";
       position: absolute;
@@ -684,7 +689,7 @@
       align-items: center;
       gap: 12px;
       padding: 20px 22px 16px;
-      border-bottom: 1px solid #fff10;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
       flex-shrink: 0
     }
 
@@ -693,8 +698,8 @@
       height: 34px;
       display: grid;
       place-items: center;
-      border: 1px solid #fff2;
-      background: linear-gradient(135deg, #426bff28, #6ef1e30e);
+      border: 1px solid rgba(255, 255, 255, .13);
+      background: linear-gradient(135deg, rgba(66, 107, 255, .16), rgba(110, 241, 227, .06));
       border-radius: 12px 5px 12px 5px;
       color: #8ca8ff
     }
@@ -723,20 +728,26 @@
       flex: 1
     }
 
+    /* Dark, subtle settings close button */
     .settings-close {
       width: 38px;
       height: 38px;
-      border: 1px solid #fff2;
-      background: #fff08;
-      color: #fff;
+      border: 1px solid rgba(255, 255, 255, .13);
+      background: rgba(10, 14, 23, .72);
+      color: #9da8bc;
       border-radius: 12px 5px 12px 5px;
       font-size: 17px;
       cursor: pointer;
-      transition: .18s
+      transition: .18s;
+      display: grid;
+      place-items: center;
+      line-height: 1
     }
 
     .settings-close:hover {
-      background: #fff12
+      background: rgba(30, 36, 48, .9);
+      color: #fff;
+      border-color: rgba(255, 255, 255, .22)
     }
 
     .settings-close:active {
@@ -747,7 +758,7 @@
       overflow-y: auto;
       padding: 8px 22px 22px;
       scrollbar-width: thin;
-      scrollbar-color: #ffffff30 transparent
+      scrollbar-color: rgba(255, 255, 255, .19) transparent
     }
 
     .settings-body::-webkit-scrollbar {
@@ -755,7 +766,7 @@
     }
 
     .settings-body::-webkit-scrollbar-thumb {
-      background: #ffffff30;
+      background: rgba(255, 255, 255, .19);
       border-radius: 8px
     }
 
@@ -772,7 +783,7 @@
       font-size: 9px;
       letter-spacing: .22em;
       text-transform: uppercase;
-      border-bottom: 1px solid #fff10;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
       margin-bottom: 4px
     }
 
@@ -786,16 +797,15 @@
     .sgroup-head .line {
       flex: 1;
       height: 1px;
-      background: #fff10
+      background: rgba(255, 255, 255, .06)
     }
 
-    /* setting row */
     .setting {
       display: flex;
       align-items: center;
       gap: 14px;
       padding: 12px 4px;
-      border-bottom: 1px solid #ffffff08;
+      border-bottom: 1px solid rgba(255, 255, 255, .03);
       transition: background .18s
     }
 
@@ -804,7 +814,7 @@
     }
 
     .setting:hover {
-      background: #ffffff05;
+      background: rgba(255, 255, 255, .02);
       border-radius: 10px
     }
 
@@ -821,8 +831,8 @@
       height: 30px;
       display: grid;
       place-items: center;
-      border: 1px solid #fff1a;
-      background: #ffffff06;
+      border: 1px solid rgba(255, 255, 255, .1);
+      background: rgba(255, 255, 255, .024);
       border-radius: 10px 4px 10px 4px;
       color: #9aa8bf;
       flex-shrink: 0
@@ -856,7 +866,7 @@
       justify-content: flex-end
     }
 
-    /* custom slider */
+    /* Custom slider — smoother, no per-frame recalcs */
     .setting-slider {
       -webkit-appearance: none;
       appearance: none;
@@ -865,12 +875,13 @@
       background: linear-gradient(90deg,
           #8ca8ff 0%,
           #6ef1e3 var(--pct, 50%),
-          #ffffff14 var(--pct, 50%),
-          #ffffff14 100%);
+          rgba(255, 255, 255, .08) var(--pct, 50%),
+          rgba(255, 255, 255, .08) 100%);
       border-radius: 4px;
       outline: 0;
       cursor: pointer;
-      transition: filter .18s
+      transition: filter .18s;
+      will-change: background
     }
 
     .setting-slider:hover {
@@ -884,14 +895,15 @@
       height: 14px;
       border-radius: 50%;
       background: #fff;
-      box-shadow: 0 0 0 3px #8ca8ff33, 0 0 10px #8ca8ffcc;
+      box-shadow: 0 0 0 3px rgba(140, 168, 255, .2), 0 0 10px rgba(140, 168, 255, .8);
       transition: transform .15s, box-shadow .15s;
-      cursor: pointer
+      cursor: pointer;
+      will-change: transform
     }
 
     .setting-slider::-webkit-slider-thumb:hover {
       transform: scale(1.2);
-      box-shadow: 0 0 0 4px #8ca8ff44, 0 0 14px #8ca8ffee
+      box-shadow: 0 0 0 4px rgba(140, 168, 255, .27), 0 0 14px rgba(140, 168, 255, .93)
     }
 
     .setting-slider::-moz-range-thumb {
@@ -900,7 +912,7 @@
       border: 0;
       border-radius: 50%;
       background: #fff;
-      box-shadow: 0 0 0 3px #8ca8ff33, 0 0 10px #8ca8ffcc;
+      box-shadow: 0 0 0 3px rgba(140, 168, 255, .2), 0 0 10px rgba(140, 168, 255, .8);
       cursor: pointer
     }
 
@@ -913,13 +925,12 @@
       letter-spacing: .02em
     }
 
-    /* switch */
     .switch {
       position: relative;
       width: 42px;
       height: 24px;
-      background: #ffffff10;
-      border: 1px solid #fff2;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .13);
       border-radius: 14px;
       cursor: pointer;
       transition: background .25s, border-color .25s;
@@ -940,22 +951,21 @@
     }
 
     .switch.on {
-      background: linear-gradient(135deg, #426bff55, #6ef1e333);
-      border-color: #8ca8ff88
+      background: linear-gradient(135deg, rgba(66, 107, 255, .33), rgba(110, 241, 227, .2));
+      border-color: rgba(140, 168, 255, .53)
     }
 
     .switch.on::after {
       left: 21px;
       background: #cfe0ff;
-      box-shadow: 0 0 12px #8ca8ffcc
+      box-shadow: 0 0 12px rgba(140, 168, 255, .8)
     }
 
-    /* pill buttons inside settings */
     .spill {
       height: 32px;
       padding: 0 12px;
-      border: 1px solid #fff1a;
-      background: #ffffff08;
+      border: 1px solid rgba(255, 255, 255, .1);
+      background: rgba(255, 255, 255, .03);
       color: #b9c4d5;
       border-radius: 10px 4px 10px 4px;
       font-size: 9px;
@@ -965,7 +975,7 @@
     }
 
     .spill:hover {
-      background: #ffffff12;
+      background: rgba(255, 255, 255, .07);
       color: #fff
     }
 
@@ -974,15 +984,14 @@
     }
 
     .spill.danger:hover {
-      background: #ff3b3b22;
-      border-color: #ff5b5b55;
+      background: rgba(255, 59, 59, .13);
+      border-color: rgba(255, 91, 91, .33);
       color: #ffb0b0
     }
 
-    /* footer of settings */
     .settings-foot {
       padding: 14px 22px 18px;
-      border-top: 1px solid #fff10;
+      border-top: 1px solid rgba(255, 255, 255, .06);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -1001,7 +1010,6 @@
       color: #7ed7b9
     }
 
-    /* reduce motion + high contrast modes */
     body.reduce-motion *,
     body.reduce-motion *::before,
     body.reduce-motion *::after {
@@ -1018,16 +1026,15 @@
     body.high-contrast .main,
     body.high-contrast .status,
     body.high-contrast .settings-panel {
-      border-color: #ffffffaa !important
+      border-color: rgba(255, 255, 255, .67) !important
     }
 
     body.high-contrast .center h1,
     body.high-contrast .brand b {
       color: #fff;
-      text-shadow: 0 0 24px #ffffff55
+      text-shadow: 0 0 24px rgba(255, 255, 255, .33)
     }
 
-    /* responsive */
     @media(max-width:700px) {
       .hud {
         top: 10px;
@@ -1118,15 +1125,15 @@
 
     @keyframes glowPulse {
       0% {
-        text-shadow: 0 0 50px #74aaff2a
+        text-shadow: 0 0 50px rgba(116, 170, 255, .16)
       }
 
       30% {
-        text-shadow: 0 0 80px #74aaff88
+        text-shadow: 0 0 80px rgba(116, 170, 255, .53)
       }
 
       100% {
-        text-shadow: 0 0 50px #74aaff2a
+        text-shadow: 0 0 50px rgba(116, 170, 255, .16)
       }
     }
 
@@ -1236,7 +1243,7 @@
           <h2>Fluid Profiles</h2>
           <p id="info">42 distinct motion systems</p>
         </div>
-        <button class="close" id="close">×</button>
+        <button class="close" id="close" title="Close">×</button>
       </header>
       <div class="grid" id="grid"></div>
     </main>
@@ -1250,8 +1257,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
             stroke-linejoin="round">
             <circle cx="12" cy="12" r="3" />
-            <path
-              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
         </div>
         <div>
@@ -1264,7 +1270,6 @@
 
       <div class="settings-body">
 
-        <!-- APPEARANCE -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -1299,8 +1304,7 @@
               <div class="setting-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
                   <circle cx="12" cy="12" r="4" />
-                  <path
-                    d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1" />
+                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1" />
                 </svg>
               </div>
               <div>
@@ -1334,7 +1338,6 @@
           </div>
         </div>
 
-        <!-- VISUALS -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -1348,8 +1351,7 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 3v3M9 6h6M8 9l4 12 4-12Z" />
                 </svg>
               </div>
@@ -1385,8 +1387,7 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="5" width="18" height="14" rx="2" />
                   <path d="M3 9h18" />
                 </svg>
@@ -1404,8 +1405,7 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M5 12h14" />
                   <path d="m13 6 6 6-6 6" />
                 </svg>
@@ -1439,7 +1439,6 @@
           </div>
         </div>
 
-        <!-- CINEMA -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -1473,8 +1472,7 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M4 4h6v6H4zM14 14h6v6h-6zM4 14h6v6H4zM14 4h6v6h-6z" />
                 </svg>
               </div>
@@ -1491,8 +1489,7 @@
           <div class="setting">
             <div class="setting-info">
               <div class="setting-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                  stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
                 </svg>
               </div>
@@ -1507,7 +1504,6 @@
           </div>
         </div>
 
-        <!-- ACCESSIBILITY -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -1554,7 +1550,6 @@
           </div>
         </div>
 
-        <!-- DATA -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -1601,140 +1596,74 @@
     void main(){ gl_Position = vec4(a_position, 0., 1.); }
   </script>
 
-  <script id="fs" type="x-shader/x-fragment">
-    precision mediump float;
-    uniform vec2 u_resolution, u_mouse;
-    uniform float u_time, u_pulse, u_speed, u_soft, u_glow;
-    uniform vec3 u_a, u_b;
-    uniform int u_motion;
+  <!-- Fragment shader TEMPLATE. The marker __LIQUID_BODY__ is replaced
+       with either the standard motion dispatch or the liquid's own code. -->
+  <script id="fs-template" type="x-shader/x-fragment">
+precision mediump float;
+uniform vec2 u_resolution, u_mouse;
+uniform float u_time, u_pulse, u_speed, u_soft, u_glow;
+uniform float u_scale, u_warp, u_pulseAmt;
+uniform vec3 u_a, u_b;
+uniform int u_motion;
 
-    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-    float noise(vec2 p){
-      vec2 i = floor(p), f = fract(p);
-      f = f * f * (3. - 2. * f);
-      return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x),
-                 mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y);
-    }
-    float fbm(vec2 p){
-      float v = 0., a = .5;
-      for(int i = 0; i < 5; i++){ v += noise(p) * a; p *= 2.; a *= .5; }
-      return v;
-    }
-    vec2 rot(vec2 p, float a){ float c = cos(a), s = sin(a); return vec2(c*p.x - s*p.y, s*p.x + c*p.y); }
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3. - 2. * f);
+  return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x),
+             mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y);
+}
+float fbm(vec2 p){
+  float v = 0., a = .5;
+  for(int i = 0; i < 5; i++){ v += noise(p) * a; p *= 2.; a *= .5; }
+  return v;
+}
+vec2 rot(vec2 p, float a){ float c = cos(a), s = sin(a); return vec2(c*p.x - s*p.y, s*p.x + c*p.y); }
 
-    void main(){
-      vec2 uv = (gl_FragCoord.xy - .5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
-      vec2 mouse = (u_mouse - .5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
-      vec2 p = uv;
-      float t = u_time * u_speed;
-      float d = length(p);
+void main(){
+  vec2 uv = (gl_FragCoord.xy - .5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+  vec2 mouse = (u_mouse - .5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+  vec2 p = uv;
+  float t = u_time * u_speed;
+  float d = length(p);
 
-      vec2 md = p - mouse;
-      float mdist = length(md);
-      if (mdist < .8) {
-        p += normalize(md) * .055 * (1. - mdist / .8);
-      }
+  vec2 md = p - mouse;
+  float mdist = length(md);
+  if (mdist < .8) {
+    p += normalize(md) * .055 * (1. - mdist / .8);
+  }
 
-      float v = 0.;
-      if(u_motion == 0) {
-        vec2 q = p; q.x += sin(q.y * 6. - t * .65) * .16;
-        v = fbm(q * 2.7 + vec2(t * .06, -t * .03));
-      } else if(u_motion == 1) {
-        vec2 q = p * 2.5; v = fbm(q + vec2(t * .08, -t * .04));
-      } else if(u_motion == 2) {
-        vec2 q = rot(p, t * .05); v = fbm(q * 3.0);
-        v = .5 + .5 * v + sin(q.x * 7. + v * 3. - t) * .08;
-      } else if(u_motion == 3) {
-        vec2 q = p; q.y += sin(q.x * 5. + t * .45) * .12;
-        v = fbm(q * 3.2);
-      } else if(u_motion == 4) {
-        vec2 q = p * 3.; vec2 g = abs(fract(q) - .5);
-        v = 1. - length(g) * 1.45;
-        v = v * .7 + fbm(q + t * .04) * .3;
-      } else if(u_motion == 5) {
-        vec2 q = p * 2.1; v = fbm(q + vec2(t * .16, -t * .08));
-        v = .5 + .5 * v;
-      } else if(u_motion == 6) {
-        vec2 q = p * 3.; q.y += sin(q.x * 5. + t * .5) * .10;
-        v = fbm(q);
-      } else if(u_motion == 7) {
-        vec2 q = p * 2.8;
-        v = sin(length(q + vec2(sin(t), cos(t)) * .12) * 7. - t) * .10 + .5 + fbm(q + t * .03) * .35;
-      } else if(u_motion == 8) {
-        vec2 q = rot(p, t * .035); v = fbm(q * 2.2);
-      } else if(u_motion == 9) {
-        vec2 q = p * 3.; v = fbm(q * 1.6 + vec2(t * .05, -t * .02));
-        v += sin(q.x * 8. + q.y * 3. - t) * .08;
-      } else if(u_motion == 10) {
-        vec2 q = p * 3.5; v = fbm(q + vec2(sin(t * .3), cos(t * .25)) * .12);
-      } else if(u_motion == 11) {
-        vec2 q = p * 2.5; v = fbm(q);
-        v += sin(q.x * 5. + fbm(q * 2.) * 2. - t * .35) * .10;
-      } else if(u_motion == 12) {
-        vec2 q = p; q.x += fbm(q * 2.) * .28;
-        v = fbm(q * 3. + vec2(t * .035, -t * .018));
-      } else if(u_motion == 13) {
-        vec2 q = p * 2.; q.y += sin(q.x * 4. + t * .2) * .08;
-        v = fbm(q * 2.);
-        v += sin(q.x * 4. + v * 2. - t * .15) * .06;
-      } else if(u_motion == 14) {
-        vec2 q = p * 4.; float col = floor(q.x);
-        float yy = fract(q.y + t * .12 * (.5 + hash(vec2(col, 2.))));
-        v = smoothstep(.92, .12, yy) * .24 + fbm(q * .7) * .55;
-      } else if(u_motion == 15) {
-        vec2 q = rot(p, t * .02); v = fbm(q * 2.4);
-        v += sin(q.x * 5. + v * 5. - t * .25) * .08;
-      } else if(u_motion == 16) {
-        vec2 q = p; q.y += sin(q.x * 4. + t * .25) * .14;
-        v = fbm(q * 2.5);
-      } else if(u_motion == 17) {
-        vec2 q = p * 2.; v = fbm(q + vec2(sin(t * .2), cos(t * .17)) * .08);
-        v += sin(q.x * 3. + q.y * 2. - t * .15) * .05;
-      } else if(u_motion == 18) {
-        vec2 q = p * 2.2; v = fbm(q + vec2(t * .04, -t * .02));
-        v += sin(q.y * 6. + v * 2.) * .06;
-      } else if(u_motion == 19) {
-        vec2 q = p * 1.8; v = fbm(q * 2. + vec2(-t * .03, t * .06));
-        v = pow(v, 1.2);
-      } else if(u_motion == 20) {
-        vec2 q = rot(p, t * .07); v = fbm(q * 2.5 + vec2(sin(t * .5), cos(t * .3)) * .1);
-      } else if(u_motion == 21) {
-        vec2 q = p * 3.2; v = fbm(q * .8 + vec2(t * .02, -t * .01));
-        v += sin(q.x * 3. + q.y * 5. - t) * .1;
-      } else if(u_motion == 22) {
-        vec2 q = p * 2.4; v = fbm(q + vec2(t * .09, t * .04));
-        v += sin(q.x * 7. + fbm(q * 3.) * 3. - t * .4) * .09;
-      } else if(u_motion == 23) {
-        vec2 q = p * 2.0; v = fbm(q + vec2(sin(t * .1), cos(t * .15)) * .2);
-      } else if(u_motion == 24) {
-        vec2 q = p * 2.6; v = fbm(q + vec2(t * .02, -t * .1));
-        v += sin(q.y * 8. + t) * .07;
-      } else if(u_motion == 25) {
-        vec2 q = rot(p, t * .015); v = fbm(q * 2.8 + vec2(t * .05, 0.));
-      } else {
-        v = fbm(p * 2.5 + t * .02);
-      }
+  p *= u_scale;
+  if (u_warp > 0.001) {
+    p += vec2(fbm(p * 2. + t * .3), fbm(p * 2. + 5.3 + t * .25)) * u_warp * .3;
+  }
 
-      v = clamp(v, .02, .98);
-      float structure = smoothstep(.15, .85, v);
-      vec3 color = mix(u_a, u_b, structure);
+  float v = 0.;
+__LIQUID_BODY__
 
-      float highlight = pow(max(0., 1. - abs(v - .58) * 3.2), 2.) * .10 * u_glow;
-      float edge = smoothstep(.02, .18, 1. - abs(v - .5) * 2.) * .035 * u_glow;
-      float pointer = exp(-length(p - mouse) * 6.) * .06 * u_glow;
-      float pulse = exp(-abs(d - (.28 + u_pulse * .12)) * 25.) * .16 * u_glow;
-      color += vec3(.8, .9, 1.) * (highlight + edge + pointer + pulse);
-      color *= 1.05 - .38 * smoothstep(.2, 1., d);
+  v = clamp(v, .02, .98);
+  float structure = smoothstep(.15, .85, v);
+  vec3 color = mix(u_a, u_b, structure);
 
-      gl_FragColor = vec4(max(color, vec3(0.)), 1.);
-    }
+  float detail = mix(.04, .16, u_soft);
+  float highlight = pow(max(0., 1. - abs(v - .58) * 3.2), 2.) * detail * u_glow;
+  float edge = smoothstep(.02, .18, 1. - abs(v - .5) * 2.) * .035 * u_glow;
+  float pointer = exp(-length(p - mouse) * 6.) * .06 * u_glow;
+  float pulse = exp(-abs(d - (.28 + u_pulse * .12)) * 25.) * .16 * u_glow * u_pulseAmt;
+  color += vec3(.8, .9, 1.) * (highlight + edge + pointer + pulse);
+  color *= 1.05 - .38 * smoothstep(.2, 1., d);
+
+  gl_FragColor = vec4(max(color, vec3(0.)), 1.);
+}
   </script>
 
   <!-- ===================== MAIN SCRIPT ===================== -->
   <script type="module">
     import liquids from './liquids.js';
 
-    // ---------- SETTINGS SYSTEM ----------
+    // ============================================================
+    // SETTINGS
+    // ============================================================
     const DEFAULT_SETTINGS = {
       uiOpacity: 0.72,
       uiBlur: 22,
@@ -1758,43 +1687,74 @@
         const saved = JSON.parse(localStorage.getItem('calyx.settings') || '{}');
         Object.assign(settings, saved);
       } catch (e) { /* ignore */ }
-      applySettings();
     }
 
-    function saveSettings() {
-      try {
-        localStorage.setItem('calyx.settings', JSON.stringify(settings));
-      } catch (e) { /* ignore */ }
+    let saveTimer = null;
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        try {
+          localStorage.setItem('calyx.settings', JSON.stringify(settings));
+        } catch (e) { /* ignore */ }
+      }, 250);
     }
 
-    function applySettings() {
+    // Apply a single setting — no iteration over all settings controls
+    function applyOneSetting(key, val) {
+      const root = document.documentElement;
+      switch (key) {
+        case 'uiOpacity':
+          root.style.setProperty('--ui-opacity', val);
+          break;
+        case 'uiBlur':
+          root.style.setProperty('--ui-blur', val + 'px');
+          break;
+        case 'vignette':
+          root.style.setProperty('--vignette-strength', val);
+          break;
+        case 'cinemaDelay':
+          root.style.setProperty('--cinema-delay', val + 'ms');
+          break;
+        case 'cardStroke':
+          document.body.classList.toggle('card-stroke', !!val);
+          break;
+        case 'cardPreviewAnim':
+          document.body.classList.toggle('no-card-anim', !val);
+          if (!val) { clearTimeout(miniTimer); miniTimer = null; }
+          else scheduleMiniFrame();
+          break;
+        case 'reduceMotion':
+          document.body.classList.toggle('reduce-motion', !!val);
+          break;
+        case 'highContrast':
+          document.body.classList.toggle('high-contrast', !!val);
+          break;
+      }
+    }
+
+    // Apply everything at once (used only on boot + reset)
+    function applyAllSettings() {
       const root = document.documentElement;
       root.style.setProperty('--ui-opacity', settings.uiOpacity);
       root.style.setProperty('--ui-blur', settings.uiBlur + 'px');
       root.style.setProperty('--vignette-strength', settings.vignette);
-      root.style.setProperty('--glow-mult', settings.glowMult);
-      root.style.setProperty('--motion-mult', settings.motionMult);
       root.style.setProperty('--cinema-delay', settings.cinemaDelay + 'ms');
 
-      document.body.classList.toggle('card-stroke', settings.cardStroke);
+      document.body.classList.toggle('card-stroke', !!settings.cardStroke);
       document.body.classList.toggle('no-card-anim', !settings.cardPreviewAnim);
-      document.body.classList.toggle('reduce-motion', settings.reduceMotion);
-      document.body.classList.toggle('high-contrast', settings.highContrast);
+      document.body.classList.toggle('reduce-motion', !!settings.reduceMotion);
+      document.body.classList.toggle('high-contrast', !!settings.highContrast);
 
-      // Sync UI controls
       document.querySelectorAll('[data-setting]').forEach(input => {
-        const key = input.dataset.setting;
-        const val = settings[key];
-        input.value = val;
+        input.value = settings[input.dataset.setting];
         updateSliderPct(input);
       });
       document.querySelectorAll('[data-value-for]').forEach(el => {
-        const key = el.dataset.valueFor;
-        el.textContent = formatSettingValue(key, settings[key]);
+        const k = el.dataset.valueFor;
+        el.textContent = formatSettingValue(k, settings[k]);
       });
       document.querySelectorAll('[data-toggle]').forEach(btn => {
-        const key = btn.dataset.toggle;
-        btn.classList.toggle('on', !!settings[key]);
+        btn.classList.toggle('on', !!settings[btn.dataset.toggle]);
       });
     }
 
@@ -1802,8 +1762,7 @@
       const min = parseFloat(input.min);
       const max = parseFloat(input.max);
       const val = parseFloat(input.value);
-      const pct = ((val - min) / (max - min)) * 100;
-      input.style.setProperty('--pct', pct + '%');
+      input.style.setProperty('--pct', ((val - min) / (max - min) * 100) + '%');
     }
 
     function formatSettingValue(key, val) {
@@ -1818,7 +1777,7 @@
       }
     }
 
-    // Wire up settings input events
+    // Live slider binding — only touches the specific control + a single CSS var
     document.querySelectorAll('[data-setting]').forEach(input => {
       updateSliderPct(input);
       input.addEventListener('input', () => {
@@ -1826,27 +1785,23 @@
         const val = parseFloat(input.value);
         settings[key] = val;
         updateSliderPct(input);
-        const out = document.querySelector(`[data-value-for="${key}"]`);
+        const out = document.querySelector('[data-value-for="' + key + '"]');
         if (out) out.textContent = formatSettingValue(key, val);
-        applySettings();
-        saveSettings();
+        applyOneSetting(key, val);
+        scheduleSave();
         flashSavedBadge();
-      });
+      }, { passive: true });
     });
 
     document.querySelectorAll('[data-toggle]').forEach(btn => {
       btn.addEventListener('click', () => {
         const key = btn.dataset.toggle;
-        settings[key] = !settings[key];
-        btn.classList.toggle('on', settings[key]);
-        applySettings();
-        saveSettings();
+        const next = !settings[key];
+        settings[key] = next;
+        btn.classList.toggle('on', next);
+        applyOneSetting(key, next);
+        scheduleSave();
         flashSavedBadge();
-        // If preview animation toggled off, stop the mini loop
-        if (key === 'cardPreviewAnim') {
-          if (!settings[key]) clearTimeout(miniTimer);
-          else scheduleMiniFrame();
-        }
       });
     });
 
@@ -1862,388 +1817,64 @@
       }, 1400);
     }
 
-    document.getElementById('resetSettings').addEventListener('click', () => {
+    function resetAll() {
       settings = { ...DEFAULT_SETTINGS };
-      applySettings();
-      saveSettings();
+      applyAllSettings();
+      scheduleSave();
       flashSavedBadge();
-    });
+    }
 
-    document.getElementById('settingsResetAll').addEventListener('click', () => {
-      settings = { ...DEFAULT_SETTINGS };
-      applySettings();
-      saveSettings();
-      flashSavedBadge();
-    });
+    document.getElementById('resetSettings').addEventListener('click', resetAll);
+    document.getElementById('settingsResetAll').addEventListener('click', resetAll);
 
-    document.getElementById('settingsDone').addEventListener('click', () => {
-      document.getElementById('settings').classList.remove('open');
-    });
-
-    // Settings modal open/close
-    const settingsEl = document.getElementById('settings');
-    document.getElementById('settingsBtn').addEventListener('click', () => {
-      settingsEl.classList.add('open');
-    });
-    document.getElementById('settingsClose').addEventListener('click', () => {
-      settingsEl.classList.remove('open');
-    });
-    settingsEl.addEventListener('click', (e) => {
-      if (e.target === settingsEl) settingsEl.classList.remove('open');
-    });
-
-    // Load settings first, before anything else
-    loadSettings();
-
-    // ---------- WebGL setup ----------
+    // ============================================================
+    // WEBGL — per-liquid program compilation
+    // ============================================================
     const canvas = document.getElementById("gl");
-    const gl = canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer: false });
+    const gl = canvas.getContext("webgl", {
+      antialias: false,
+      preserveDrawingBuffer: false,
+      premultipliedAlpha: false
+    });
+
     if (!gl) {
       document.body.innerHTML = '<div style="padding:30px;color:white">WebGL is unavailable in this browser.</div>';
-      throw Error("WebGL unavailable");
+      throw new Error("WebGL unavailable");
     }
 
-    function shader(type, src) {
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw Error(gl.getShaderInfoLog(s));
-      return s;
-    }
+    // Shared quad geometry
+    const quadBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.bufferData(gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+      gl.STATIC_DRAW);
 
-    const program = gl.createProgram();
-    gl.attachShader(program, shader(gl.VERTEX_SHADER, document.getElementById("vs").textContent));
-    gl.attachShader(program, shader(gl.FRAGMENT_SHADER, document.getElementById("fs").textContent));
-    gl.linkProgram(program);
-    gl.useProgram(program);
+    const VS_SRC = document.getElementById("vs").textContent;
+    const FS_TEMPLATE = document.getElementById("fs-template").textContent;
 
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
-
-    const pos = gl.getAttribLocation(program, "a_position");
-    gl.enableVertexAttribArray(pos);
-    gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-
-    const U = {
-      res: gl.getUniformLocation(program, "u_resolution"),
-      mouse: gl.getUniformLocation(program, "u_mouse"),
-      time: gl.getUniformLocation(program, "u_time"),
-      motion: gl.getUniformLocation(program, "u_motion"),
-      pulse: gl.getUniformLocation(program, "u_pulse"),
-      a: gl.getUniformLocation(program, "u_a"),
-      b: gl.getUniformLocation(program, "u_b"),
-      speed: gl.getUniformLocation(program, "u_speed"),
-      soft: gl.getUniformLocation(program, "u_soft"),
-      glow: gl.getUniformLocation(program, "u_glow")
-    };
-
-    let dpr = 1, W = 1, H = 1;
-    let mx = innerWidth / 2, my = innerHeight / 2;
-    let tx = mx, ty = innerHeight - my;
-    let current = 0, pulse = 0, raf = 0, last = 0;
-
-    function resize() {
-      dpr = Math.min(devicePixelRatio || 1, 1.25);
-      W = Math.max(1, Math.floor(innerWidth * dpr));
-      H = Math.max(1, Math.floor(innerHeight * dpr));
-      canvas.width = W;
-      canvas.height = H;
-      gl.viewport(0, 0, W, H);
-    }
-    addEventListener("resize", resize, { passive: true });
-    resize();
-
-    let cinemaMode = false;
-
-    addEventListener("pointermove", e => {
-      tx = e.clientX * dpr;
-      ty = (innerHeight - e.clientY) * dpr;
-      if (cinemaMode) revealUiTemporarily();
-    }, { passive: true });
-
-    addEventListener("pointerdown", () => pulse = 1, { passive: true });
-
-    function rgb(hex) {
-      hex = hex.replace("#", "");
-      if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
-      return [
-        parseInt(hex.slice(0, 2), 16) / 255,
-        parseInt(hex.slice(2, 4), 16) / 255,
-        parseInt(hex.slice(4, 6), 16) / 255
-      ];
-    }
-
-    // ---------- DOM refs ----------
-    const grid = document.getElementById("grid");
-    const cards = [];
-    const vault = document.getElementById("vault");
-    const statusEl = document.getElementById("status");
-    const statusBox = document.getElementById("statusBox");
-    const hero = document.getElementById("hero");
-    const nameEl = document.getElementById("name");
-    const kindEl = document.getElementById("kind");
-    const cinemaHint = document.getElementById("cinemaHint");
-
-    // ---------- Card generation ----------
-    function addCard(l, i) {
-      const c = document.createElement("article");
-      c.className = "card";
-      c.dataset.cat = l.cat;
-      c.style.setProperty("--accent", l.b);
-      c.style.setProperty("--accent2", l.a);
-      c.innerHTML = `
-        <div class="preview"><canvas width="76" height="76"></canvas></div>
-        <div>
-          <h3>${l.name}</h3>
-          <small>${l.desc}</small>
-          <span class="tag">${l.cat}</span>
-        </div>
-      `;
-      c.onclick = () => {
-        setLiquid(i);
-        vault.classList.remove("open");
-      };
-      grid.appendChild(c);
-      cards.push(c);
-    }
-
-    liquids.forEach(addCard);
-    document.getElementById("count").textContent = liquids.length;
-    document.getElementById("info").textContent = liquids.length + " distinct fluid profiles";
-
-    function setLiquid(i) {
-      current = i;
-      const l = liquids[i];
-      hero.textContent = l.name;
-      nameEl.textContent = l.name;
-      kindEl.textContent = l.desc;
-      cards.forEach((c, n) => c.classList.toggle("active", n === i));
-      hero.classList.remove("glow-pulse");
-      void hero.offsetWidth;
-      hero.classList.add("glow-pulse");
-    }
-
-    setLiquid(0);
-
-    // ---------- Render loop ----------
-    function drawMain(t) {
-      if (document.hidden) {
-        raf = requestAnimationFrame(drawMain);
-        return;
-      }
-      if (t - last < 15) {
-        raf = requestAnimationFrame(drawMain);
-        return;
-      }
-      last = t;
-      mx += (tx - mx) * .08;
-      my += (ty - my) * .08;
-      pulse *= .92;
-
-      const l = liquids[current];
-      gl.uniform2f(U.res, W, H);
-      gl.uniform2f(U.mouse, mx, my);
-      gl.uniform1f(U.time, t * .001);
-      gl.uniform1i(U.motion, l.motion % 32);
-      gl.uniform1f(U.pulse, pulse);
-      gl.uniform3fv(U.a, rgb(l.a));
-      gl.uniform3fv(U.b, rgb(l.b));
-      gl.uniform1f(U.speed, (l.speed || .3) * settings.motionMult);
-      gl.uniform1f(U.soft, .3);
-      gl.uniform1f(U.glow, .45 * settings.glowMult);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-      raf = requestAnimationFrame(drawMain);
-    }
-
-    raf = requestAnimationFrame(drawMain);
-
-    // ---------- Mini canvas previews ----------
-    const mini = cards.map((c, i) => ({ c, i, phase: i * .37, visible: true }));
-    const io = "IntersectionObserver" in window ? new IntersectionObserver(es => {
-      es.forEach(e => {
-        const o = mini.find(x => x.c === e.target);
-        if (o) o.visible = e.isIntersecting;
-      });
-    }, { root: grid, rootMargin: "120px" }) : null;
-
-    mini.forEach(o => io?.observe(o.c));
-
-    let miniBusy = false;
-    let miniTimer = null;
-
-    function miniFrame(t) {
-      if (!settings.cardPreviewAnim) return;
-      if (miniBusy) { scheduleMiniFrame(); return; }
-      miniBusy = true;
-      mini.forEach(o => {
-        if (!o.visible) return;
-        const c = o.c.querySelector("canvas");
-        if (!c) return;
-        const x = c.getContext("2d");
-        const l = liquids[o.i];
-        const a = l.a, b = l.b;
-        const q = t * .00045 * (l.speed || .3) + o.phase;
-        const w = c.width, h = c.height;
-        x.fillStyle = a;
-        x.fillRect(0, 0, w, h);
-        const g = x.createLinearGradient(0, 0, w, h);
-        g.addColorStop(0, a);
-        g.addColorStop(.55, b + "cc");
-        g.addColorStop(1, a);
-        x.globalAlpha = .9;
-        x.fillStyle = g;
-        x.fillRect(0, 0, w, h);
-        x.globalAlpha = .45;
-        for (let k = 0; k < 3; k++) {
-          x.beginPath();
-          for (let n = 0; n <= 40; n++) {
-            let xx = n / 40 * w;
-            let yy = h * .48 + Math.sin(n * .28 + q * (1 + k * .16) + o.phase) * h * (.055 + k * .035);
-            if (n) x.lineTo(xx, yy);
-            else x.moveTo(xx, yy);
-          }
-          x.strokeStyle = b;
-          x.lineWidth = 3 - k * .65;
-          x.stroke();
-        }
-        x.globalAlpha = 1;
-      });
-      miniBusy = false;
-      scheduleMiniFrame();
-    }
-
-    function scheduleMiniFrame() {
-      clearTimeout(miniTimer);
-      miniTimer = setTimeout(() => requestAnimationFrame(miniFrame), 70);
-    }
-
-    scheduleMiniFrame();
-
-    // ---------- Vault UI ----------
-    document.getElementById("vaultBtn").onclick = () => vault.classList.add("open");
-    document.getElementById("open").onclick = () => vault.classList.add("open");
-    document.getElementById("close").onclick = () => vault.classList.remove("open");
-
-    const goEditor = () => location.href = "editor.html";
-    document.getElementById("editorBtn").onclick = goEditor;
-    document.getElementById("editorNav").onclick = goEditor;
-
-    function triggerPulse() {
-      pulse = 1;
-      statusEl.textContent = "FLUID PULSE";
-      statusBox.classList.add("pulse");
-      setTimeout(() => {
-        statusEl.textContent = "ENGINE ONLINE";
-        statusBox.classList.remove("pulse");
-      }, 700);
-    }
-
-    document.getElementById("pulse").onclick = triggerPulse;
-    document.getElementById("random").onclick = () => {
-      setLiquid(Math.floor(Math.random() * liquids.length));
-      pulse = 1;
-    };
-
-    // ---------- Cinema mode ----------
-    let uiRevealTimer = null;
-    let hintTimer = null;
-
-    function setCinema(on) {
-      cinemaMode = on;
-      if (on) {
-        if (settings.cinemaAlwaysShow) return;
-        document.body.classList.add("cinema");
-        if (settings.cinemaHint) {
-          cinemaHint.classList.add("show");
-          clearTimeout(hintTimer);
-          hintTimer = setTimeout(() => cinemaHint.classList.remove("show"), 3200);
-        }
-      } else {
-        document.body.classList.remove("cinema");
-        cinemaHint.classList.remove("show");
-        clearTimeout(uiRevealTimer);
-      }
-    }
-
-    function revealUiTemporarily() {
-      if (!cinemaMode || settings.cinemaAlwaysShow) return;
-      document.body.classList.remove("cinema");
-      clearTimeout(uiRevealTimer);
-      uiRevealTimer = setTimeout(() => {
-        if (cinemaMode) document.body.classList.add("cinema");
-      }, settings.cinemaDelay);
-    }
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        const p = document.documentElement.requestFullscreen?.();
-        if (p && p.catch) p.catch(() => {});
-      } else {
-        document.exitFullscreen?.();
-      }
-    }
-
-    document.getElementById("full").onclick = toggleFullscreen;
-
-    document.addEventListener("fullscreenchange", () => {
-      if (document.fullscreenElement) setCinema(true);
-      else setCinema(false);
-      updateFullIcon();
-    });
-
-    const fullIcon = document.getElementById("fullIcon");
-    const fsPathEnter = "M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3";
-    const fsPathExit  = "M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M21 16h-3a2 2 0 0 0-2 2v3M3 16h3a2 2 0 0 1 2 2v3";
-    function updateFullIcon() {
-      const path = fullIcon.querySelector("path");
-      if (path) path.setAttribute("d", document.fullscreenElement ? fsPathExit : fsPathEnter);
-    }
-    updateFullIcon();
-
-    // ---------- Filters ----------
-    document.querySelectorAll(".filters button").forEach(b => {
-      b.onclick = () => {
-        document.querySelectorAll(".filters button").forEach(x => x.classList.remove("active"));
-        b.classList.add("active");
-        const f = b.dataset.filter;
-        cards.forEach(c => {
-          c.style.display = f === "all" ? "" : (c.dataset.cat === f ? "" : "none");
-        });
-      };
-    });
-
-    // ---------- Keyboard ----------
-    addEventListener("keydown", e => {
-      const tag = (e.target && e.target.tagName) || "";
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-        if (e.key === "Escape") e.target.blur();
-        return;
-      }
-
-      if (e.key === "Escape") {
-        vault.classList.remove("open");
-        settingsEl.classList.remove("open");
-      }
-      if (e.code === "Space") {
-        e.preventDefault();
-        triggerPulse();
-      }
-      if (e.key === "f" || e.key === "F") {
-        if (!e.metaKey && !e.ctrlKey) toggleFullscreen();
-      }
-      if (e.key === "s" || e.key === "S") {
-        if (!e.metaKey && !e.ctrlKey) settingsEl.classList.toggle("open");
-      }
-      if (e.key === "h" || e.key === "H") {
-        if (cinemaMode) revealUiTemporarily();
-        else if (document.fullscreenElement) setCinema(true);
-      }
-    });
-
-    // ---------- Scroll polish ----------
-    grid.addEventListener("wheel", (e) => { e.stopPropagation(); }, { passive: true });
-  </script>
-</body>
-
-</html>
+    // Standard motion dispatch — used only for liquids without custom code
+    const DEFAULT_BODY = `
+  if(u_motion == 0) {
+    vec2 q = p; q.x += sin(q.y * 6. - t * .65) * .16;
+    v = fbm(q * 2.7 + vec2(t * .06, -t * .03));
+  } else if(u_motion == 1) {
+    vec2 q = p * 2.5; v = fbm(q + vec2(t * .08, -t * .04));
+  } else if(u_motion == 2) {
+    vec2 q = rot(p, t * .05); v = fbm(q * 3.0);
+    v = .5 + .5 * v + sin(q.x * 7. + v * 3. - t) * .08;
+  } else if(u_motion == 3) {
+    vec2 q = p; q.y += sin(q.x * 5. + t * .45) * .12;
+    v = fbm(q * 3.2);
+  } else if(u_motion == 4) {
+    vec2 q = p * 3.; vec2 g = abs(fract(q) - .5);
+    v = 1. - length(g) * 1.45;
+    v = v * .7 + fbm(q + t * .04) * .3;
+  } else if(u_motion == 5) {
+    vec2 q = p * 2.1; v = fbm(q + vec2(t * .16, -t * .08));
+    v = .5 + .5 * v;
+  } else if(u_motion == 6) {
+    vec2 q = p * 3.; q.y += sin(q.x * 5. + t * .5) * .10;
+    v = fbm(q);
+  } else if(u_motion == 7) {
+    vec2 q = p * 2.8;
+    v = sin(length(q + vec2(sin(t), cos(t)) * .12) * 7. - t) * .10 + .5 +
