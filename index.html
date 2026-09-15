@@ -6,7 +6,1277 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Calyx — Fluid Laboratory</title>
   <link rel="icon" type="image/png" href="icon.png">
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --ui-opacity: .72;
+      --ui-blur: 22px;
+      --vignette-strength: 1;
+      --cinema-delay: 2200ms;
+      --panel-a: rgba(7, 10, 17, var(--ui-opacity));
+      --panel-b: rgba(7, 10, 17, calc(var(--ui-opacity) + .12));
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #030509;
+      color: #edf3fb;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif
+    }
+
+    button {
+      font: inherit
+    }
+
+    #gl {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 45%, transparent 38%, #0009 100%);
+      opacity: var(--vignette-strength);
+      transition: opacity .4s ease
+    }
+
+    .ui-layer {
+      transition: opacity .4s cubic-bezier(.4, 0, .2, 1), transform .4s cubic-bezier(.4, 0, .2, 1)
+    }
+
+    /* HUD */
+    .hud {
+      position: fixed;
+      z-index: 10;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none
+    }
+
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      pointer-events: auto
+    }
+
+    .brand img {
+      width: 40px;
+      height: 40px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 15px 6px 15px 6px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, .53)
+    }
+
+    .brand b {
+      font-size: 12px;
+      letter-spacing: .22em;
+      text-transform: uppercase
+    }
+
+    .brand span {
+      display: block;
+      color: #788497;
+      font-size: 8px;
+      letter-spacing: .12em;
+      margin-top: 3px
+    }
+
+    .status {
+      pointer-events: auto;
+      padding: 9px 12px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      background: var(--panel-a);
+      backdrop-filter: blur(var(--ui-blur));
+      border-radius: 13px 6px 13px 6px;
+      font-size: 9px;
+      letter-spacing: .13em;
+      color: #9da8bc;
+      transition: color .3s, background .3s
+    }
+
+    .status i {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #7ed7b9;
+      margin-right: 7px;
+      box-shadow: 0 0 8px #7ed7b9;
+      transition: background .3s, box-shadow .3s
+    }
+
+    /* RAIL */
+    .rail {
+      position: fixed;
+      z-index: 11;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 7px;
+      width: 58px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      background: var(--panel-a);
+      backdrop-filter: blur(var(--ui-blur));
+      border-radius: 19px 7px 19px 7px;
+      box-shadow: 0 20px 55px rgba(0, 0, 0, .56)
+    }
+
+    .rail button {
+      width: 42px;
+      height: 42px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #8290a7;
+      border-radius: 13px 5px 13px 5px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: .18s
+    }
+
+    .rail button:hover,
+    .rail button.on {
+      color: #fff;
+      background: rgba(255, 255, 255, .07);
+      border-color: rgba(255, 255, 255, .13)
+    }
+
+    .rail button:active {
+      transform: scale(.92)
+    }
+
+    .rail svg {
+      width: 18px;
+      height: 18px
+    }
+
+    .rail hr {
+      border: 0;
+      border-top: 1px solid rgba(255, 255, 255, .09);
+      margin: 7px 5px
+    }
+
+    /* CENTER */
+    .center {
+      position: fixed;
+      z-index: 4;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      mix-blend-mode: screen
+    }
+
+    .center h1 {
+      font-weight: 500;
+      font-size: clamp(30px, 6vw, 74px);
+      letter-spacing: -.065em;
+      text-shadow: 0 0 50px rgba(116, 170, 255, .16);
+      transition: text-shadow .4s
+    }
+
+    .center p {
+      font-size: 9px;
+      letter-spacing: .35em;
+      color: #8995aa;
+      margin-top: 9px;
+      text-transform: uppercase
+    }
+
+    /* DOCK */
+    .dock {
+      position: fixed;
+      z-index: 12;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px;
+      background: var(--panel-b);
+      backdrop-filter: blur(calc(var(--ui-blur) + 3px));
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 19px 7px 19px 7px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .56)
+    }
+
+    .btn {
+      height: 40px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      background: rgba(255, 255, 255, .035);
+      color: #b7c1d1;
+      padding: 0 13px;
+      border-radius: 12px 5px 12px 5px;
+      font-size: 9px;
+      letter-spacing: .12em;
+      cursor: pointer;
+      transition: .18s;
+      white-space: nowrap
+    }
+
+    .btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, .08)
+    }
+
+    .btn:active {
+      transform: scale(.96)
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, rgba(66, 107, 255, .16), rgba(110, 241, 227, .06));
+      border-color: rgba(117, 150, 255, .22);
+      color: #fff
+    }
+
+    .read {
+      min-width: 145px;
+      padding: 0 7px
+    }
+
+    .read b {
+      font-size: 11px;
+      transition: opacity .25s;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px
+    }
+
+    .read small {
+      display: block;
+      color: #69768d;
+      font-size: 8px;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+      margin-top: 4px;
+      transition: opacity .25s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px
+    }
+
+    /* CINEMA */
+    body.cinema .hud,
+    body.cinema .rail,
+    body.cinema .center,
+    body.cinema .dock,
+    body.cinema .camera-hint {
+      opacity: 0;
+      pointer-events: none
+    }
+
+    body.cinema .rail {
+      transform: translateY(-50%) translateX(-8px)
+    }
+
+    body.cinema .dock {
+      transform: translateX(-50%) translateY(8px)
+    }
+
+    body.cinema .hud {
+      transform: translateY(-8px)
+    }
+
+    body.cinema .center {
+      transform: translate(-50%, -50%) scale(.96)
+    }
+
+    body.cinema {
+      cursor: none
+    }
+
+    .cinema-hint {
+      position: fixed;
+      z-index: 15;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      padding: 10px 18px;
+      background: var(--panel-b);
+      backdrop-filter: blur(var(--ui-blur));
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 13px 5px 13px 5px;
+      font-size: 9px;
+      letter-spacing: .18em;
+      color: #9da8bc;
+      text-transform: uppercase;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .5s, transform .5s
+    }
+
+    body.cinema .cinema-hint.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+
+    /* Camera hint */
+    .camera-hint {
+      position: fixed;
+      z-index: 13;
+      left: 50%;
+      bottom: 82px;
+      transform: translateX(-50%) translateY(8px);
+      padding: 8px 14px;
+      background: var(--panel-b);
+      backdrop-filter: blur(var(--ui-blur));
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 10px 4px 10px 4px;
+      font-size: 8px;
+      letter-spacing: .18em;
+      color: #9da8bc;
+      text-transform: uppercase;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s, transform .3s
+    }
+
+    body.scene-mode .camera-hint {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+
+    /* VAULT */
+    .vault {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 11px;
+      background: rgba(2, 4, 11, .85) url("bh.png") center/cover no-repeat;
+      backdrop-filter: blur(calc(var(--ui-blur) * .9));
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(1.015);
+      transition: opacity .25s, transform .25s
+    }
+
+    .vault.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: none
+    }
+
+    .nav,
+    .main {
+      border: 1px solid rgba(255, 255, 255, .13);
+      background: var(--panel-b);
+      box-shadow: inset 0 1px rgba(255, 255, 255, .07), 0 25px 80px rgba(0, 0, 0, .56);
+      backdrop-filter: blur(var(--ui-blur))
+    }
+
+    .nav {
+      border-radius: 23px 7px 23px 7px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, .22) transparent
+    }
+
+    .nav::-webkit-scrollbar {
+      width: 4px
+    }
+
+    .nav::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .22);
+      border-radius: 8px
+    }
+
+    .nav h2 {
+      font-size: 15px
+    }
+
+    .nav p {
+      font-size: 9px;
+      line-height: 1.6;
+      color: #68758c;
+      margin-top: 5px
+    }
+
+    /* Mode tabs */
+    .modeTabs {
+      display: flex;
+      gap: 3px;
+      padding: 3px;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 11px;
+      margin-top: 14px
+    }
+
+    .modeTab {
+      flex: 1;
+      min-width: 0;
+      height: 30px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #75829a;
+      border-radius: 8px;
+      font-size: 8px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: .18s;
+      white-space: nowrap;
+      padding: 0 6px;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .modeTab:hover {
+      color: #c8d2e2
+    }
+
+    .modeTab.active {
+      background: rgba(255, 255, 255, .08);
+      color: #fff;
+      border-color: rgba(255, 255, 255, .13);
+      box-shadow: inset 0 1px rgba(255, 255, 255, .07)
+    }
+
+    .filters {
+      display: grid;
+      gap: 4px;
+      margin-top: 14px
+    }
+
+    .filters button {
+      border: 1px solid transparent;
+      background: transparent;
+      color: #7c889c;
+      text-align: left;
+      padding: 9px;
+      border-radius: 9px;
+      font-size: 9px;
+      cursor: pointer;
+      transition: .18s
+    }
+
+    .filters button.active,
+    .filters button:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, .06);
+      border-color: rgba(255, 255, 255, .09)
+    }
+
+    .nav .editor {
+      margin-top: 10px
+    }
+
+    .hint {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, .09);
+      color: #647087;
+      font-size: 8px;
+      line-height: 1.8
+    }
+
+    .main {
+      min-width: 0;
+      border-radius: 23px 7px 23px 7px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .vhead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 3px 2px 12px;
+      flex-shrink: 0
+    }
+
+    .vhead h2 {
+      font-size: 22px;
+      letter-spacing: -.04em
+    }
+
+    .vhead p {
+      font-size: 9px;
+      color: #68758c;
+      margin-top: 5px
+    }
+
+    /* Close buttons */
+    .close,
+    .settings-close {
+      width: 40px;
+      height: 40px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      background: rgba(10, 14, 23, .72);
+      color: #9da8bc;
+      border-radius: 13px 5px 13px 5px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: .18s;
+      display: grid;
+      place-items: center;
+      line-height: 1
+    }
+
+    .settings-close {
+      width: 38px;
+      height: 38px;
+      font-size: 17px;
+      border-radius: 12px 5px 12px 5px
+    }
+
+    .close:hover,
+    .settings-close:hover {
+      background: rgba(30, 36, 48, .9);
+      color: #fff;
+      border-color: rgba(255, 255, 255, .22)
+    }
+
+    .close:active,
+    .settings-close:active {
+      transform: scale(.92)
+    }
+
+    .grid {
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+      gap: 9px;
+      padding: 2px 3px 18px;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, .22) transparent;
+      scroll-behavior: smooth
+    }
+
+    .grid::-webkit-scrollbar {
+      width: 7px
+    }
+
+    .grid::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, .02);
+      border-radius: 8px
+    }
+
+    .grid::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .22);
+      border-radius: 8px
+    }
+
+    .grid::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, .35)
+    }
+
+    /* CARD */
+    .card {
+      --accent: #7aa0ff;
+      --accent2: #0d1118;
+      position: relative;
+      min-height: 108px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      background: rgba(9, 12, 20, .91);
+      border-radius: 19px 6px 19px 6px;
+      cursor: pointer;
+      transition: transform .18s, border-color .18s, box-shadow .18s
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 0 0, var(--accent), transparent 48%);
+      opacity: .035;
+      pointer-events: none
+    }
+
+    body.card-hover .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, .19)
+    }
+
+    body.card-hover .card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 15%, transparent)
+    }
+
+    body:not(.card-hover) .card.active {
+      border-color: var(--accent)
+    }
+
+    .preview {
+      width: 76px;
+      height: 76px;
+      border-radius: 20px 6px 20px 6px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      overflow: hidden;
+      background: #000;
+      box-shadow: inset 0 1px rgba(255, 255, 255, .13), 0 10px 25px rgba(0, 0, 0, .53)
+    }
+
+    .preview canvas {
+      width: 100%;
+      height: 100%;
+      display: block
+    }
+
+    .card h3 {
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .card small {
+      display: block;
+      color: #69768c;
+      font-size: 8px;
+      line-height: 1.5;
+      margin-top: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .tag {
+      display: inline-block;
+      margin-top: 8px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      color: #9aa6bb;
+      padding: 3px 5px;
+      border-radius: 5px;
+      font-size: 7px;
+      letter-spacing: .1em;
+      text-transform: uppercase
+    }
+
+    body.card-stroke .card {
+      border-color: transparent;
+      box-shadow: inset 0 1px rgba(255, 255, 255, .07), 0 10px 25px rgba(0, 0, 0, .53)
+    }
+
+    body.card-stroke .card::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: 20px 7px 20px 7px;
+      padding: 1.5px;
+      background:
+        linear-gradient(135deg, var(--accent2) 0%, var(--accent2) 32%, transparent 52%),
+        linear-gradient(315deg, var(--accent) 0%, var(--accent) 32%, transparent 52%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+      filter: drop-shadow(0 0 4px var(--accent2)) drop-shadow(0 0 4px var(--accent));
+      opacity: .9;
+      z-index: 1;
+      transition: opacity .3s, filter .3s
+    }
+
+    body.card-stroke .card:hover::after {
+      filter: drop-shadow(0 0 7px var(--accent2)) drop-shadow(0 0 7px var(--accent));
+      opacity: 1
+    }
+
+    body.card-stroke .card.active::after {
+      filter: drop-shadow(0 0 9px var(--accent2)) drop-shadow(0 0 9px var(--accent));
+      opacity: 1
+    }
+
+    /* SETTINGS */
+    .settings {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      padding: 22px;
+      display: grid;
+      place-items: center;
+      background: rgba(2, 4, 11, .8);
+      backdrop-filter: blur(28px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s
+    }
+
+    .settings.open {
+      opacity: 1;
+      pointer-events: auto
+    }
+
+    .settings-panel {
+      position: relative;
+      width: min(760px, 100%);
+      max-height: 100%;
+      background: rgba(7, 10, 17, .93);
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 26px 8px 26px 8px;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, .8), inset 0 1px rgba(255, 255, 255, .07);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: scale(.96);
+      transition: transform .3s cubic-bezier(.34, 1.2, .64, 1)
+    }
+
+    .settings.open .settings-panel {
+      transform: scale(1)
+    }
+
+    .settings-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("setting.png") center/cover no-repeat,
+        linear-gradient(135deg, #0a1222, #050810);
+      opacity: .12;
+      pointer-events: none;
+      border-radius: inherit;
+      z-index: 0
+    }
+
+    .settings-panel>* {
+      position: relative;
+      z-index: 1
+    }
+
+    .settings-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+      flex-shrink: 0
+    }
+
+    .settings-head .gear {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .13);
+      background: linear-gradient(135deg, rgba(66, 107, 255, .16), rgba(110, 241, 227, .06));
+      border-radius: 12px 5px 12px 5px;
+      color: #8ca8ff
+    }
+
+    .settings-head .gear svg {
+      width: 18px;
+      height: 18px
+    }
+
+    .settings-head h2 {
+      font-size: 16px;
+      letter-spacing: .06em;
+      font-weight: 500
+    }
+
+    .settings-head small {
+      display: block;
+      color: #6b788c;
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-top: 3px
+    }
+
+    .settings-head .spacer {
+      flex: 1
+    }
+
+    .settings-body {
+      overflow-y: auto;
+      padding: 8px 22px 22px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, .19) transparent
+    }
+
+    .settings-body::-webkit-scrollbar {
+      width: 6px
+    }
+
+    .settings-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .19);
+      border-radius: 8px
+    }
+
+    .sgroup {
+      margin-top: 18px
+    }
+
+    .sgroup-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 2px 8px;
+      color: #8ca8ff;
+      font-size: 9px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+      margin-bottom: 4px
+    }
+
+    .sgroup-head svg {
+      width: 14px;
+      height: 14px;
+      stroke-width: 1.8;
+      opacity: .9
+    }
+
+    .sgroup-head .line {
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, .06)
+    }
+
+    .setting {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, .03);
+      transition: background .18s
+    }
+
+    .setting:last-child {
+      border-bottom: 0
+    }
+
+    .setting:hover {
+      background: rgba(255, 255, 255, .02);
+      border-radius: 10px
+    }
+
+    .setting-info {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      flex: 1;
+      min-width: 0
+    }
+
+    .setting-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .1);
+      background: rgba(255, 255, 255, .024);
+      border-radius: 10px 4px 10px 4px;
+      color: #9aa8bf;
+      flex-shrink: 0
+    }
+
+    .setting-icon svg {
+      width: 15px;
+      height: 15px;
+      stroke-width: 1.8
+    }
+
+    .setting-name {
+      font-size: 11px;
+      color: #e2e9f3;
+      font-weight: 500
+    }
+
+    .setting-desc {
+      font-size: 8.5px;
+      color: #6b788c;
+      margin-top: 3px;
+      letter-spacing: .02em
+    }
+
+    .setting-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      min-width: 190px;
+      justify-content: flex-end
+    }
+
+    /* Custom slider */
+    .setting-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 130px;
+      height: 4px;
+      background: linear-gradient(90deg,
+          #8ca8ff 0%,
+          #6ef1e3 var(--pct, 50%),
+          rgba(255, 255, 255, .08) var(--pct, 50%),
+          rgba(255, 255, 255, .08) 100%);
+      border-radius: 4px;
+      outline: 0;
+      cursor: pointer;
+      transition: filter .18s;
+      will-change: background
+    }
+
+    .setting-slider:hover {
+      filter: brightness(1.15)
+    }
+
+    .setting-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(140, 168, 255, .2), 0 0 10px rgba(140, 168, 255, .8);
+      transition: transform .15s, box-shadow .15s;
+      cursor: pointer
+    }
+
+    .setting-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 4px rgba(140, 168, 255, .27), 0 0 14px rgba(140, 168, 255, .93)
+    }
+
+    .setting-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: 0;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(140, 168, 255, .2), 0 0 10px rgba(140, 168, 255, .8);
+      cursor: pointer
+    }
+
+    .setting-value {
+      font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+      font-size: 10px;
+      color: #dbe5f4;
+      min-width: 52px;
+      text-align: right;
+      letter-spacing: .02em
+    }
+
+    /* Switch */
+    .switch {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background .25s, border-color .25s;
+      padding: 0;
+      flex-shrink: 0
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: #6a7893;
+      border-radius: 50%;
+      transition: .25s cubic-bezier(.34, 1.3, .64, 1)
+    }
+
+    .switch.on {
+      background: linear-gradient(135deg, rgba(66, 107, 255, .33), rgba(110, 241, 227, .2));
+      border-color: rgba(140, 168, 255, .53)
+    }
+
+    .switch.on::after {
+      left: 21px;
+      background: #cfe0ff;
+      box-shadow: 0 0 12px rgba(140, 168, 255, .8)
+    }
+
+    /* Quality selector */
+    .quality-selector {
+      display: flex;
+      gap: 2px;
+      padding: 2px;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 9px
+    }
+
+    .quality-selector button {
+      height: 26px;
+      padding: 0 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #75829a;
+      border-radius: 7px 3px 7px 3px;
+      font-size: 7.5px;
+      letter-spacing: .1em;
+      cursor: pointer;
+      transition: .15s;
+      white-space: nowrap
+    }
+
+    .quality-selector button:hover {
+      color: #c8d2e2
+    }
+
+    .quality-selector button.active {
+      background: rgba(255, 255, 255, .1);
+      color: #fff;
+      border-color: rgba(255, 255, 255, .15)
+    }
+
+    .spill {
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      background: rgba(255, 255, 255, .03);
+      color: #b9c4d5;
+      border-radius: 10px 4px 10px 4px;
+      font-size: 9px;
+      letter-spacing: .12em;
+      cursor: pointer;
+      transition: .18s
+    }
+
+    .spill:hover {
+      background: rgba(255, 255, 255, .07);
+      color: #fff
+    }
+
+    .spill:active {
+      transform: scale(.95)
+    }
+
+    .spill.danger:hover {
+      background: rgba(255, 59, 59, .13);
+      border-color: rgba(255, 91, 91, .33);
+      color: #ffb0b0
+    }
+
+    .settings-foot {
+      padding: 14px 22px 18px;
+      border-top: 1px solid rgba(255, 255, 255, .06);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0
+    }
+
+    .settings-foot .saved-badge {
+      flex: 1;
+      font-size: 8px;
+      color: #5f6b7e;
+      letter-spacing: .14em;
+      text-transform: uppercase
+    }
+
+    .settings-foot .saved-badge.flash {
+      color: #7ed7b9
+    }
+
+    body.reduce-motion *,
+    body.reduce-motion *::before,
+    body.reduce-motion *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important
+    }
+
+    body.high-contrast .rail,
+    body.high-contrast .dock,
+    body.high-contrast .card,
+    body.high-contrast .nav,
+    body.high-contrast .main,
+    body.high-contrast .status,
+    body.high-contrast .settings-panel {
+      border-color: rgba(255, 255, 255, .67) !important
+    }
+
+    body.high-contrast .center h1,
+    body.high-contrast .brand b {
+      color: #fff;
+      text-shadow: 0 0 24px rgba(255, 255, 255, .33)
+    }
+
+    @media(max-width:700px) {
+      .hud {
+        top: 10px;
+        left: 10px;
+        right: 10px
+      }
+
+      .rail {
+        left: 9px;
+        width: 52px
+      }
+
+      .rail button {
+        width: 36px;
+        height: 36px
+      }
+
+      .dock {
+        bottom: 9px;
+        max-width: calc(100% - 18px)
+      }
+
+      .read {
+        min-width: 105px
+      }
+
+      .read b,
+      .read small {
+        max-width: 140px
+      }
+
+      .vault {
+        padding: 9px;
+        grid-template-columns: 1fr
+      }
+
+      .nav {
+        display: none
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px
+      }
+
+      .card {
+        grid-template-columns: 1fr;
+        min-height: 145px
+      }
+
+      .preview {
+        width: 100%;
+        height: 86px
+      }
+
+      .settings {
+        padding: 10px
+      }
+
+      .setting {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px
+      }
+
+      .setting-control {
+        justify-content: flex-start;
+        min-width: 0
+      }
+
+      .setting-slider {
+        width: 100%
+      }
+
+      .camera-hint {
+        bottom: 72px;
+        font-size: 7px;
+        padding: 6px 10px
+      }
+    }
+
+    @media(max-width:400px) {
+      .read {
+        display: none
+      }
+
+      .grid {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .card {
+        padding: 8px
+      }
+    }
+
+    .glow-pulse {
+      animation: glowPulse 1.2s ease-out
+    }
+
+    @keyframes glowPulse {
+      0% {
+        text-shadow: 0 0 50px rgba(116, 170, 255, .16)
+      }
+
+      30% {
+        text-shadow: 0 0 80px rgba(116, 170, 255, .53)
+      }
+
+      100% {
+        text-shadow: 0 0 50px rgba(116, 170, 255, .16)
+      }
+    }
+
+    .status.pulse i {
+      background: #ffb86b;
+      box-shadow: 0 0 14px #ffb86b
+    }
+
+    .status.pulse {
+      color: #ffb86b
+    }
+
+    .card {
+      animation: cardFade .35s ease-out both
+    }
+
+    body.no-card-anim .card {
+      animation: none
+    }
+
+    @keyframes cardFade {
+      from {
+        opacity: 0;
+        transform: translateY(6px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -110,6 +1380,59 @@
       </header>
 
       <div class="settings-body">
+
+        <!-- PERFORMANCE (new, first) -->
+        <div class="sgroup">
+          <div class="sgroup-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
+            </svg>
+            <span>Performance</span><span class="line"></span>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Quality Mode</div>
+                <div class="setting-desc">Trade visual fidelity for smoothness on any device</div>
+              </div>
+            </div>
+            <div class="setting-control">
+              <div class="quality-selector" id="qualitySelector">
+                <button data-quality="auto">AUTO</button>
+                <button data-quality="high">HIGH</button>
+                <button data-quality="balanced">BAL</button>
+                <button data-quality="performance">PERF</button>
+                <button data-quality="battery">BATT</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <div class="setting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3.5" />
+                  <path d="M12 3v3M12 18v3M5 12H2M22 12h-3" />
+                </svg>
+              </div>
+              <div>
+                <div class="setting-name">Live Shadows</div>
+                <div class="setting-desc">Soft shadows in 3D scenes · expensive</div>
+              </div>
+            </div>
+            <div class="setting-control"><button class="switch" data-toggle="shadows"></button></div>
+          </div>
+        </div>
+
+        <!-- APPEARANCE -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -178,6 +1501,7 @@
           </div>
         </div>
 
+        <!-- VISUALS -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -275,6 +1599,7 @@
           </div>
         </div>
 
+        <!-- CINEMA -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -337,6 +1662,7 @@
           </div>
         </div>
 
+        <!-- ACCESSIBILITY -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -378,6 +1704,7 @@
           </div>
         </div>
 
+        <!-- DATA -->
         <div class="sgroup">
           <div class="sgroup-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -414,17 +1741,13 @@
     </div>
   </section>
 
-  <!-- ============================================================
-       VERTEX SHADER (shared)
-       ============================================================ -->
+  <!-- VERTEX SHADER -->
   <script id="vs" type="x-shader/x-vertex">
     attribute vec2 a_position;
     void main(){ gl_Position = vec4(a_position, 0., 1.); }
   </script>
 
-  <!-- ============================================================
-       LIQUID FRAGMENT SHADER TEMPLATE
-       ============================================================ -->
+  <!-- LIQUID FRAGMENT SHADER TEMPLATE -->
   <script id="fs-template-liquid" type="x-shader/x-fragment">
     precision mediump float;
 uniform vec2 u_resolution, u_mouse;
@@ -483,11 +1806,11 @@ void main(){
 }
   </script>
 
-  <!-- ============================================================
-       3D SCENE FRAGMENT SHADER TEMPLATE
-       ============================================================ -->
+  <!-- 3D SCENE FRAGMENT SHADER TEMPLATE -->
   <script id="fs-template-3d" type="x-shader/x-fragment">
     precision highp float;
+
+// __DEFINES__
 
 uniform vec2 u_resolution, u_mouse;
 uniform float u_time, u_pulse, u_speed, u_soft, u_glow;
@@ -499,7 +1822,6 @@ uniform float u_ambient;
 
 #define T (u_time * u_speed)
 
-// ---------- 2D helpers ----------
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p){ return hash(p); }
 float fbm(vec2 p){
@@ -509,7 +1831,6 @@ float fbm(vec2 p){
 }
 mat2 rot2(float a){ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
 
-// ---------- 3D helpers ----------
 float hash3(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
 float noise3(vec3 p){
   vec3 i = floor(p), f = fract(p);
@@ -551,10 +1872,8 @@ float smin(float a, float b, float k){
   return mix(b, a, h) - k * h * (1. - h);
 }
 
-// ---------- scene body (injected) ----------
 // __SCENE_BODY__
 
-// ---------- fallbacks ----------
 #ifndef HAS_MATERIAL
 vec3 materialColor(vec3 p, vec3 n, vec3 rd){
   return mix(u_a, u_b, clamp(n.y * 0.5 + 0.5, 0., 1.));
@@ -565,11 +1884,10 @@ vec3 materialColor(vec3 p, vec3 n, vec3 rd){
 vec3 emission(vec3 p){ return vec3(0.); }
 #endif
 
-// ---------- raymarch ----------
 float raymarch(vec3 ro, vec3 rd, out vec3 p, out int steps){
   float dTotal = 0.;
   steps = 0;
-  for (int i = 0; i < 80; i++){
+  for (int i = 0; i < RAYMARCH_STEPS; i++){
     p = ro + rd * dTotal;
     float d = map(p);
     if (d < 0.0015) { steps = i; return dTotal; }
@@ -590,10 +1908,11 @@ vec3 calcNormal(vec3 p){
   ));
 }
 
+#ifndef NO_SHADOWS
 float softShadow(vec3 ro, vec3 rd, float mint, float maxt, float k){
   float res = 1.;
   float t = mint;
-  for (int i = 0; i < 16; i++){
+  for (int i = 0; i < SHADOW_STEPS; i++){
     float h = map(ro + rd * t);
     if (h < 0.001) return 0.;
     res = min(res, k * h / t);
@@ -602,8 +1921,8 @@ float softShadow(vec3 ro, vec3 rd, float mint, float maxt, float k){
   }
   return clamp(res, 0., 1.);
 }
+#endif
 
-// ---------- main ----------
 void main(){
   vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
 
@@ -626,7 +1945,11 @@ void main(){
     float diff = max(0.0, dot(n, L));
     float rim = pow(1.0 - max(0.0, dot(n, -rd)), 3.0);
 
-    float shadow = softShadow(p + n * 0.02, L, 0.02, 5.0, 10.0);
+    #ifndef NO_SHADOWS
+      float shadow = softShadow(p + n * 0.02, L, 0.02, 5.0, 10.0);
+    #else
+      float shadow = 1.0;
+    #endif
 
     vec3 base = materialColor(p, n, rd);
     vec3 emis = emission(p);
@@ -660,9 +1983,7 @@ void main(){
 }
   </script>
 
-  <!-- ============================================================
-       MAIN SCRIPT
-       ============================================================ -->
+  <!-- MAIN SCRIPT -->
   <script type="module">
     import liquids from './liquids.js';
     import scenes from './3dscenes.js';
@@ -677,6 +1998,28 @@ void main(){
         parseInt(hex.slice(2, 4), 16) / 255,
         parseInt(hex.slice(4, 6), 16) / 255
       ];
+    }
+
+    // ============================================================
+    // QUALITY PRESETS
+    // ============================================================
+    const QUALITY_PRESETS = {
+      high:        { dprCap: 1.5,  raymarch: 96, shadowSteps: 20, shadows: true,  fps: 60 },
+      balanced:    { dprCap: 1.25, raymarch: 72, shadowSteps: 16, shadows: true,  fps: 60 },
+      performance: { dprCap: 1.0,  raymarch: 52, shadowSteps: 12, shadows: true,  fps: 60 },
+      battery:     { dprCap: 0.75, raymarch: 36, shadowSteps: 8,  shadows: false, fps: 30 }
+    };
+
+    function detectAutoQuality() {
+      try {
+        const cores = navigator.hardwareConcurrency || 4;
+        const mem = navigator.deviceMemory || 4;
+        const dpr = window.devicePixelRatio || 1;
+        if (cores >= 8 && mem >= 8 && dpr >= 1.5) return 'high';
+        if (cores >= 4 && mem >= 4) return 'balanced';
+        if (cores >= 2) return 'performance';
+        return 'battery';
+      } catch (e) { return 'balanced'; }
     }
 
     // ============================================================
@@ -699,16 +2042,17 @@ void main(){
     let currentMode = 'liquid';
     let currentIndices = { liquid: 0, scene: 0 };
     let activeFilters = { liquid: 'all', scene: 'all' };
-    let cards = [];         // current mode's cards
-    let current = 0;        // unified index into active collection
+    let cards = [];
+    let current = 0;
 
     function activeCollection() { return COLLECTIONS[currentMode]; }
-    function activeFilter() { return activeFilters[currentMode]; }
 
     // ============================================================
     // SETTINGS
     // ============================================================
     const DEFAULT_SETTINGS = {
+      quality: 'auto',
+      shadows: true,
       uiOpacity: .72, uiBlur: 22, vignette: 1, glowMult: 1, motionMult: 1,
       cardStroke: false, cardHover: true, cardPreviewAnim: true,
       cinemaDelay: 2200, cinemaAlwaysShow: false, cinemaHint: true,
@@ -726,6 +2070,13 @@ void main(){
       saveTimer = setTimeout(() => {
         try { localStorage.setItem('calyx.settings', JSON.stringify(settings)); } catch (e) {}
       }, 300);
+    }
+
+    // Resolve the effective quality config
+    function resolveQuality() {
+      let name = settings.quality || 'auto';
+      if (name === 'auto') name = detectAutoQuality();
+      return { name, ...QUALITY_PRESETS[name] };
     }
 
     const pendingVars = Object.create(null);
@@ -762,6 +2113,10 @@ void main(){
           document.body.classList.toggle('reduce-motion', !!val); break;
         case 'highContrast':
           document.body.classList.toggle('high-contrast', !!val); break;
+        case 'quality':
+        case 'shadows':
+          onQualityChange();
+          break;
       }
     }
 
@@ -786,6 +2141,11 @@ void main(){
       });
       document.querySelectorAll('[data-toggle]').forEach(btn => {
         btn.classList.toggle('on', !!settings[btn.dataset.toggle]);
+      });
+      // Quality selector
+      const qsel = $('qualitySelector');
+      if (qsel) qsel.querySelectorAll('button').forEach(b => {
+        b.classList.toggle('active', b.dataset.quality === settings.quality);
       });
     }
 
@@ -833,6 +2193,21 @@ void main(){
       });
     });
 
+    // Quality selector clicks
+    const qualitySelectorEl = $('qualitySelector');
+    if (qualitySelectorEl) {
+      qualitySelectorEl.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => {
+          settings.quality = b.dataset.quality;
+          qualitySelectorEl.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+          applyOneSetting('quality', settings.quality);
+          scheduleSave();
+          flashSavedBadge();
+        });
+      });
+    }
+
     let savedBadgeTimer = null;
     function flashSavedBadge() {
       const b = $('savedBadge');
@@ -848,6 +2223,7 @@ void main(){
     function resetAll() {
       settings = { ...DEFAULT_SETTINGS };
       applyAllSettings();
+      onQualityChange();
       scheduleSave();
       flashSavedBadge();
     }
@@ -926,10 +2302,19 @@ void main(){
     }
     function buildSceneSource(scene) {
       const body = (scene.custom && scene.custom.trim()) || FALLBACK_SCENE;
-      return FS_SCENE.replace('// __SCENE_BODY__', body.endsWith('\n') ? body : body + '\n');
+      const q = resolveQuality();
+      const useShadows = settings.shadows && q.shadows;
+      const defines = [
+        `#define RAYMARCH_STEPS ${q.raymarch}`,
+        `#define SHADOW_STEPS ${q.shadowSteps}`,
+        useShadows ? '' : '#define NO_SHADOWS'
+      ].filter(Boolean).join('\n');
+      let src = FS_SCENE.replace('// __DEFINES__', defines);
+      src = src.replace('// __SCENE_BODY__', body.endsWith('\n') ? body : body + '\n');
+      return src;
     }
 
-    const programCache = new Map();  // key = mode + ':' + name
+    const programCache = new Map();
 
     function compileEntry(item, mode) {
       const isScene = mode === 'scene';
@@ -975,12 +2360,31 @@ void main(){
       return e;
     }
 
+    // Invalidate scene programs when quality/shadows change
+    function onQualityChange() {
+      // Delete scene programs (they bake in the quality defines)
+      for (const key of [...programCache.keys()]) {
+        if (key.startsWith('scene:')) {
+          const e = programCache.get(key);
+          if (e && e.program) gl.deleteProgram(e.program);
+          programCache.delete(key);
+        }
+      }
+      // Resize with new DPR cap
+      resize();
+      // Recompile current if scene
+      if (currentMode === 'scene' && currentEntry && currentEntry.isScene) {
+        currentEntry = null;
+      }
+    }
+
     // ============================================================
-    // VIEWPORT
+    // VIEWPORT (quality-aware)
     // ============================================================
     let dpr = 1, W = 1, H = 1;
     function resize() {
-      dpr = Math.min(devicePixelRatio || 1, 1.25);
+      const q = resolveQuality();
+      dpr = Math.min(devicePixelRatio || 1, q.dprCap || 1.25);
       W = Math.max(1, Math.floor(innerWidth * dpr));
       H = Math.max(1, Math.floor(innerHeight * dpr));
       canvas.width = W;
@@ -997,11 +2401,10 @@ void main(){
     let tx = mx, ty = innerHeight - my;
     let pulseVal = 0;
 
-    // Scene camera state
-    let camTheta = 0;        // auto-advance angle
-    let camPhi = 0.25;       // elevation in radians
-    let camDist = 3.5;       // radial distance
-    let camUserTheta = 0;    // user drag offset
+    let camTheta = 0;
+    let camPhi = 0.25;
+    let camDist = 3.5;
+    let camUserTheta = 0;
     let dragActive = false;
     let dragStartX = 0, dragStartY = 0;
     let dragThetaStart = 0, dragPhiStart = 0;
@@ -1055,9 +2458,10 @@ void main(){
     const vaultTitle = $('vaultTitle');
     const filtersEl = $('filters');
     const modeTabsEl = $('modeTabs');
+    const countEl = $('count');
 
     // ============================================================
-    // FILTERS (rebuilt per mode)
+    // FILTERS
     // ============================================================
     function buildFilters() {
       filtersEl.innerHTML = '';
@@ -1086,7 +2490,7 @@ void main(){
     }
 
     // ============================================================
-    // CARD GENERATION
+    // CARDS
     // ============================================================
     function clearGrid() {
       grid.innerHTML = '';
@@ -1117,15 +2521,19 @@ void main(){
       cards.push(c);
     }
 
+    function updateCounter() {
+      if (countEl) countEl.textContent = activeCollection().length;
+    }
+
     function rebuildCards() {
       clearGrid();
       const col = activeCollection();
       col.forEach((item, i) => addCard(item, i, currentMode));
       setupMiniObservers();
       applyFilter();
-      // Reapply card animation only if enabled
       if (!settings.cardPreviewAnim) document.body.classList.add('no-card-anim');
       else document.body.classList.remove('no-card-anim');
+      updateCounter();
     }
 
     // ============================================================
@@ -1134,27 +2542,22 @@ void main(){
     function setMode(mode) {
       if (mode === currentMode) return;
       currentMode = mode;
+      dragActive = false;
 
-      // Tabs
       modeTabsEl.querySelectorAll('.modeTab').forEach(t => {
         t.classList.toggle('active', t.dataset.mode === mode);
       });
 
-      // Body class for camera hint
       document.body.classList.toggle('scene-mode', mode === 'scene');
 
-      // Vault title + hint text
       vaultTitle.textContent = VAULT_TITLES[mode];
       heroSub.textContent = HERO_SUBS[mode];
 
-      // Rebuild filters + cards
       buildFilters();
       rebuildCards();
 
-      // Info count
       infoEl.textContent = activeCollection().length + ' distinct profiles';
 
-      // Restore last selected index in this mode
       const idx = currentIndices[mode] || 0;
       setItem(idx, mode);
     }
@@ -1164,7 +2567,7 @@ void main(){
     });
 
     // ============================================================
-    // SET ITEM (liquid or scene)
+    // SET ITEM
     // ============================================================
     function setItem(i, mode) {
       mode = mode || currentMode;
@@ -1186,7 +2589,6 @@ void main(){
       void hero.offsetWidth;
       hero.classList.add('glow-pulse');
 
-      // On scene change, reset camera to the scene's suggested defaults
       if (mode === 'scene') {
         camTheta = 0;
         camPhi = 0.25;
@@ -1194,7 +2596,6 @@ void main(){
         camDist = item.camDist ?? 3.5;
       }
 
-      // Warm the shader cache
       try { getEntry(mode, item); }
       catch (e) { console.error('Shader compile failed for', item.name, e); }
     }
@@ -1209,7 +2610,10 @@ void main(){
     function draw(t) {
       raf = requestAnimationFrame(draw);
       if (document.hidden) return;
-      if (t - lastTime < 14) return;
+
+      const q = resolveQuality();
+      const frameMs = 1000 / q.fps;
+      if (t - lastTime < frameMs) return;
       lastTime = t;
 
       mx += (tx - mx) * .08;
@@ -1223,36 +2627,36 @@ void main(){
       let entry;
       try { entry = getEntry(currentMode, item); }
       catch (e) {
-        // Fallback program per mode
         const key = currentMode + ':__fallback__';
         if (!programCache.has(key)) {
           try {
             const fallbackSrc = currentMode === 'scene'
-              ? FS_SCENE.replace('// __SCENE_BODY__', FALLBACK_SCENE)
-              : FS_LIQUID.replace('// __LIQUID_BODY__', FALLBACK_LIQUID);
+              ? buildSceneSource({ custom: FALLBACK_SCENE })
+              : buildLiquidSource({ custom: FALLBACK_LIQUID });
             const prog = compileProgram(VS_SRC, fallbackSrc);
+            const uni = {
+              res: gl.getUniformLocation(prog, 'u_resolution'),
+              mouse: gl.getUniformLocation(prog, 'u_mouse'),
+              time: gl.getUniformLocation(prog, 'u_time'),
+              pulse: gl.getUniformLocation(prog, 'u_pulse'),
+              a: gl.getUniformLocation(prog, 'u_a'),
+              b: gl.getUniformLocation(prog, 'u_b'),
+              speed: gl.getUniformLocation(prog, 'u_speed'),
+              soft: gl.getUniformLocation(prog, 'u_soft'),
+              glow: gl.getUniformLocation(prog, 'u_glow'),
+              scale: gl.getUniformLocation(prog, 'u_scale'),
+              warp: gl.getUniformLocation(prog, 'u_warp'),
+              pulseAmt: gl.getUniformLocation(prog, 'u_pulseAmt'),
+              camPos: gl.getUniformLocation(prog, 'u_camPos'),
+              camTarget: gl.getUniformLocation(prog, 'u_camTarget'),
+              lightDir: gl.getUniformLocation(prog, 'u_lightDir'),
+              lightCol: gl.getUniformLocation(prog, 'u_lightCol'),
+              ambient: gl.getUniformLocation(prog, 'u_ambient')
+            };
             programCache.set(key, {
               program: prog,
               attribPos: gl.getAttribLocation(prog, 'a_position'),
-              uniforms: {
-                res: gl.getUniformLocation(prog, 'u_resolution'),
-                mouse: gl.getUniformLocation(prog, 'u_mouse'),
-                time: gl.getUniformLocation(prog, 'u_time'),
-                pulse: gl.getUniformLocation(prog, 'u_pulse'),
-                a: gl.getUniformLocation(prog, 'u_a'),
-                b: gl.getUniformLocation(prog, 'u_b'),
-                speed: gl.getUniformLocation(prog, 'u_speed'),
-                soft: gl.getUniformLocation(prog, 'u_soft'),
-                glow: gl.getUniformLocation(prog, 'u_glow'),
-                scale: gl.getUniformLocation(prog, 'u_scale'),
-                warp: gl.getUniformLocation(prog, 'u_warp'),
-                pulseAmt: gl.getUniformLocation(prog, 'u_pulseAmt'),
-                camPos: gl.getUniformLocation(prog, 'u_camPos'),
-                camTarget: gl.getUniformLocation(prog, 'u_camTarget'),
-                lightDir: gl.getUniformLocation(prog, 'u_lightDir'),
-                lightCol: gl.getUniformLocation(prog, 'u_lightCol'),
-                ambient: gl.getUniformLocation(prog, 'u_ambient')
-              },
+              uniforms: uni,
               isScene: currentMode === 'scene'
             });
           } catch (e2) { console.error('Fallback compile failed', e2); }
@@ -1290,14 +2694,11 @@ void main(){
       gl.uniform1f(U.warp, warp);
       gl.uniform1f(U.pulseAmt, pulseAmt);
 
-      if (entry.isScene) {
-        // Advance auto-orbit
+      if (entry.isScene && U.camPos) {
         camTheta += (item.camOrbit ?? 0.1) * 0.016;
-
         const theta = camTheta + camUserTheta;
         const phi = camPhi;
         const dist = camDist;
-
         const cpx = Math.sin(theta) * Math.cos(phi) * dist;
         const cpy = Math.sin(phi) * dist;
         const cpz = Math.cos(theta) * Math.cos(phi) * dist;
@@ -1308,10 +2709,7 @@ void main(){
 
         const ld = item.lightDir || [0.5, 0.7, 0.6];
         gl.uniform3f(U.lightDir, ld[0], ld[1], ld[2]);
-
-        const lc = rgb(item.lightCol || '#ffffff');
-        gl.uniform3fv(U.lightCol, lc);
-
+        gl.uniform3fv(U.lightCol, rgb(item.lightCol || '#ffffff'));
         gl.uniform1f(U.ambient, item.ambient ?? 0.15);
       }
 
@@ -1323,7 +2721,6 @@ void main(){
     // ============================================================
     function compileRestInBackground() {
       const idle = window.requestIdleCallback || (fn => setTimeout(() => fn({ timeRemaining: () => 16 }), 40));
-      // Compile liquids first, then scenes
       const queue = [];
       liquids.forEach(l => queue.push({ mode: 'liquid', item: l }));
       scenes.forEach(s => queue.push({ mode: 'scene', item: s }));
@@ -1343,7 +2740,7 @@ void main(){
     }
 
     // ============================================================
-    // MINI CANVAS PREVIEWS
+    // MINI PREVIEWS
     // ============================================================
     let mini = [];
     let miniIO = null;
@@ -1391,7 +2788,6 @@ void main(){
     }
 
     function drawMiniScene(x, w, h, l, q) {
-      // Sky gradient
       const g = x.createLinearGradient(0, 0, 0, h);
       g.addColorStop(0, l.a);
       g.addColorStop(0.55, l.b + '30');
@@ -1399,7 +2795,6 @@ void main(){
       x.fillStyle = g;
       x.fillRect(0, 0, w, h);
 
-      // Horizon line
       x.strokeStyle = l.b + '55';
       x.lineWidth = 1;
       x.beginPath();
@@ -1407,12 +2802,10 @@ void main(){
       x.lineTo(w, h * 0.72);
       x.stroke();
 
-      // Sphere
       const cx = w * 0.5 + Math.sin(q) * w * 0.03;
       const cy = h * 0.5 + Math.cos(q * 0.6) * h * 0.02;
       const r = w * 0.26;
 
-      // Soft shadow on floor
       const sh = x.createRadialGradient(cx, h * 0.72, 1, cx, h * 0.72, r * 1.4);
       sh.addColorStop(0, 'rgba(0,0,0,0.45)');
       sh.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1421,7 +2814,6 @@ void main(){
       x.ellipse(cx, h * 0.72, r * 1.4, r * 0.28, 0, 0, Math.PI * 2);
       x.fill();
 
-      // Sphere with top-left lighting
       const sg = x.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.05, cx, cy, r);
       sg.addColorStop(0, l.b);
       sg.addColorStop(0.65, l.b + '99');
@@ -1431,7 +2823,6 @@ void main(){
       x.arc(cx, cy, r, 0, Math.PI * 2);
       x.fill();
 
-      // Rim light
       x.strokeStyle = l.b;
       x.lineWidth = 1;
       x.globalAlpha = 0.5 + 0.3 * Math.sin(q * 2);
@@ -1470,7 +2861,9 @@ void main(){
 
     function scheduleMiniFrame() {
       clearTimeout(miniTimer);
-      miniTimer = setTimeout(() => requestAnimationFrame(miniFrame), 70);
+      const q = resolveQuality();
+      const delay = q.fps <= 30 ? 200 : 70;
+      miniTimer = setTimeout(() => requestAnimationFrame(miniFrame), delay);
     }
 
     // ============================================================
@@ -1593,23 +2986,18 @@ void main(){
     // BOOT
     // ============================================================
     applyAllSettings();
-
-    // Initialize scene-mode body class
     document.body.classList.toggle('scene-mode', currentMode === 'scene');
 
-    // Build initial UI
     buildFilters();
     rebuildCards();
 
     infoEl.textContent = activeCollection().length + ' distinct profiles';
 
-    // Show the first liquid
     setItem(0, 'liquid');
 
     scheduleMiniFrame();
     raf = requestAnimationFrame(draw);
 
-    // Compile the rest of the library during idle time
     if (window.requestIdleCallback) requestIdleCallback(compileRestInBackground);
     else setTimeout(compileRestInBackground, 600);
   </script>
