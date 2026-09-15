@@ -1,1223 +1,487 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#FDF6F5">
-    <title>Interactive Physics Lab</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ocean Explorer</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#000; touch-action:none;
+    -webkit-user-select:none; user-select:none; font-family:'Segoe UI',sans-serif; }
+  #gameCanvas { position:fixed; inset:0; display:block; }
 
-        html,
-        body {
-            height: 100%;
-            overflow: hidden;
-            background: #FDF6F5;
-            overscroll-behavior: none;
-            touch-action: none;
-            font-family: "Quicksand", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-        }
+  /* ---------- UI ---------- */
+  #hud { position:fixed; top:14px; left:14px; color:#dff4ff; z-index:10; pointer-events:none;
+    text-shadow:0 1px 4px rgba(0,0,0,.6); }
+  #hud h1 { font-size:18px; font-weight:600; letter-spacing:2px; opacity:.9; }
+  #hud p  { font-size:12px; opacity:.7; margin-top:2px; }
 
-        canvas#gl {
-            display: block;
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-        }
+  #modeBtn { position:fixed; top:14px; right:14px; z-index:10;
+    background:rgba(10,40,60,.55); color:#dff4ff; border:1px solid rgba(160,220,255,.4);
+    border-radius:14px; padding:12px 18px; font-size:15px; backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px); cursor:pointer; }
+  #modeBtn:active { background:rgba(40,110,150,.7); }
 
-        /* Pastel UI Glass */
-        .glass {
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(18px) saturate(1.4);
-            -webkit-backdrop-filter: blur(18px) saturate(1.4);
-            border: 2px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 12px 38px rgba(220, 195, 210, 0.35);
-            border-radius: 24px;
-        }
+  /* virtual joystick */
+  #joy { position:fixed; bottom:36px; left:36px; width:130px; height:130px; z-index:10;
+    border-radius:50%; background:rgba(120,200,255,.12); border:2px solid rgba(160,220,255,.35);
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+  #stick { position:absolute; left:50%; top:50%; width:56px; height:56px; border-radius:50%;
+    background:rgba(180,230,255,.45); transform:translate(-50%,-50%); box-shadow:0 0 12px rgba(120,200,255,.5); }
 
-        #topPanel {
-            position: fixed;
-            top: calc(14px + env(safe-area-inset-top, 0px));
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px 10px;
-            text-align: center;
-            z-index: 10;
-            pointer-events: none;
-            max-width: 94vw;
-        }
+  #hint { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); color:#cfeaff;
+    font-size:11px; opacity:.55; z-index:10; pointer-events:none; text-align:center; }
 
-        #topPanel h1 {
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.32em;
-            color: #b096a6;
-            text-transform: uppercase;
-        }
-
-        #stats {
-            display: flex;
-            gap: 18px;
-            justify-content: center;
-            margin-top: 8px;
-        }
-
-        .stat {
-            min-width: 44px;
-        }
-
-        .stat b {
-            display: block;
-            font-size: 14px;
-            font-weight: 800;
-            color: #7a6372;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .stat span {
-            font-size: 8px;
-            letter-spacing: 0.16em;
-            color: #b096a6;
-            text-transform: uppercase;
-            font-weight: 700;
-        }
-
-        #bottomBar {
-            position: fixed;
-            bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-            padding: 10px;
-            z-index: 10;
-        }
-
-        #bottomBar button {
-            border: 2px solid rgba(255, 255, 255, 1);
-            background: rgba(255, 255, 255, 0.6);
-            color: #9c8493;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            padding: 10px 16px;
-            border-radius: 18px;
-            cursor: pointer;
-            transition: all .25s cubic-bezier(.4, 0, .2, 1);
-            white-space: nowrap;
-        }
-
-        #bottomBar button:active {
-            transform: scale(0.92);
-        }
-
-        #bottomBar button.on {
-            background: #ffb7b2;
-            border-color: #ffb7b2;
-            color: #fff;
-            box-shadow: 0 6px 20px rgba(255, 183, 178, 0.55);
-        }
-
-        #slowBadge {
-            position: fixed;
-            top: calc(96px + env(safe-area-inset-top, 0px));
-            left: 50%;
-            transform: translateX(-50%) scale(0.8);
-            padding: 7px 18px;
-            border-radius: 20px;
-            z-index: 10;
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 0.24em;
-            color: #ff919a;
-            background: rgba(255, 240, 245, 0.85);
-            border: 2px solid rgba(255, 183, 178, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            opacity: 0;
-            pointer-events: none;
-            transition: all .35s;
-        }
-
-        #slowBadge.show {
-            opacity: 1;
-            transform: translateX(-50%) scale(1);
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            50% {
-                box-shadow: 0 0 0 8px rgba(255, 183, 178, 0.25);
-            }
-        }
-
-        #hint {
-            position: fixed;
-            bottom: calc(90px + env(safe-area-inset-bottom, 0px));
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 11px;
-            font-weight: 600;
-            color: #a4919e;
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 8px 18px;
-            border-radius: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            z-index: 9;
-            pointer-events: none;
-            transition: opacity 1s;
-            white-space: nowrap;
-        }
-
-        #loader {
-            position: fixed;
-            inset: 0;
-            background: #FDF6F5;
-            z-index: 50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 16px;
-            transition: opacity .6s;
-        }
-
-        #loader .dot {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 30%, #ffc8c4, #ff8da1);
-            animation: drop 0.9s cubic-bezier(.5, 0, .5, 1) infinite;
-        }
-
-        @keyframes drop {
-
-            0%,
-            100% {
-                transform: translateY(-18px) scale(1, 1);
-            }
-
-            50% {
-                transform: translateY(12px) scale(1.3, 0.75);
-            }
-        }
-
-        #loader p {
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 0.35em;
-            color: #b096a6;
-            text-transform: uppercase;
-        }
-
-        @media (orientation:landscape) and (max-height:480px) {
-            #stats .stat:nth-child(n+3) {
-                display: none;
-            }
-
-            #bottomBar button {
-                padding: 8px 12px;
-                font-size: 10px;
-            }
-        }
-    </style>
+  #title { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; background:radial-gradient(ellipse at center, rgba(4,30,50,.85), rgba(0,5,12,.97));
+    color:#dff4ff; transition:opacity 1s; }
+  #title h1 { font-size:clamp(30px,7vw,64px); letter-spacing:8px; font-weight:200; }
+  #title p  { margin:14px 0 30px; opacity:.6; letter-spacing:2px; font-size:13px; }
+  #playBtn { background:none; border:1px solid rgba(160,220,255,.6); color:#dff4ff;
+    padding:16px 52px; font-size:17px; letter-spacing:4px; border-radius:30px; cursor:pointer; }
+  #playBtn:active { background:rgba(120,200,255,.2); }
+</style>
 </head>
-
 <body>
 
-    <canvas id="gl"></canvas>
+<canvas id="gameCanvas"></canvas>
 
-    <div id="topPanel" class="glass">
-        <h1>Interactive Physics Lab</h1>
-        <div id="stats">
-            <div class="stat"><b id="sVel">0.0</b><span>Vel m/s</span></div>
-            <div class="stat"><b id="sHgt">0.0</b><span>Height</span></div>
-            <div class="stat"><b id="sEn">0</b><span>Energy</span></div>
-            <div class="stat"><b id="sFps">60</b><span>FPS</span></div>
-        </div>
-    </div>
+<div id="hud"><h1>OCEAN EXPLORER</h1><p id="coord">0° N · 0° E</p></div>
+<button id="modeBtn">🚤 Boat</button>
+<div id="joy"><div id="stick"></div></div>
+<div id="hint">Left stick: move · drag right side: look around</div>
 
-    <div id="slowBadge">● SLOW MOTION</div>
-    <div id="hint">Use left side of screen to move · Drag right side to orbit</div>
+<div id="title">
+  <h1>OCEAN EXPLORER</h1>
+  <p>AN ENDLESS SEA AWAITS</p>
+  <button id="playBtn">SET SAIL</button>
+</div>
 
-    <div id="bottomBar" class="glass">
-        <button id="bReset">Reset</button>
-        <button id="bSlow">Slow-Mo</button>
-        <button id="bCam">Orbit</button>
-        <button id="bFx" class="on">FX</button>
-        <button id="bSnd" class="on">Sound</button>
-    </div>
-
-    <div id="loader">
-        <div class="dot"></div>
-        <p>Loading Lab</p>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="assets.js"></script>
-    <script>
-        (function () {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="particles.js"></script>
+<script src="models/boat.js"></script>
+<script src="models/island.js"></script>
+<script src="models/fish.js"></script>
+<script src="models/buoy.js"></script>
+<script>
+/* ============================================================
+   OCEAN EXPLORER — main engine
+   Infinite procedural ocean · boat + swim modes · iPad touch
+   ============================================================ */
 'use strict';
 
-/* ============================================================
-   0. CONSTANTS / STATE
-============================================================ */
-var R        = 0.55;
-var GRAV     = 30.0;
-var REST     = 0.78;
-var MAX_V    = 45.0;
-var FIXED_DT = 1/120;
-var BOUNDS   = { x:8, yTop:11, z:5 };
-var WALL     = { x:4.2, hx:0.31, h:4.26, hz:6.06 };
+// ---------- renderer / scene ----------
+const canvas = document.getElementById('gameCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
 
-var flags = { fx:true, snd:true, slow:false, orbit:false };
-var timeScale = 1, timeScaleTarget = 1;
-var quality = 0;
-var shake = 0;
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x9db8c8, 0.0016);
 
-/* ============================================================
-   1. RENDERER / SCENE / CAMERA & HUD JOYSTICK SETUP
-============================================================ */
-var canvas = document.getElementById('gl');
-var renderer;
-try {
-  renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true, powerPreference:'high-performance' });
-} catch (e) {
-  document.getElementById('loader').innerHTML = '<p>WebGL not supported</p>';
-  return;
-}
-renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.autoClear = false; // Important for HUD layering
+const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.1, 4000);
 
-var scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xFDF6F5, 34, 72);
-
-var camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
-
-/* --- Orthographic HUD for 3D Joystick --- */
-var hudScene = new THREE.Scene();
-var hudCamera = new THREE.OrthographicCamera(-window.innerWidth/2, window.innerWidth/2, window.innerHeight/2, -window.innerHeight/2, 0.1, 100);
-hudCamera.position.z = 10;
-
-// Setup the Joystick Meshes
-var joyMatBase = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
-var joyMatStick = new THREE.MeshBasicMaterial({ color: 0xffb7c5 });
-var joyBase = new THREE.Mesh(new THREE.TorusGeometry(35, 3, 16, 32), joyMatBase);
-var joyStick = new THREE.Mesh(new THREE.SphereGeometry(18, 32, 32), joyMatStick);
-hudScene.add(joyBase);
-hudScene.add(joyStick);
-
-// State for handling Joystick logic
-var joyActive = false;
-var joyId = -1;
-var joyStart = new THREE.Vector2();
-var joyVector = new THREE.Vector2();
-
-/* ---- environment gradient (pastel sky dome) ---- */
-(function () {
-  var geo = new THREE.SphereGeometry(80, 24, 16);
-  var mat = new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite:false, fog:false,
-    uniforms:{ cTop:{value:new THREE.Color(0xdce2f0)}, cBot:{value:new THREE.Color(0xffeaf0)} },
-    vertexShader:'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-    fragmentShader:'varying vec3 vP; uniform vec3 cTop; uniform vec3 cBot;'+
-      'void main(){ float h=clamp(normalize(vP).y*0.5+0.5,0.0,1.0);'+
-      'vec3 c=mix(cBot,cTop,pow(h,0.8)); gl_FragColor=vec4(c,1.0); }'
-  });
-  scene.add(new THREE.Mesh(geo, mat));
-})();
-
-/* ---- procedural equirect environment map (soft pastel reflections) ---- */
-(function () {
-  var c = document.createElement('canvas'); c.width = 512; c.height = 256;
-  var g = c.getContext('2d');
-  var gr = g.createLinearGradient(0, 0, 0, 256);
-  gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.5, '#fce4ea'); gr.addColorStop(1, '#e6dced');
-  g.fillStyle = gr; g.fillRect(0, 0, 512, 256);
-  function blob(x, y, r, a) {
-    var rg = g.createRadialGradient(x, y, 0, x, y, r);
-    rg.addColorStop(0, 'rgba(255,255,255,' + a + ')');
-    rg.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = rg; g.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-  blob(120, 60, 70, 0.95); blob(390, 80, 55, 0.7); blob(260, 40, 90, 0.5);
-  var tex = new THREE.CanvasTexture(c);
-  tex.mapping = THREE.EquirectangularReflectionMapping;
-  tex.encoding = THREE.sRGBEncoding;
-  scene.environment = tex;
-})();
-
-/* ============================================================
-   2. LIGHTS  (pastel key / fill / rim / ambient)
-============================================================ */
-scene.add(new THREE.HemisphereLight(0xfff6fa, 0xd4cbe5, 0.6));
-
-var key = new THREE.DirectionalLight(0xfff0f5, 1.05);
-key.position.set(6, 11, 7);
-key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024);
-key.shadow.camera.left = -14; key.shadow.camera.right = 14;
-key.shadow.camera.top = 14;  key.shadow.camera.bottom = -14;
-key.shadow.camera.near = 2;  key.shadow.camera.far = 40;
-key.shadow.bias = -0.0006;
-scene.add(key);
-
-var fill = new THREE.DirectionalLight(0xe0f7fa, 0.35);
-fill.position.set(-8, 4, -3); scene.add(fill);
-
-var rim = new THREE.DirectionalLight(0xffe4fa, 0.65);
-rim.position.set(-4, 7, -9); scene.add(rim);
-
-var flashLights = [];
-for (var fi = 0; fi < 2; fi++) {
-  var fl = new THREE.PointLight(0xffb7b2, 0, 9, 2);
-  scene.add(fl); flashLights.push({ l:fl, i:0 });
-}
-
-/* ============================================================
-   3. ENVIRONMENT MESHES  (floor, curved studio, wall)
-============================================================ */
-var floor = new THREE.Mesh(
-  new THREE.CircleGeometry(45, 48),
-  new THREE.MeshStandardMaterial({ color:0xfdf5f7, roughness:0.25, metalness:0.05, envMapIntensity:0.65 })
-);
-floor.rotation.x = -Math.PI / 2;
-floor.receiveShadow = true;
-scene.add(floor);
-
-(function () {
-  var w = 12.2, h = WALL.h, r = 0.18;
-  var s = new THREE.Shape();
-  s.moveTo(-w/2 + r, 0); s.lineTo( w/2 - r, 0); s.absarc( w/2 - r, r, r, -Math.PI/2, 0, false);
-  s.lineTo( w/2, h - r); s.absarc( w/2 - r, h - r, r, 0, Math.PI/2, false);
-  s.lineTo(-w/2 + r, h); s.absarc(-w/2 + r, h - r, r, Math.PI/2, Math.PI, false);
-  s.lineTo(-w/2, r); s.absarc(-w/2 + r, r, r, Math.PI, Math.PI*1.5, false);
-  var geo = new THREE.ExtrudeGeometry(s, { depth:0.5, bevelEnabled:true, bevelThickness:0.06, bevelSize:0.06, bevelSegments:3, steps:1 });
-  var mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:0xebe3ec, roughness:0.45, metalness:0.0, envMapIntensity:0.5 }));
-  mesh.rotation.y = Math.PI / 2; mesh.position.set(WALL.x - 0.25, 0, 0);
-  mesh.castShadow = true; mesh.receiveShadow = true;
-  scene.add(mesh);
-})();
-
-/* ============================================================
-   4. THE BALL  (pastel material + glow + shadow)
-============================================================ */
-var roughMap = (function () {
-  var c = document.createElement('canvas'); c.width = c.height = 128;
-  var g = c.getContext('2d');
-  g.fillStyle = '#777'; g.fillRect(0, 0, 128, 128);
-  for (var i = 0; i < 380; i++) {
-    var v = 100 + Math.random() * 60 | 0;
-    g.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',0.12)';
-    g.fillRect(Math.random()*128, Math.random()*128, 2 + Math.random()*4, 2 + Math.random()*4);
-  }
-  return new THREE.CanvasTexture(c);
-})();
-
-var deform = new THREE.Group();
-scene.add(deform);
-
-var ballMat = new THREE.MeshPhysicalMaterial({
-  color:0xffb7c5, roughness:0.2, metalness:0.0,
-  clearcoat:1.0, clearcoatRoughness:0.1,
-  roughnessMap:roughMap, envMapIntensity:1.3
+// ---------- sky (gradient dome + sun) ----------
+const skyGeo = new THREE.SphereGeometry(1800, 24, 16);
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite:false, fog:false,
+  uniforms: { uTime:{value:0} },
+  vertexShader: `varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `
+    varying vec3 vP; uniform float uTime;
+    void main(){
+      float h = normalize(vP).y;
+      vec3 horizon = vec3(0.78,0.72,0.62);           // warm haze
+      vec3 mid     = vec3(0.45,0.62,0.78);
+      vec3 zenith  = vec3(0.12,0.28,0.48);
+      vec3 col = mix(horizon, mid, smoothstep(0.0,0.25,h));
+      col = mix(col, zenith, smoothstep(0.25,0.8,h));
+      // sun glow
+      vec3 sunDir = normalize(vec3(0.5,0.35,0.4));
+      float s = max(dot(normalize(vP), sunDir), 0.0);
+      col += vec3(1.0,0.85,0.6)*pow(s, 220.0)*1.4;   // disc
+      col += vec3(1.0,0.8,0.55)*pow(s, 6.0)*0.22;    // haze
+      // slow drifting clouds
+      float cl = sin(vP.x*0.004+uTime*0.02)*sin(vP.z*0.005-uTime*0.015);
+      cl = smoothstep(0.55,0.95,cl)*smoothstep(0.05,0.3,h)*0.25;
+      col = mix(col, vec3(0.95,0.93,0.9), cl);
+      gl_FragColor = vec4(col,1.0);
+    }`
 });
-var ballMesh = new THREE.Mesh(new THREE.SphereGeometry(R, 48, 32), ballMat);
-ballMesh.castShadow = true;
-deform.add(ballMesh);
-
-var glowMat = new THREE.ShaderMaterial({
-  transparent:true, blending:THREE.AdditiveBlending, depthWrite:false,
-  uniforms:{ uPower:{ value:0 }, uColor:{ value:new THREE.Color(0xffe6eb) } },
-  vertexShader: 'varying float vF; void main(){ vec3 n=normalize(normalMatrix*normal); vec4 mv=modelViewMatrix*vec4(position,1.0); vec3 vd=normalize(-mv.xyz); vF=pow(1.0-abs(dot(n,vd)),2.5); gl_Position=projectionMatrix*mv; }',
-  fragmentShader: 'uniform float uPower; uniform vec3 uColor; varying float vF; void main(){ gl_FragColor=vec4(uColor, vF*uPower); }'
-});
-var glowMesh = new THREE.Mesh(new THREE.SphereGeometry(R * 1.18, 32, 24), glowMat);
-deform.add(glowMesh);
-
-var contactShadow = (function () {
-  var c = document.createElement('canvas'); c.width = c.height = 128;
-  var g = c.getContext('2d');
-  var rg = g.createRadialGradient(64, 64, 4, 64, 64, 62);
-  rg.addColorStop(0, 'rgba(70,50,60,0.45)');
-  rg.addColorStop(1, 'rgba(70,50,60,0)');
-  g.fillStyle = rg; g.fillRect(0, 0, 128, 128);
-  var m = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1),
-    new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false })
-  );
-  m.rotation.x = -Math.PI / 2; m.position.y = 0.012; m.renderOrder = 1;
-  scene.add(m); return m;
-})();
-
-var ball = { p:new THREE.Vector3(-3, 4, 0), v:new THREE.Vector3(), w:new THREE.Vector3(), squash:0, squashN:new THREE.Vector3(0,1,0), target:new THREE.Vector3() };
-
-/* ============================================================
-   5. POOLED CUSTOM VFX — Enhanced Sparks, Dust, Trail
-============================================================ */
-var P_MAX = 240;
-var pGeo = new THREE.IcosahedronGeometry(0.105, 1);
-var pMat = new THREE.MeshStandardMaterial({
-  color:0xffffff,
-  roughness:0.18,
-  metalness:0.15,
-  emissive:0xffffff,
-  emissiveIntensity:1.15,
-  transparent:true,
-  blending:THREE.AdditiveBlending,
-  depthWrite:false
-});
-var pMesh = new THREE.InstancedMesh(pGeo, pMat, P_MAX);
-pMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-pMesh.frustumCulled = false;
-scene.add(pMesh);
-
-var pDummy = new THREE.Object3D();
-var pPos = new Float32Array(P_MAX * 3);
-var pVel = new Float32Array(P_MAX * 3);
-var pRot = new Float32Array(P_MAX * 3);
-var pRotV = new Float32Array(P_MAX * 3);
-var pAge = new Float32Array(P_MAX);
-var pLife = new Float32Array(P_MAX);
-var pScale = new Float32Array(P_MAX);
-var pSeed = new Float32Array(P_MAX);
-
-var colorArray = new Float32Array(P_MAX * 3);
-pMesh.instanceColor = new THREE.InstancedBufferAttribute(colorArray, 3);
-var pColor = new THREE.Color();
-var pastelColors = [0xffb7b2, 0xffd1dc, 0xb2ffda, 0xdcf4ff, 0xffe4f0];
-
-pDummy.position.set(0, -50, 0);
-pDummy.updateMatrix();
-for (var i = 0; i < P_MAX; i++) {
-  pAge[i] = 999;
-  pLife[i] = 1;
-  pMesh.setMatrixAt(i, pDummy.matrix);
-}
-pMesh.instanceMatrix.needsUpdate = true;
-var pCursor = 0;
-
-function spawnBurst(pos, n, power) {
-  if (!flags.fx) return;
-
-  var count = Math.min(38, 8 + (power * 30 | 0));
-  var tangentA = new THREE.Vector3();
-  var tangentB = new THREE.Vector3();
-
-  if (Math.abs(n.y) < 0.9) tangentA.set(0,1,0).cross(n).normalize();
-  else tangentA.set(1,0,0).cross(n).normalize();
-  tangentB.copy(n).cross(tangentA).normalize();
-
-  for (var i = 0; i < count; i++) {
-    var idx = pCursor;
-    pCursor = (pCursor + 1) % P_MAX;
-
-    var a = Math.random() * Math.PI * 2;
-    var radial = Math.sqrt(Math.random());
-    var outward = 0.35 + Math.random() * 0.95;
-    var lift = Math.random() * 0.9;
-    var sp = (2.2 + Math.random() * 5.2) * (0.55 + power * 0.9);
-
-    var tx = Math.cos(a) * radial;
-    var tz = Math.sin(a) * radial;
-
-    pPos[idx*3]   = pos.x + n.x * 0.075 + (tangentA.x * tx + tangentB.x * tz) * 0.035;
-    pPos[idx*3+1] = pos.y + n.y * 0.075 + (tangentA.y * tx + tangentB.y * tz) * 0.035;
-    pPos[idx*3+2] = pos.z + n.z * 0.075 + (tangentA.z * tx + tangentB.z * tz) * 0.035;
-
-    pVel[idx*3]   = n.x * sp * (1.45 + power) + (tangentA.x * tx + tangentB.x * tz) * sp * outward;
-    pVel[idx*3+1] = n.y * sp * (1.45 + power) + (tangentA.y * tx + tangentB.y * tz) * sp * outward + lift * sp * 0.35;
-    pVel[idx*3+2] = n.z * sp * (1.45 + power) + (tangentA.z * tx + tangentB.z * tz) * sp * outward;
-
-    pRot[idx*3] = Math.random() * Math.PI * 2;
-    pRot[idx*3+1] = Math.random() * Math.PI * 2;
-    pRot[idx*3+2] = Math.random() * Math.PI * 2;
-
-    pRotV[idx*3] = (Math.random()-0.5) * 22;
-    pRotV[idx*3+1] = (Math.random()-0.5) * 22;
-    pRotV[idx*3+2] = (Math.random()-0.5) * 22;
-
-    pAge[idx] = 0;
-    pLife[idx] = 0.32 + Math.random() * 0.58 + power * 0.12;
-    pScale[idx] = 0.38 + Math.random() * 0.95 + power * 0.42;
-    pSeed[idx] = Math.random();
-
-    pColor.setHex(pastelColors[Math.floor(Math.random() * pastelColors.length)]);
-    colorArray[idx*3] = pColor.r;
-    colorArray[idx*3+1] = pColor.g;
-    colorArray[idx*3+2] = pColor.b;
-  }
-  pMesh.instanceColor.needsUpdate = true;
-}
-
-function clearParticles() {
-  for (var i = 0; i < P_MAX; i++) {
-    pAge[i] = 999;
-    pLife[i] = 1;
-    pMesh.setMatrixAt(i, pDummy.matrix);
-  }
-  pMesh.instanceMatrix.needsUpdate = true;
-}
-
-/* Ambient floating dust with softer, varied motion. */
-var DUST_N = 72;
-var dustGeo = new THREE.BufferGeometry();
-(function () {
-  var dp = new Float32Array(DUST_N * 3), ds = new Float32Array(DUST_N);
-  for (var i = 0; i < DUST_N; i++) {
-    dp[i*3] = (Math.random()-0.5) * 22;
-    dp[i*3+1] = 0.25 + Math.random() * 7.5;
-    dp[i*3+2] = (Math.random()-0.5) * 12;
-    ds[i] = Math.random();
-  }
-  dustGeo.setAttribute('position', new THREE.BufferAttribute(dp, 3));
-  dustGeo.setAttribute('aSeed', new THREE.BufferAttribute(ds, 1));
-})();
-
-var dustMat = new THREE.ShaderMaterial({
-  transparent:true,
-  depthWrite:false,
-  blending:THREE.AdditiveBlending,
-  uniforms:{ uTime:{ value:0 } },
-  vertexShader:
-    'attribute float aSeed; uniform float uTime; varying float vA; '+
-    'void main(){ '+
-      'vec3 p=position; float s=aSeed*6.28318; '+
-      'p.y += sin(uTime*0.22+s)*0.22 + sin(uTime*0.07+s*2.1)*0.11; '+
-      'p.x += sin(uTime*0.12+s*1.7)*0.32; '+
-      'p.z += cos(uTime*0.10+s*1.3)*0.24; '+
-      'vA=0.035+0.095*fract(aSeed*7.13); '+
-      'vec4 mv=modelViewMatrix*vec4(p,1.0); '+
-      'gl_PointSize=(0.18+0.22*fract(aSeed*9.7))*(170.0/-mv.z); '+
-      'gl_Position=projectionMatrix*mv; '+
-    '}',
-  fragmentShader:
-    'varying float vA; '+
-    'void main(){ '+
-      'float d=length(gl_PointCoord-0.5); '+
-      'float m=1.0-smoothstep(0.08,0.5,d); '+
-      'gl_FragColor=vec4(0.92,0.86,0.95,m*vA); '+
-    '}'
-});
-var dust = new THREE.Points(dustGeo, dustMat);
-dust.frustumCulled = false;
-scene.add(dust);
-
-/* Soft glow layer behind the physical spark meshes. */
-var sparkGlowGeo = new THREE.BufferGeometry();
-var sparkGlowPos = new Float32Array(P_MAX * 3);
-var sparkGlowSize = new Float32Array(P_MAX);
-sparkGlowGeo.setAttribute('position', new THREE.BufferAttribute(sparkGlowPos, 3));
-sparkGlowGeo.setAttribute('aSize', new THREE.BufferAttribute(sparkGlowSize, 1));
-var sparkGlowMat = new THREE.ShaderMaterial({
-  transparent:true,
-  depthWrite:false,
-  blending:THREE.AdditiveBlending,
-  uniforms:{ uIntensity:{value:0.9} },
-  vertexShader:
-    'attribute float aSize; varying float vA; '+
-    'void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); '+
-    'vA=aSize; gl_PointSize=aSize*(180.0/-mv.z); gl_Position=projectionMatrix*mv; }',
-  fragmentShader:
-    'varying float vA; '+
-    'void main(){ float d=length(gl_PointCoord-0.5); '+
-    'float a=(1.0-smoothstep(0.02,0.5,d))*vA; '+
-    'gl_FragColor=vec4(1.0,0.78,0.86,a); }'
-});
-var sparkGlow = new THREE.Points(sparkGlowGeo, sparkGlowMat);
-sparkGlow.frustumCulled = false;
-sparkGlow.visible = true;
-scene.add(sparkGlow);
-
-var TRAIL_N = 24;
-var trailGeo = new THREE.SphereGeometry(R * 0.82, 12, 10);
-var trail = [];
-for (var ti = 0; ti < TRAIL_N; ti++) {
-  var tm = new THREE.Mesh(
-    trailGeo,
-    new THREE.MeshBasicMaterial({
-      color:0xffd1dc,
-      transparent:true,
-      opacity:0,
-      depthWrite:false,
-      blending:THREE.AdditiveBlending
-    })
-  );
-  tm.visible = false;
-  scene.add(tm);
-  trail.push({ m:tm, p:new THREE.Vector3(), t:1e9 });
-}
-var trailCursor = 0, trailClock = 0;
-var particleMat = new THREE.Matrix4();
-var particleEuler = new THREE.Euler();
-
-var UP = new THREE.Vector3(0, 1, 0);
-
-/* ============================================================
-   6. AUDIO — fully procedural (Web Audio API)
-============================================================ */
-var AC = null, master = null, noiseBuf = null;
-function audioInit() {
-  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
-  try {
-    AC = new (window.AudioContext || window.webkitAudioContext)();
-    master = AC.createGain(); master.gain.value = 0.85; master.connect(AC.destination);
-    noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
-    var d = noiseBuf.getChannelData(0);
-    for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  } catch (e) { AC = null; }
-}
-function env(g, t0, a, peak, dec) {
-  g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(peak, t0 + a); g.gain.exponentialRampToValueAtTime(0.0001, t0 + a + dec);
-}
-function sndBounce(pw, wallHit) {
-  if (!AC || !flags.snd) return;
-  var t = AC.currentTime; var o = AC.createOscillator(), g = AC.createGain();
-  o.type = 'sine'; var f0 = (wallHit ? 300 : 170) + pw * 120;
-  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.35, t + 0.16);
-  env(g, t, 0.004, 0.16 + pw * 0.5, 0.16 + pw * 0.1); o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.4);
-  var n = AC.createBufferSource(), ng = AC.createGain(), nf = AC.createBiquadFilter();
-  n.buffer = noiseBuf; nf.type = 'lowpass'; nf.frequency.value = 500 + pw * 900;
-  env(ng, t, 0.002, 0.10 + pw * 0.3, 0.09); n.connect(nf); nf.connect(ng); ng.connect(master); n.start(t); n.stop(t + 0.2);
-}
-function sndClick() {
-  if (!AC || !flags.snd) return;
-  var t = AC.currentTime; var o = AC.createOscillator(), g = AC.createGain();
-  o.type = 'triangle'; o.frequency.value = 880; env(g, t, 0.002, 0.12, 0.06);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.1);
-}
-
-/* ============================================================
-   7. INPUT (3D UI JOYSTICK & ORBIT DRAG)
-============================================================ */
-var dragMode = 0;
-var lastOX = 0, lastOY = 0;
-
-canvas.addEventListener('pointerdown', function (e) {
-  audioInit(); canvas.setPointerCapture(e.pointerId);
-  // Left half of screen controls 3D joystick
-  if (e.clientX < window.innerWidth / 2) {
-      joyActive = true;
-      joyId = e.pointerId;
-      joyStart.set(e.clientX, e.clientY);
-      joyVector.set(0, 0);
-      joyBase.position.set(-window.innerWidth/2 + e.clientX, window.innerHeight/2 - e.clientY, 0);
-      joyStick.position.copy(joyBase.position);
-      document.getElementById('hint').style.opacity = 0;
-  } else {
-      dragMode = 2; lastOX = e.clientX; lastOY = e.clientY;
-  }
-});
-
-canvas.addEventListener('pointermove', function (e) {
-  if (joyActive && e.pointerId === joyId) {
-      var dx = e.clientX - joyStart.x;
-      var dy = e.clientY - joyStart.y;
-      var maxR = 35;
-      var dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist > maxR) { dx = (dx/dist)*maxR; dy = (dy/dist)*maxR; }
-
-      joyVector.set(dx/maxR, dy/maxR);
-      joyStick.position.set(joyBase.position.x + dx, joyBase.position.y - dy, 0);
-  } else if (dragMode === 2 && flags.orbit) {
-      cam.targetTheta = THREE.MathUtils.clamp(cam.targetTheta - (e.clientX - lastOX) * 0.005, -1.25, 1.25);
-      cam.targetPhi   = THREE.MathUtils.clamp(cam.targetPhi   - (e.clientY - lastOY) * 0.004, 0.85, 1.42);
-      lastOX = e.clientX; lastOY = e.clientY;
-  }
-});
-
-function pointerEnd(e) {
-  if (e.pointerId === joyId) {
-      joyActive = false; joyId = -1; joyVector.set(0,0);
-      // Reset position to default corner
-      joyBase.position.set(-window.innerWidth/2 + 80, -window.innerHeight/2 + 80, 0);
-      joyStick.position.copy(joyBase.position);
-  }
-  dragMode = 0;
-}
-canvas.addEventListener('pointerup', pointerEnd);
-canvas.addEventListener('pointercancel', pointerEnd);
-canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-
-/* ============================================================
-   8. PHYSICS (ROLLING VIA JOYSTICK) — STABLE CONTACT SOLVER
-============================================================ */
-var squashQ = new THREE.Quaternion();
-var tmpV1 = new THREE.Vector3(), tmpV2 = new THREE.Vector3(), tmpV3 = new THREE.Vector3(), tmpV4 = new THREE.Vector3(), tmpV5 = new THREE.Vector3(), tmpV6 = new THREE.Vector3();
-var tmpQ1 = new THREE.Quaternion();
-var impactClock = 0;
-
-function impact(n, speed, cx, cy, cz, isWall) {
-  var pw = THREE.MathUtils.clamp((speed - 2) / 26, 0, 1);
-  if (pw <= 0.02) return;
-
-  ball.squash = Math.max(ball.squash, pw * 0.42);
-  ball.squashN.copy(n);
-  tmpV5.set(cx, cy, cz);
-  spawnBurst(tmpV5, n, pw);
-
-  if (flags.fx) {
-    shake = Math.min(0.42, shake + pw * 0.13);
-    var f = flashLights[0].i < flashLights[1].i ? flashLights[0] : flashLights[1];
-    f.i = pw * 6.5;
-    f.l.position.set(cx + n.x * 0.7, cy + n.y * 0.7, cz + n.z * 0.7);
-  }
-
-  /* Prevent repeated audio/FX explosions while several solver iterations
-     are resolving the same physical contact. */
-  if (impactClock <= 0 || speed > 7) {
-    sndBounce(pw, isWall);
-    impactClock = 0.045;
-  }
-}
-
-function collidePlanes() {
-  var p = ball.p, v = ball.v;
-
-  if (p.y - R < 0) {
-    var wasFalling = v.y < -0.08;
-    var impactSpeed = Math.max(0, -v.y);
-    p.y = R;
-
-    if (wasFalling) {
-      if (impactSpeed > 1.4) impact(tmpV6.set(0,1,0), impactSpeed, p.x, 0.02, p.z, false);
-      v.y = impactSpeed > 1.4 ? impactSpeed * REST : 0;
-      exchangeSpin(0, 1, 0);
-    } else if (v.y < 0) {
-      v.y = 0;
-    }
-  }
-
-  if (p.y + R > BOUNDS.yTop) {
-    p.y = BOUNDS.yTop - R;
-    if (v.y > 0) {
-      impact(tmpV6.set(0,-1,0), v.y, p.x, BOUNDS.yTop, p.z, false);
-      v.y = -v.y * REST;
-    }
-  }
-
-  if (p.x - R < -BOUNDS.x) {
-    p.x = -BOUNDS.x + R;
-    if (v.x < 0) {
-      var sx = -v.x;
-      if (sx > 1.4) impact(tmpV6.set(1,0,0), sx, -BOUNDS.x, p.y, p.z, false);
-      v.x = sx * REST;
-      exchangeSpin(1,0,0);
-    }
-  }
-
-  if (p.z - R < -BOUNDS.z) {
-    p.z = -BOUNDS.z + R;
-    if (v.z < 0) v.z = -v.z * REST;
-  }
-
-  if (p.z + R > BOUNDS.z) {
-    p.z = BOUNDS.z - R;
-    if (v.z > 0) v.z = -v.z * REST;
-  }
-}
-
-function exchangeSpin(nx, ny, nz) {
-  var n = tmpV5.set(nx, ny, nz);
-  var vn = ball.v.dot(n);
-  var vt = tmpV6.copy(ball.v).addScaledVector(n, -vn);
-  var vspin = tmpV4.copy(ball.w).cross(n).multiplyScalar(-R);
-  var slip = vt.add(vspin);
-  var k = 0.18;
-
-  ball.v.addScaledVector(slip, -k);
-  ball.w.addScaledVector(tmpV3.copy(n).cross(slip), -k / R);
-}
-
-function collideWall() {
-  var p = ball.p, v = ball.v;
-
-  var cx = THREE.MathUtils.clamp(p.x, WALL.x - WALL.hx, WALL.x + WALL.hx);
-  var cy = THREE.MathUtils.clamp(p.y, 0, WALL.h);
-  var cz = THREE.MathUtils.clamp(p.z, -WALL.hz, WALL.hz);
-
-  var dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
-  var d2 = dx*dx + dy*dy + dz*dz;
-  if (d2 >= R * R) return false;
-
-  var d = Math.sqrt(d2);
-  var n = tmpV6;
-
-  /*
-    The wall mesh begins at the floor. At the floor/wall corner, the raw
-    AABB closest-point normal can point diagonally upward. That is what
-    caused the old solver to fight the floor solver and launch the ball.
-    Treat the contact as a vertical wall while the ball is on the floor.
-  */
-  var nearFloor = p.y <= R + 0.075;
-  var horizontalDx = p.x - THREE.MathUtils.clamp(p.x, WALL.x - WALL.hx, WALL.x + WALL.hx);
-  var horizontalDz = p.z - THREE.MathUtils.clamp(p.z, -WALL.hz, WALL.hz);
-  var horizontalD2 = horizontalDx*horizontalDx + horizontalDz*horizontalDz;
-
-  if (nearFloor && horizontalD2 < R * R) {
-    var hd = Math.sqrt(horizontalD2);
-    if (hd > 1e-5) {
-      n.set(horizontalDx / hd, 0, horizontalDz / hd);
-      d = hd;
-      cx = p.x - horizontalDx;
-      cz = p.z - horizontalDz;
-      cy = Math.max(0, Math.min(WALL.h, p.y));
-    } else {
-      /* Stable side choice from position, never from velocity. */
-      n.set(p.x < WALL.x ? -1 : 1, 0, 0);
-      d = 0;
-      cx = WALL.x;
-      cy = Math.max(0, Math.min(WALL.h, p.y));
-      cz = p.z;
-    }
-  } else if (d > 1e-5) {
-    n.set(dx / d, dy / d, dz / d);
-  } else {
-    /*
-      Deep-inside fallback: choose the shortest horizontal escape whenever
-      possible. It cannot suddenly acquire a vertical component.
-    */
-    var side = p.x < WALL.x ? -1 : 1;
-    n.set(side, 0, 0);
-    d = 0;
-  }
-
-  var penetration = R - d;
-  if (penetration <= 0) return false;
-
-  /* Never make a giant correction in one solver pass. */
-  var correction = Math.min(penetration + 0.0015, 0.12);
-  p.addScaledVector(n, correction);
-
-  var vn = v.dot(n);
-
-  if (vn < -0.04) {
-    var speedIntoWall = -vn;
-    v.addScaledVector(n, -(1 + REST) * vn);
-
-    /* Remove tiny residual inward velocity after restitution. */
-    if (v.dot(n) < 0) v.addScaledVector(n, -v.dot(n));
-
-    if (speedIntoWall > 1.6) impact(n, speedIntoWall, cx, cy, cz, true);
-    exchangeSpin(n.x, n.y, n.z);
-  } else if (vn < 0) {
-    v.addScaledVector(n, -vn);
-  }
-
-  return true;
-}
-
-function physStep(dt) {
-  impactClock = Math.max(0, impactClock - dt);
-
-  if (joyActive) {
-    camera.getWorldDirection(tmpV1);
-    tmpV1.y = 0;
-    if (tmpV1.lengthSq() > 1e-8) tmpV1.normalize();
-
-    tmpV2.crossVectors(tmpV1, UP).normalize();
-
-    tmpV3.set(0,0,0)
-      .addScaledVector(tmpV2, joyVector.x)
-      .addScaledVector(tmpV1, -joyVector.y);
-
-    ball.v.addScaledVector(tmpV3, 28 * dt);
-  }
-
-  ball.v.y -= GRAV * dt;
-
-  var drag = Math.max(0, 1 - 0.1 * dt);
-  ball.v.multiplyScalar(drag);
-  ball.w.multiplyScalar(Math.max(0, 1 - 0.12 * dt));
-
-  if (ball.v.lengthSq() > MAX_V * MAX_V) ball.v.setLength(MAX_V);
-
-  ball.p.addScaledVector(ball.v, dt);
-
-  /*
-    Two short solver passes make floor/wall contacts converge without
-    ping-ponging. Floor is resolved first, then the wall is resolved against
-    the already-separated position, then the floor is checked once more.
-  */
-  collidePlanes();
-  collideWall();
-  collidePlanes();
-
-  /* Hard safety envelope against numerical drift/tunnelling. */
-  ball.p.x = THREE.MathUtils.clamp(ball.p.x, -BOUNDS.x + R, BOUNDS.x - R);
-  ball.p.y = THREE.MathUtils.clamp(ball.p.y, R, BOUNDS.yTop - R);
-  ball.p.z = THREE.MathUtils.clamp(ball.p.z, -BOUNDS.z + R, BOUNDS.z - R);
-
-  if (ball.p.y <= R + 0.05) {
-    tmpV1.set(ball.v.z / R, 0, -ball.v.x / R);
-    ball.w.lerp(tmpV1, Math.min(1, 13 * dt));
-    ball.v.multiplyScalar(Math.max(0, 1 - 0.9 * dt));
-
-    /* A grounded ball should never accumulate downward energy. */
-    if (ball.v.y < 0) ball.v.y = 0;
-  }
-
-  if (ball.v.lengthSq() > MAX_V * MAX_V) ball.v.setLength(MAX_V);
-
-  var wl = ball.w.length();
-  if (wl > 1e-4) {
-    tmpQ1.setFromAxisAngle(tmpV2.copy(ball.w).multiplyScalar(1 / wl), wl * dt);
-    ballMesh.quaternion.premultiply(tmpQ1);
-  }
-
-  ball.squash *= Math.exp(-11 * dt);
-  if (ball.squash < 0.001) ball.squash = 0;
-}
-
-/* ============================================================
-   9. CAMERA (SMOOTH FOLLOW)
-============================================================ */
-var cam = { theta:0, phi:1.18, targetTheta:0, targetPhi:1.18, radius:12.5, look:new THREE.Vector3(0, 2.1, 0), lookT:new THREE.Vector3() };
-function camUpdate(dt) {
-  cam.theta += (cam.targetTheta - cam.theta) * Math.min(1, 5 * dt); cam.phi += (cam.targetPhi - cam.phi) * Math.min(1, 5 * dt);
-
-  // Directly follow ball smoothly
-  cam.lookT.copy(ball.p);
-  cam.look.lerp(cam.lookT, Math.min(1, 5 * dt));
-
-  var sp = Math.sin(cam.phi), cp = Math.cos(cam.phi), st = Math.sin(cam.theta), ct = Math.cos(cam.theta);
-  camera.position.set(cam.look.x + cam.radius * sp * st, cam.look.y + cam.radius * cp, cam.look.z + cam.radius * sp * ct);
-  if (shake > 0.001) {
-    camera.position.x += (Math.random() - 0.5) * shake * 0.35; camera.position.y += (Math.random() - 0.5) * shake * 0.3; camera.position.z += (Math.random() - 0.5) * shake * 0.2; shake *= Math.exp(-6 * dt);
-  }
-  camera.lookAt(cam.look);
-}
-
-/* ============================================================
-   10. UI & PERFORMANCE
-============================================================ */
-function bindBtn(id, fn) { var b = document.getElementById(id); b.addEventListener('click', function () { audioInit(); sndClick(); fn(b); }); }
-bindBtn('bReset', function () {
-  ball.p.set(-3, 4, 0);
-  ball.v.set(0, 0, 0);
-  ball.w.set(0, 0, 0);
-  ball.squash = 0;
-  ball.squashN.set(0,1,0);
-  ballMesh.quaternion.identity();
-  clearParticles();
-  trailCursor = 0;
-  trailClock = 0;
-  for (var i = 0; i < TRAIL_N; i++) {
-    trail[i].t = 1e9;
-    trail[i].m.visible = false;
-  }
-  cam.targetTheta = 0;
-  cam.targetPhi = 1.18;
-});
-bindBtn('bSlow', function (b) { flags.slow = !flags.slow; timeScaleTarget = flags.slow ? 0.25 : 1; b.classList.toggle('on', flags.slow); document.getElementById('slowBadge').classList.toggle('show', flags.slow); });
-bindBtn('bCam', function (b) { flags.orbit = !flags.orbit; b.classList.toggle('on', flags.orbit); });
-bindBtn('bFx', function (b) { flags.fx = !flags.fx; b.classList.toggle('on', flags.fx); dust.visible = flags.fx && quality < 2; pMesh.visible = flags.fx; sparkGlow.visible = flags.fx; });
-bindBtn('bSnd', function (b) { flags.snd = !flags.snd; b.classList.toggle('on', flags.snd); });
-
-var sVel = document.getElementById('sVel'), sHgt = document.getElementById('sHgt'), sEn = document.getElementById('sEn'), sFps = document.getElementById('sFps'), statTimer = 0;
-var basePR = Math.min(window.devicePixelRatio || 1, 2), pr = basePR, fpsEMA = 60, fpsFrames = 0, fpsTime = 0, adaptTimer = 0;
-
-function applyQuality() {
-  if (quality === 0) { pr = basePR; key.shadow.mapSize.set(1024, 1024); dust.visible = flags.fx; sparkGlow.visible = flags.fx; }
-  if (quality === 1) { pr = Math.min(basePR, 1.5); }
-  if (quality === 2) { pr = 1.15; key.shadow.mapSize.set(512, 512); dust.visible = false; }
-  if (key.shadow.map) { key.shadow.map.dispose(); key.shadow.map = null; } onResize();
-}
-
-function onResize() {
-  var w = window.innerWidth, h = window.innerHeight;
-  renderer.setPixelRatio(pr); renderer.setSize(w, h);
-
-  camera.aspect = w / h;
-  cam.radius = camera.aspect < 0.8 ? 15.5 : (camera.aspect < 1.2 ? 14 : 12.5); camera.fov = camera.aspect < 0.8 ? 50 : 42;
-  camera.updateProjectionMatrix();
-
-  hudCamera.left = -w / 2; hudCamera.right = w / 2;
-  hudCamera.top = h / 2; hudCamera.bottom = -h / 2;
-  hudCamera.updateProjectionMatrix();
-
-  if (!joyActive) {
-      joyBase.position.set(-w/2 + 80, -h/2 + 80, 0);
-      joyStick.position.copy(joyBase.position);
-  }
-}
-window.addEventListener('resize', onResize); window.addEventListener('orientationchange', onResize);
-var lastT = performance.now();
-document.addEventListener('visibilitychange', function () { if (!document.hidden) lastT = performance.now(); });
-
-/* ============================================================
-   11. MAIN LOOP
-============================================================ */
-var acc = 0;
-function loop(now) {
-  requestAnimationFrame(loop);
-  var rawDt = (now - lastT) / 1000; lastT = now;
-  if (rawDt > 0.1) rawDt = 0.1; if (rawDt <= 0) rawDt = 0.0001;
-
-  fpsFrames++; fpsTime += rawDt;
-  if (fpsTime >= 0.5) { fpsEMA += (fpsFrames / fpsTime - fpsEMA) * 0.4; fpsFrames = 0; fpsTime = 0; }
-  adaptTimer += rawDt; if (adaptTimer > 2.5) { adaptTimer = 0; if (fpsEMA < 45 && quality < 2) { quality++; applyQuality(); } }
-
-  timeScale += (timeScaleTarget - timeScale) * Math.min(1, 8 * rawDt); var dt = rawDt * timeScale;
-  acc += dt; var steps = 0;
-  while (acc >= FIXED_DT && steps < 10) { physStep(FIXED_DT); acc -= FIXED_DT; steps++; }
-
-  // Update External Assets
-  if (window.AssetsManager) AssetsManager.update(rawDt);
-
-  deform.position.copy(ball.p);
-  var q = ball.squash + (joyActive ? 0.05 : 0);
-  if (q > 0.001) { squashQ.setFromUnitVectors(UP, ball.squashN); deform.quaternion.copy(squashQ); deform.scale.set(1 + q, 1 - q, 1 + q); } else { deform.quaternion.identity(); deform.scale.set(1, 1, 1); }
-  glowMat.uniforms.uPower.value += ((joyActive ? 0.9 : 0) - glowMat.uniforms.uPower.value) * Math.min(1, 10 * rawDt);
-
-  var h = Math.max(0, ball.p.y - R), ss = 1.5 + h * 0.45;
-  contactShadow.position.set(ball.p.x, 0.012, ball.p.z); contactShadow.scale.set(ss, ss, ss); contactShadow.material.opacity = THREE.MathUtils.clamp(0.45 - h * 0.055, 0.06, 0.45);
-
-  var speed = ball.v.length(); trailClock += rawDt;
-  if (speed > 5 && trailClock > 0.016 && flags.fx) { trailClock = 0; var tr = trail[trailCursor]; trailCursor = (trailCursor + 1) % TRAIL_N; tr.p.copy(ball.p); tr.t = now / 1000; }
-  var strength = THREE.MathUtils.clamp((speed - 5) / 22, 0, 1) * (flags.fx ? 1 : 0);
-  for (var i = 0; i < TRAIL_N; i++) {
-    var t = trail[i], age = now / 1000 - t.t, lifeF = 1 - age / 0.35;
-    if (lifeF <= 0 || strength <= 0.02) { t.m.visible = false; continue; }
-    t.m.visible = true; t.m.position.copy(t.p); var sc = 0.5 + lifeF * 0.6; t.m.scale.set(sc, sc, sc); t.m.material.opacity = lifeF * lifeF * 0.35 * strength;
-  }
-
-  var anyP = false;
-  for (var pi2 = 0; pi2 < P_MAX; pi2++) {
-    if (pAge[pi2] >= pLife[pi2]) {
-      pMesh.setMatrixAt(pi2, pDummy.matrix);
-      sparkGlowPos[pi2*3] = 0;
-      sparkGlowPos[pi2*3+1] = -50;
-      sparkGlowPos[pi2*3+2] = 0;
-      sparkGlowSize[pi2] = 0;
-      continue;
-    }
-
-    anyP = true;
-    pAge[pi2] += dt;
-
-    var lf = THREE.MathUtils.clamp(1 - pAge[pi2] / pLife[pi2], 0, 1);
-    var fade = lf * lf * (3 - 2 * lf);
-
-    /* Light gravity + air resistance gives the sparks a softer arc. */
-    pVel[pi2*3+1] -= GRAV * (0.28 + pSeed[pi2] * 0.12) * dt;
-    var pDrag = Math.max(0, 1 - (1.25 + pSeed[pi2] * 1.4) * dt);
-    pVel[pi2*3] *= pDrag;
-    pVel[pi2*3+1] *= pDrag;
-    pVel[pi2*3+2] *= pDrag;
-
-    pPos[pi2*3] += pVel[pi2*3] * dt;
-    pPos[pi2*3+1] += pVel[pi2*3+1] * dt;
-    pPos[pi2*3+2] += pVel[pi2*3+2] * dt;
-
-    /* Small physical bounce on the floor. */
-    if (pPos[pi2*3+1] < 0.055) {
-      pPos[pi2*3+1] = 0.055;
-      if (pVel[pi2*3+1] < -0.65) {
-        pVel[pi2*3+1] = -pVel[pi2*3+1] * (0.22 + pSeed[pi2] * 0.16);
-        pVel[pi2*3] *= 0.72;
-        pVel[pi2*3+2] *= 0.72;
-      } else {
-        pVel[pi2*3+1] = 0;
-        pVel[pi2*3] *= 0.88;
-        pVel[pi2*3+2] *= 0.88;
+scene.add(new THREE.Mesh(skyGeo, skyMat));
+
+// ---------- lights ----------
+const sun = new THREE.DirectionalLight(0xfff2dd, 1.15);
+sun.position.set(120, 90, 90);
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xbdd8ee, 0x0a2436, 0.75));
+
+// ---------- INFINITE OCEAN (Gerstner waves in shader) ----------
+const WAVE_UNIFORMS = {
+  uTime:      { value: 0 },
+  uSunDir:    { value: new THREE.Vector3(0.6,0.5,0.45).normalize() },
+  uCamPos:    { value: new THREE.Vector3() },
+  uFogColor:  { value: new THREE.Color(0x9db8c8) },
+  uFogDensity:{ value: 0.0016 }
+};
+
+const oceanMat = new THREE.ShaderMaterial({
+  uniforms: WAVE_UNIFORMS,
+  vertexShader: `
+    uniform float uTime;
+    varying vec3 vNormal; varying vec3 vWorld; varying float vFoam;
+    // 4 Gerstner waves — returns displaced pos + accumulates normal
+    vec3 gerstner(vec2 xz, out vec3 nrm, out float foam){
+      vec3 p = vec3(xz.x, 0.0, xz.y);
+      vec3 n = vec3(0.0,1.0,0.0); foam = 0.0;
+      // dir, steepness, wavelength, speed
+      vec2 D[4]; float S[4]; float L[4]; float V[4];
+      D[0]=normalize(vec2(1.0,0.3));  S[0]=0.22; L[0]=38.0; V[0]=5.5;
+      D[1]=normalize(vec2(-0.6,1.0)); S[1]=0.18; L[1]=21.0; V[1]=4.2;
+      D[2]=normalize(vec2(0.8,-0.7)); S[2]=0.14; L[2]=11.0; V[2]=3.1;
+      D[3]=normalize(vec2(-0.3,-1.0));S[3]=0.10; L[3]=6.0;  V[3]=2.4;
+      for(int i=0;i<4;i++){
+        float k = 6.28318/L[i];
+        float f = k*(dot(D[i],xz)-V[i]*uTime);
+        float a = S[i]/k;
+        p.x += D[i].x*a*cos(f);
+        p.z += D[i].y*a*cos(f);
+        p.y += a*sin(f);
+        n.x -= D[i].x*S[i]*cos(f);
+        n.z -= D[i].y*S[i]*cos(f);
+        n.y -= S[i]*sin(f)*0.5;
+        foam += max(sin(f),0.0)*S[i];
       }
+      nrm = normalize(n); return p;
     }
-
-    /* Give sparks a light deflection if they hit the studio wall. */
-    var px = pPos[pi2*3], pz = pPos[pi2*3+2];
-    if (px > WALL.x - WALL.hx - 0.025 && px < WALL.x + WALL.hx + 0.025 &&
-        pz > -WALL.hz && pz < WALL.hz && pPos[pi2*3+1] < WALL.h + 0.08) {
-      var side = px < WALL.x ? -1 : 1;
-      pPos[pi2*3] = WALL.x + side * (WALL.hx + 0.03);
-      if (pVel[pi2*3] * side < 0) pVel[pi2*3] = -pVel[pi2*3] * 0.35;
-    }
-
-    pRot[pi2*3] += pRotV[pi2*3] * dt;
-    pRot[pi2*3+1] += pRotV[pi2*3+1] * dt;
-    pRot[pi2*3+2] += pRotV[pi2*3+2] * dt;
-
-    /* Elongate fast sparks along their velocity for a subtle streak. */
-    var vx = pVel[pi2*3], vy = pVel[pi2*3+1], vz = pVel[pi2*3+2];
-    var vlen = Math.sqrt(vx*vx + vy*vy + vz*vz);
-    tmpV1.set(px, pPos[pi2*3+1], pz);
-    tmpV2.set(vx, vy, vz);
-
-    particleEuler.set(
-      pRot[pi2*3],
-      pRot[pi2*3+1],
-      pRot[pi2*3+2]
-    );
-    tmpQ1.setFromEuler(particleEuler);
-
-    var pulse = 0.78 + 0.22 * Math.sin(pAge[pi2] * 28 + pSeed[pi2] * 12);
-    var baseScale = pScale[pi2] * (0.42 + 0.58 * fade) * pulse;
-    var stretch = 1 + Math.min(2.8, vlen * 0.055) * fade;
-
-    tmpV3.set(baseScale * 0.82, baseScale * stretch, baseScale * 0.82);
-    particleMat.compose(tmpV1, tmpQ1, tmpV3);
-    pMesh.setMatrixAt(pi2, particleMat);
-
-    sparkGlowPos[pi2*3] = px;
-    sparkGlowPos[pi2*3+1] = pPos[pi2*3+1];
-    sparkGlowPos[pi2*3+2] = pz;
-    sparkGlowSize[pi2] = (3.5 + vlen * 0.75) * fade;
-  }
-
-  if (anyP || flags.fx) {
-    pMesh.instanceMatrix.needsUpdate = true;
-    sparkGlowGeo.attributes.position.needsUpdate = true;
-    sparkGlowGeo.attributes.aSize.needsUpdate = true;
-  }
-
-  for (var f2 = 0; f2 < flashLights.length; f2++) { var fo = flashLights[f2]; fo.i *= Math.exp(-9 * rawDt); fo.l.intensity = fo.i; }
-  dustMat.uniforms.uTime.value += dt;
-  camUpdate(rawDt);
-
-  statTimer += rawDt;
-  if (statTimer > 0.2) {
-    statTimer = 0; sVel.textContent = speed.toFixed(1); sHgt.textContent = h.toFixed(1);
-    sEn.textContent = Math.round(0.5 * speed * speed + GRAV * h); sFps.textContent = Math.round(fpsEMA);
-  }
-
-  // Multilayer Rendering setup
-  renderer.clear();
-  renderer.render(scene, camera);
-  renderer.clearDepth();
-  renderer.render(hudScene, hudCamera);
-}
-
-/* ============================================================
-   12. BOOT
-============================================================ */
-onResize(); applyQuality();
-
-if (window.AssetsManager) AssetsManager.init(scene);
-
-requestAnimationFrame(function (t) {
-  lastT = t; document.getElementById('loader').style.opacity = 0;
-  setTimeout(function () { var l = document.getElementById('loader'); if (l && l.parentNode) l.parentNode.removeChild(l); }, 700);
-  setTimeout(function () { document.getElementById('hint').style.opacity = 0; }, 8000);
-  requestAnimationFrame(loop);
+    void main(){
+      vec3 n; float f;
+      vec3 wp = (modelMatrix*vec4(position,1.0)).xyz;
+      vec3 p = gerstner(wp.xz, n, f);
+      vNormal = n; vFoam = f;
+      vWorld = vec3(p.x, p.y, p.z);
+      gl_Position = projectionMatrix*viewMatrix*vec4(vWorld,1.0);
+    }`,
+  fragmentShader: `
+    uniform vec3 uSunDir; uniform vec3 uCamPos;
+    uniform vec3 uFogColor; uniform float uFogDensity; uniform float uTime;
+    varying vec3 vNormal; varying vec3 vWorld; varying float vFoam;
+    void main(){
+      vec3 N = normalize(vNormal);
+      // fine ripple detail (fake normal perturbation)
+      N.xz += 0.06*vec2(sin(vWorld.x*1.7+uTime*2.0), cos(vWorld.z*1.5+uTime*1.7));
+      N = normalize(N);
+      vec3 V = normalize(uCamPos - vWorld);
+      float fres = pow(1.0-max(dot(N,V),0.0), 3.0);
+      vec3 deep = vec3(0.015,0.10,0.17);
+      vec3 shallow = vec3(0.05,0.32,0.40);
+      vec3 skyRef = vec3(0.55,0.70,0.82);
+      vec3 col = mix(deep, shallow, max(N.y,0.0)*0.6 + vFoam*0.4);
+      col = mix(col, skyRef, fres*0.75);
+      // sun specular
+      vec3 H = normalize(uSunDir+V);
+      col += vec3(1.0,0.9,0.7)*pow(max(dot(N,H),0.0), 260.0)*2.2;
+      col += vec3(1.0,0.9,0.7)*pow(max(dot(N,H),0.0), 24.0)*0.12;
+      // foam on crests
+      float foam = smoothstep(0.55,0.85,vFoam)*0.5;
+      col = mix(col, vec3(0.9,0.95,0.97), foam);
+      // fog
+      float d = length(uCamPos-vWorld);
+      float fogF = 1.0-exp(-uFogDensity*uFogDensity*d*d);
+      col = mix(col, uFogColor, fogF);
+      gl_FragColor = vec4(col,1.0);
+    }`
 });
 
-})();
-    </script>
-</body>
+// ocean = grid of tiles that follow the player → infinite
+const TILE = 160, GRID = 9, oceanTiles = [];
+const tileGeo = new THREE.PlaneGeometry(TILE, TILE, 48, 48);
+tileGeo.rotateX(-Math.PI/2);
+for (let i=0;i<GRID*GRID;i++){
+  const m = new THREE.Mesh(tileGeo, oceanMat);
+  m.frustumCulled = false;
+  scene.add(m); oceanTiles.push(m);
+}
+function updateOceanTiles(px, pz){
+  const half = Math.floor(GRID/2);
+  const cx = Math.round(px/TILE), cz = Math.round(pz/TILE);
+  let i = 0;
+  for (let gx=-half; gx<=half; gx++)
+    for (let gz=-half; gz<=half; gz++){
+      oceanTiles[i].position.set((cx+gx)*TILE, 0, (cz+gz)*TILE);
+      i++;
+    }
+}
 
+// CPU copy of the waves (for boat physics / floating objects)
+function waveHeight(x, z, t){
+  const W = [
+    [1,0.3,0.22,38,5.5],[-0.6,1,0.18,21,4.2],[0.8,-0.7,0.14,11,3.1],[-0.3,-1,0.10,6,2.4]
+  ];
+  let y = 0;
+  for (const [dx,dz,s,l,v] of W){
+    const len = Math.hypot(dx,dz), nx=dx/len, nz=dz/len;
+    const k = Math.PI*2/l, a = s/k;
+    y += a*Math.sin(k*((nx*x+nz*z)-v*t));
+  }
+  return y;
+}
+
+// ---------- game state ----------
+const state = {
+  mode: 'boat',           // 'boat' | 'swim'
+  time: 0,
+  boat: { pos:new THREE.Vector3(0,0,0), heading:0, speed:0 },
+  swim: { pos:new THREE.Vector3(6,0,0), heading:0, speed:0 },
+  camYaw: 0, camPitch: 0.32
+};
+
+// ---------- load models (from /models scripts) ----------
+const boat = Models.Boat(); scene.add(boat.group);
+const registry = [];   // spawned world objects (islands, buoys, fish schools...)
+
+// ---------- infinite world content: seeded chunks ----------
+const CHUNK = 300;
+const spawned = new Map(); // "cx,cz" -> array of objects
+function hash(x,z){ let h=(x*374761393+z*668265263)|0; h=(h^(h>>13))*1274126177; return ((h^(h>>16))>>>0)/4294967295; }
+
+function spawnChunk(cx, cz){
+  const key = cx+','+cz, objs = [];
+  const r = hash(cx,cz);
+  if (r < 0.35){ // island
+    const isl = Models.Island(r);
+    isl.group.position.set(cx*CHUNK + (hash(cx,cz+7)-0.5)*CHUNK*0.7, 0, cz*CHUNK + (hash(cx+3,cz)-0.5)*CHUNK*0.7);
+    scene.add(isl.group); objs.push(isl);
+  }
+  if (r > 0.5 && r < 0.7){ // buoy
+    const b = Models.Buoy();
+    b.group.position.set(cx*CHUNK+(hash(cx,cz+11)-0.5)*CHUNK, 0, cz*CHUNK+(hash(cx+5,cz)-0.5)*CHUNK);
+    scene.add(b.group); objs.push(b);
+  }
+  // fish schools everywhere
+  const school = Models.FishSchool(3+Math.floor(r*5));
+  school.group.position.set(cx*CHUNK+(hash(cx,cz+13)-0.5)*CHUNK, -2.5, cz*CHUNK+(hash(cx+9,cz)-0.5)*CHUNK);
+  scene.add(school.group); objs.push(school);
+  spawned.set(key, objs);
+}
+function updateChunks(px, pz){
+  const cx = Math.round(px/CHUNK), cz = Math.round(pz/CHUNK);
+  for (let x=cx-1;x<=cx+1;x++) for (let z=cz-1;z<=cz+1;z++){
+    if (!spawned.has(x+','+z)) spawnChunk(x,z);
+  }
+  for (const [key, objs] of spawned){
+    const [kx,kz] = key.split(',').map(Number);
+    if (Math.abs(kx-cx)>2 || Math.abs(kz-cz)>2){
+      objs.forEach(o=>scene.remove(o.group));
+      spawned.delete(key);
+    }
+  }
+}
+
+// ---------- particles ----------
+const particles = new ParticleSystem(scene, 1500);
+
+// ---------- INPUT (iPad touch + mouse/keys) ----------
+const input = { mx:0, mz:0, lookDX:0, lookDY:0 };
+const keys = {};
+addEventListener('keydown', e=>keys[e.key.toLowerCase()]=true);
+addEventListener('keyup',   e=>keys[e.key.toLowerCase()]=false);
+
+// virtual joystick
+const joy = document.getElementById('joy'), stick = document.getElementById('stick');
+let joyId = null, joyCX=0, joyCY=0;
+joy.addEventListener('touchstart', e=>{
+  const t = e.changedTouches[0]; joyId = t.identifier;
+  const r = joy.getBoundingClientRect(); joyCX=r.left+r.width/2; joyCY=r.top+r.height/2;
+  e.preventDefault();
+},{passive:false});
+addEventListener('touchmove', e=>{
+  for (const t of e.changedTouches){
+    if (t.identifier===joyId){
+      let dx=(t.clientX-joyCX)/55, dy=(t.clientY-joyCY)/55;
+      const m=Math.hypot(dx,dy); if(m>1){dx/=m;dy/=m;}
+      input.mx=dx; input.mz=dy;
+      stick.style.transform=`translate(calc(-50% + ${dx*38}px), calc(-50% + ${dy*38}px))`;
+    } else if (t.identifier===lookId){
+      input.lookDX += t.clientX-lookX; input.lookDY += t.clientY-lookY;
+      lookX=t.clientX; lookY=t.clientY;
+    }
+  }
+  e.preventDefault();
+},{passive:false});
+addEventListener('touchend', e=>{
+  for (const t of e.changedTouches){
+    if (t.identifier===joyId){ joyId=null; input.mx=input.mz=0;
+      stick.style.transform='translate(-50%,-50%)'; }
+    if (t.identifier===lookId) lookId=null;
+  }
+});
+// right-half look drag
+let lookId=null, lookX=0, lookY=0;
+addEventListener('touchstart', e=>{
+  for (const t of e.changedTouches)
+    if (t.clientX > innerWidth*0.4 && lookId===null && !e.target.closest('#modeBtn,#title')){
+      lookId=t.identifier; lookX=t.clientX; lookY=t.clientY;
+    }
+},{passive:true});
+// mouse look
+let mDown=false, mX=0, mY=0;
+addEventListener('mousedown', e=>{ if(e.target===canvas){mDown=true;mX=e.clientX;mY=e.clientY;} });
+addEventListener('mousemove', e=>{ if(mDown){ input.lookDX+=e.clientX-mX; input.lookDY+=e.clientY-mY; mX=e.clientX;mY=e.clientY; }});
+addEventListener('mouseup', ()=>mDown=false);
+
+// mode toggle
+document.getElementById('modeBtn').addEventListener('click', ()=>{
+  if (state.mode==='boat'){
+    state.mode='swim';
+    state.swim.pos.copy(state.boat.pos).add(new THREE.Vector3(3,0,0));
+    state.swim.heading = state.boat.heading;
+    document.getElementById('modeBtn').textContent='🏊 Swim';
+    particles.burst(state.swim.pos.x, 0.3, state.swim.pos.z, 40, 'splash');
+  } else {
+    state.mode='boat';
+    state.boat.pos.copy(state.swim.pos);
+    document.getElementById('modeBtn').textContent='🚤 Boat';
+    particles.burst(state.boat.pos.x, 0.3, state.boat.pos.z, 40, 'splash');
+  }
+});
+
+// ---------- main loop ----------
+const clock = new THREE.Clock();
+function active(){ return state.mode==='boat' ? state.boat : state.swim; }
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  state.time += dt;
+  const t = state.time;
+
+  // keyboard → input
+  let ix = input.mx, iz = input.mz;
+  if (keys['w']||keys['arrowup']) iz=-1;
+  if (keys['s']||keys['arrowdown']) iz=1;
+  if (keys['a']||keys['arrowleft']) ix=-1;
+  if (keys['d']||keys['arrowright']) ix=1;
+
+  // camera orbit from look input
+  state.camYaw   -= input.lookDX*0.004;
+  state.camPitch  = THREE.MathUtils.clamp(state.camPitch + input.lookDY*0.003, 0.05, 1.1);
+  input.lookDX = input.lookDY = 0;
+
+  const A = active();
+  const isBoat = state.mode==='boat';
+  const maxSpd = isBoat ? 14 : 4.5;
+
+  // movement relative to camera yaw
+  const fwd = new THREE.Vector3(-Math.sin(state.camYaw),0,-Math.cos(state.camYaw));
+  const right = new THREE.Vector3(-fwd.z,0,fwd.x);
+  const move = new THREE.Vector3().addScaledVector(fwd,-iz).addScaledVector(right,ix);
+  if (move.lengthSq()>0.01){
+    move.normalize();
+    const target = Math.atan2(move.x, move.z);
+    let d = target - A.heading;
+    while (d>Math.PI) d-=Math.PI*2; while (d<-Math.PI) d+=Math.PI*2;
+    A.heading += d * Math.min(1, dt*(isBoat?2.2:5));
+    A.speed += (maxSpd - A.speed)*dt*(isBoat?0.8:2.5);
+  } else {
+    A.speed += (0 - A.speed)*dt*(isBoat?0.5:3);
+  }
+  A.pos.x += Math.sin(A.heading)*A.speed*dt;
+  A.pos.z += Math.cos(A.heading)*A.speed*dt;
+
+  // ---- boat physics: sample wave at 3 points → pitch/roll/bob ----
+  const b = state.boat;
+  const hC = waveHeight(b.pos.x, b.pos.z, t);
+  const hF = waveHeight(b.pos.x+Math.sin(b.heading)*3, b.pos.z+Math.cos(b.heading)*3, t);
+  const hS = waveHeight(b.pos.x+Math.cos(b.heading)*2, b.pos.z-Math.sin(b.heading)*2, t);
+  boat.group.position.set(b.pos.x, hC+0.35, b.pos.z);
+  boat.group.rotation.set(0, -b.heading, 0);
+  boat.group.rotateX((hF-hC)*0.22);
+  boat.group.rotateZ((hS-hC)*0.28);
+  boat.update(t, dt, b.speed);
+
+  // boat wake + bow spray
+  if (isBoat && b.speed>3){
+    const bx = b.pos.x-Math.sin(b.heading)*4, bz = b.pos.z-Math.cos(b.heading)*4;
+    particles.emit(bx, waveHeight(bx,bz,t)+0.2, bz, 2, 'wake', b.speed);
+    if (b.speed>9){
+      const fx = b.pos.x+Math.sin(b.heading)*4.5, fz = b.pos.z+Math.cos(b.heading)*4.5;
+      particles.emit(fx, waveHeight(fx,fz,t)+0.4, fz, 3, 'spray', b.speed);
+    }
+  }
+
+  // ---- swimmer ----
+  const s = state.swim;
+  if (!isBoat){
+    const hS2 = waveHeight(s.pos.x, s.pos.z, t);
+    s.pos.y = hS2 + 0.15;
+    if (s.speed>1 && Math.random()<0.3)
+      particles.burst(s.pos.x, s.pos.y+0.1, s.pos.z, 2, 'splash');
+  }
+
+  // swimmer visual: simple head + arms bobbing
+  swimmer.position.copy(s.pos);
+  swimmer.visible = !isBoat;
+  swimmer.rotation.y = -s.heading;
+  swimmer.children[1].rotation.x = Math.sin(t*6)*0.9;   // arm paddle
+  swimmer.children[2].rotation.x = -Math.sin(t*6)*0.9;
+
+  // ---- camera ----
+  const anchor = isBoat ? boat.group.position : s.pos;
+  const dist = isBoat ? 16 : 8, height = isBoat ? 6 : 3;
+  const co = new THREE.Vector3(
+    Math.sin(state.camYaw)*Math.cos(state.camPitch),
+    Math.sin(state.camPitch),
+    Math.cos(state.camYaw)*Math.cos(state.camPitch)
+  ).multiplyScalar(dist);
+  const camTarget = anchor.clone().add(co).add(new THREE.Vector3(0,height*0.4,0));
+  camera.position.lerp(camTarget, 1-Math.pow(0.001, dt));
+  const minY = waveHeight(camera.position.x, camera.position.z, t)+1.2;
+  if (camera.position.y < minY) camera.position.y = minY;
+  camera.lookAt(anchor.x, anchor.y+2, anchor.z);
+
+  // ---- world ----
+  WAVE_UNIFORMS.uTime.value = t;
+  WAVE_UNIFORMS.uCamPos.value.copy(camera.position);
+  skyMat.uniforms.uTime.value = t;
+  scene.children[0].position.copy(camera.position); // sky follows
+  updateOceanTiles(A.pos.x, A.pos.z);
+  updateChunks(A.pos.x, A.pos.z);
+
+  // update spawned models (floating, fish swimming...)
+  for (const objs of spawned.values())
+    for (const o of objs) o.update && o.update(t, dt, waveHeight);
+
+  particles.update(dt, camera);
+
+  document.getElementById('coord').textContent =
+    `${Math.abs(A.pos.z/10).toFixed(1)}° ${A.pos.z>=0?'N':'S'} · ${Math.abs(A.pos.x/10).toFixed(1)}° ${A.pos.x>=0?'E':'W'}`;
+
+  renderer.render(scene, camera);
+}
+
+// simple swimmer mesh
+const swimmer = new THREE.Group();
+const skin = new THREE.MeshLambertMaterial({color:0xd9a077});
+swimmer.add(new THREE.Mesh(new THREE.SphereGeometry(0.35,10,8), skin)); // head
+swimmer.children[0].position.y = 0.35;
+const armG = new THREE.SphereGeometry(0.14,6,5);
+const armL = new THREE.Mesh(armG, skin); armL.position.set(-0.45,0.15,0); swimmer.add(armL);
+const armR = new THREE.Mesh(armG, skin); armR.position.set( 0.45,0.15,0); swimmer.add(armR);
+swimmer.visible = false;
+scene.add(swimmer);
+
+// ---------- resize / start ----------
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+document.getElementById('playBtn').addEventListener('click', ()=>{
+  const el = document.getElementById('title');
+  el.style.opacity=0; setTimeout(()=>el.remove(), 1000);
+});
+animate();
+</script>
+</body>
 </html>
