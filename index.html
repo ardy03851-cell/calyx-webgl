@@ -475,6 +475,20 @@
       text-transform: uppercase
     }
 
+    /* Immersive fullscreen mode: the simulation becomes the entire screen. */
+    html.immersive-fullscreen .hud,
+    html.immersive-fullscreen .rail,
+    html.immersive-fullscreen .center,
+    html.immersive-fullscreen .dock,
+    html.immersive-fullscreen .vault,
+    html.immersive-fullscreen .vignette {
+      display: none !important;
+    }
+
+    html.immersive-fullscreen #gl {
+      z-index: 1;
+    }
+
     @media(max-width:700px) {
       .hud {
         top: 12px;
@@ -717,7 +731,13 @@ void main(){
 ["Rain Glass","matter","Vertical fluid sheets","#8bc8ff"],
 ["Rose Smoke","strange","Floral turbulence","#ff4f9b"],
 ["Cyan Shock","energy","Expanding pressure","#3bfaff"],
-["Amber Lava","matter","Cracked convection","#ffb63e"]
+["Amber Lava","matter","Cracked convection","#ffb63e"],
+["Dirty Water","matter","Heavy surface current","#547b86"],
+["Black Oil","matter","Slow viscous flow","#59606a"],
+["Industrial Coolant","matter","Steady chemical flow","#4aa6a0"],
+["Rust Slurry","matter","Dense sediment flow","#a65d3c"],
+["Blood","organic","Slow viscous waves","#8f2632"],
+["Sewage","matter","Murky particulate flow","#69733b"]
 ];
 
 const canvas=document.getElementById("gl");
@@ -758,6 +778,7 @@ liquids.forEach((l,i)=>{
  grid.appendChild(c);cards.push(c);
 });
 document.getElementById("count").textContent=liquids.length;
+document.getElementById("info").textContent=liquids.length+" distinct motion systems";
 
 function setLiquid(i){current=i;document.getElementById("hero").textContent=liquids[i][0];document.getElementById("name").textContent=liquids[i][0];document.getElementById("kind").textContent=liquids[i][2];cards.forEach((c,n)=>c.classList.toggle("active",n===i))}
 setLiquid(0);
@@ -791,7 +812,15 @@ document.getElementById("open").onclick=()=>vault.classList.add("open");
 document.getElementById("close").onclick=()=>vault.classList.remove("open");
 document.getElementById("pulse").onclick=()=>{pulse=1;document.getElementById("status").textContent="FLUID PULSE"};
 document.getElementById("random").onclick=()=>{setLiquid(Math.floor(Math.random()*liquids.length));pulse=1};
-document.getElementById("full").onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
+function syncFullscreenUI(){
+  document.documentElement.classList.toggle("immersive-fullscreen", !!document.fullscreenElement);
+}
+document.getElementById("full").onclick=()=>{
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+};
+document.addEventListener("fullscreenchange", syncFullscreenUI);
+syncFullscreenUI();
 document.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("active"));b.classList.add("active");const f=b.dataset.filter;cards.forEach(c=>c.style.display=f==="all"?"":c.dataset.cat===f?"":"none")});
 addEventListener("keydown",e=>{if(e.key==="Escape")vault.classList.remove("open");if(e.code==="Space"){e.preventDefault();pulse=1}});
   </script>
