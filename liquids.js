@@ -1,1077 +1,1342 @@
-// liquids.js — Calyx fluid definitions
+// liquids.js — Calyx fluid definitions (REBUILT)
 //
-// Every liquid now carries its own hand-written GLSL motion code in the
-// `custom` field. The host renderer should check `liquid.custom` first:
-// if present, that code is injected into the fragment shader's main()
-// at the marker `// __CUSTOM_CODE__` and `motion` is ignored.
+// Every liquid carries its own hand-written GLSL in `custom`. The host
+// renderer injects it into main() at `// __CUSTOM_CODE__`, then computes:
+//   structure = smoothstep(0.15, 0.85, v);
+//   color     = mix(u_a, u_b, structure);
+//   color    += white glint where v ≈ 0.58  (highlight)
+//   color    += white edge  where v ≈ 0.50  (edge)
+// So values of v near 0.55–0.62 will light up as brilliant white glints.
 //
-// Interface available inside `custom`:
-//   p       vec2   position, origin at centre, ~-1..1
-//   mouse   vec2   mouse position, same space
-//   t       float  time * speed
-//   d       float  distance from centre  (length(p))
-//   u_a     vec3   base colour   (0..1)
-//   u_b     vec3   accent colour (0..1)
-//   hash(vec2)     → 0..1 pseudo-random
-//   noise(vec2)    → smooth 0..1 noise
-//   fbm(vec2)      → fractal brownian motion ~0..1
-//   rot(vec2, a)   → rotate a vec2 by a radians
-//
-// Set `v` (float) to your result (0..1). The host smoothsteps and mixes
-// u_a / u_b based on it.
-//
-// The optional fields glow / soft / scale / warp / pulse are honoured by
-// the editor's shader and by the main page's renderer if it supports them.
+// Available inside `custom`:
+//   p, mouse (vec2), t (float), d (float)
+//   u_a, u_b (vec3), u_pulse (float)
+//   hash(vec2), noise(vec2), fbm(vec2), rot(vec2,float)
+//   v (float) — set this to your result
 
 export default [
 
-  // ==================================================================
-  //  ORGANIC
-  // ==================================================================
+  // =============================================================
+  // ORGANIC
+  // =============================================================
 
   {
     name: "Deep Obsidian",
     cat: "organic",
-    desc: "Flowing strata",
-    a: "#17243d",
+    desc: "Volumetric god-rays from above",
+    a: "#080d1a",
     b: "#5c82c9",
     motion: -1,
-    speed: 0.65,
-    glow: 0.55,
-    soft: 0.35,
+    speed: 0.5,
+    glow: 0.9,
     custom: `
-      // Five layered strata, each moving at a slightly different rate.
-      // Combined into a "depth field" so nearby layers dominate.
-      vec2 q = p;
-      float acc = 0.0;
-      float depth = 0.0;
-      float amp = 0.55;
-      for (int i = 0; i < 5; i++) {
+      // Six volumetric light shafts angled across the frame + floating dust.
+      float shafts = 0.0;
+      for (int i = 0; i < 6; i++) {
         float fi = float(i);
-        vec2 qq = q + vec2(t * 0.05 * (1.0 - fi * 0.12),
-                           -t * 0.03 * (1.0 - fi * 0.06));
-        float layer = fbm(qq * (1.4 + fi * 0.7));
-        acc += layer * amp;
-        depth += amp * (1.0 - abs(layer - 0.5) * 2.0);
-        amp *= 0.58;
+        float ang = fi * 1.05 + sin(t * 0.15 + fi) * 0.35;
+        vec2 dir = vec2(sin(ang), cos(ang));
+        float proj = dot(p, dir);
+        float perp = abs(p.x * dir.y - p.y * dir.x);
+        float w = 0.10 + 0.05 * sin(fi * 3.1);
+        shafts += exp(-perp * perp / (w * w))
+                * (0.5 + 0.5 * sin(proj * 4.0 + t * 0.6 + fi * 2.0));
       }
-      v = clamp(mix(acc * 0.75, depth * 0.6, 0.4), 0.0, 1.0);
+      shafts /= 6.0;
+      // dust motes
+      vec2 sp = p * 6.0;
+      vec2 si = floor(sp), sf = fract(sp);
+      float dust = 0.0;
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(si + g), hash(si + g + 3.3));
+        o.y += fract(t * 0.08 + hash(si + g + 1.1));
+        dust += exp(-length(sf - g - o) * 24.0);
+      }
+      v = clamp(shafts * 0.7 + dust * 0.35 + fbm(p * 1.4 + t * 0.02) * 0.25, 0.0, 1.0);
     `
   },
 
   {
     name: "Ink Tendrils",
     cat: "organic",
-    desc: "Soft branching ink",
-    a: "#100d1c",
-    b: "#71538f",
+    desc: "Living L-system branches",
+    a: "#0a0814",
+    b: "#8a6fd6",
     motion: -1,
-    speed: 0.55,
-    soft: 0.4,
+    speed: 0.4,
+    glow: 0.7,
     custom: `
-      // Domain warp creates organic branching veins.
-      vec2 q = p * 1.8;
-      vec2 w = vec2(fbm(q + 1.3), fbm(q + 5.7));
-      q += w * 1.4;
+      // Growth rings — branching fractals via iterative rotation.
       float ink = 0.0;
-      for (int i = 0; i < 4; i++) {
+      vec2 q = p * 1.2;
+      for (int i = 0; i < 6; i++) {
         float fi = float(i);
-        vec2 qq = q + vec2(sin(t * 0.2 + fi * 1.7),
-                           cos(t * 0.17 + fi * 2.1)) * 0.12;
-        ink += 1.0 - abs(fbm(qq * (1.0 + fi * 0.55)) - 0.5) * 2.0;
+        q = rot(q, 0.9 + fi * 0.35 + sin(t * 0.2 + fi) * 0.4);
+        q += vec2(sin(t * 0.15 + fi * 1.3), cos(t * 0.12 + fi * 2.1)) * 0.09;
+        float branch = abs(sin(q.x * 8.0 + fbm(q + fi) * 5.0)) * 0.5;
+        ink = max(ink, branch * exp(-length(q) * 0.7) * (1.0 - fi * 0.13));
       }
-      ink /= 4.0;
-      float branches = smoothstep(0.55, 0.85, ink);
-      v = mix(ink * 0.6, branches, 0.55);
+      v = ink * 0.65 + fbm(p * 2.5 + t * 0.05) * 0.35;
     `
   },
 
   {
     name: "Emerald Vortex",
     cat: "organic",
-    desc: "Quiet rotational fluid",
-    a: "#06231b",
-    b: "#3a9f7b",
+    desc: "Tunnel down a spiral well",
+    a: "#03130f",
+    b: "#3fd6a8",
     motion: -1,
-    speed: 0.55,
-    soft: 0.3,
+    speed: 0.5,
+    glow: 1.1,
     custom: `
-      // Logarithmic spiral modulated by fbm, radial fade.
+      // Fake 3D tunnel: r becomes depth. Walls warped by fbm, rippling.
       float a = atan(p.y, p.x);
       float r = length(p);
-      float spiral = sin(a * 5.0 - log(r + 0.32) * 8.0 + t * 1.4) * 0.5 + 0.5;
-      float detail = fbm(p * 4.0 + vec2(a * 2.0, r * 3.0) + t * 0.05);
-      v = (spiral * 0.6 + detail * 0.4) * smoothstep(1.6, 0.15, r);
+      float depth = 1.0 / (r + 0.18);
+      float wall  = sin(a * 6.0 + depth * 6.0 + t * 1.5) * 0.5 + 0.5;
+      wall *= fbm(vec2(a * 1.5, depth * 0.6) + t * 0.1);
+      float fog = exp(-r * 2.0);
+      float core = exp(-r * 22.0);
+      v = clamp(wall * fog * 1.4 + core * 0.9, 0.0, 1.0);
     `
   },
 
   {
     name: "Biolume Spores",
     cat: "organic",
-    desc: "Dim living particles",
-    a: "#06201d",
-    b: "#37a996",
+    desc: "Deep-sea jellies",
+    a: "#01110f",
+    b: "#4fe8c8",
     motion: -1,
-    speed: 0.55,
-    glow: 0.9,
-    pulse: 1.3,
+    speed: 0.35,
+    glow: 1.4,
+    pulse: 1.5,
     custom: `
-      // Floating glowing spores — Worley cells, brightest at centre.
-      vec2 q = p * 4.0;
-      q.y -= t * 0.22;
-      q.x += sin(t * 0.3 + q.y * 0.5) * 0.16;
-      vec2 i = floor(q), f = fract(q);
-      float md = 8.0;
-      for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-          vec2 g = vec2(float(x), float(y));
-          vec2 o = vec2(hash(i + g + 1.1), hash(i + g + 3.7));
-          md = min(md, length(f - g - o));
+      // Three glowing jellyfish: a bell, tentacles, and drifting particles.
+      float glow = 0.0;
+      for (int i = 0; i < 3; i++) {
+        float fi = float(i);
+        vec2 c = vec2(sin(t * 0.2 + fi * 2.3) * 0.7,
+                      cos(t * 0.17 + fi * 1.9) * 0.5
+                      + sin(t * 0.9 + fi) * 0.15);
+        vec2 rel = p - c;
+        // bell (dome)
+        float bell = exp(-length(rel * vec2(1.0, 1.6)) * 8.0);
+        // tentacles: fine ripples below
+        float tent = 0.0;
+        for (int j = 0; j < 5; j++) {
+          float fj = float(j);
+          float off = (fj - 2.0) * 0.05;
+          float tx = sin(rel.y * 14.0 + t * 2.0 + fj) * 0.04 + off;
+          tent += exp(-abs(rel.x - tx) * 40.0) * exp(-abs(rel.y) * 3.0)
+                * step(rel.y, 0.0);
         }
+        glow += bell * 1.2 + tent * 0.6 * (1.0 - fi * 0.2);
       }
-      float spore = smoothstep(0.42, 0.05, md);
-      float glow  = smoothstep(0.42, 0.0,  md) * 0.35;
-      v = clamp(spore + glow, 0.0, 1.0);
+      v = clamp(glow, 0.0, 1.0);
     `
   },
 
   {
     name: "Sakura Petals",
     cat: "organic",
-    desc: "Gentle petal drift",
-    a: "#240f19",
-    b: "#b86c8d",
+    desc: "Falling 3D petals",
+    a: "#1a0810",
+    b: "#f0a0c0",
     motion: -1,
-    speed: 0.38,
-    soft: 0.5,
+    speed: 0.4,
+    soft: 0.4,
     custom: `
-      // Three drifting petal clusters — polar petal shapes.
-      vec2 q = p * 2.0;
-      q.y -= t * 0.14;
-      q.x += sin(t * 0.4 + q.y * 0.8) * 0.3;
-      float many = 0.0;
-      for (int i = 0; i < 3; i++) {
+      // 24 individual petals, each with its own drift and spin.
+      float petals = 0.0;
+      for (int i = 0; i < 24; i++) {
         float fi = float(i);
-        vec2 off = vec2(sin(fi * 2.3 + t * 0.3),
-                        cos(fi * 1.7 + t * 0.25));
-        vec2 qq = q + off * 1.5;
-        float aa = atan(qq.y, qq.x);
-        float rr = length(qq);
-        float pet = abs(sin(aa * 5.0)) * 0.5 + 0.5;
-        many = max(many, smoothstep(0.62, 0.1, rr) * pet);
+        float seed = hash(vec2(fi, 7.7));
+        float seed2 = hash(vec2(fi, 3.1));
+        float seed3 = hash(vec2(fi, 11.3));
+        float fallT = fract(t * 0.08 + seed);
+        vec2 c = vec2(
+          (seed2 - 0.5) * 2.2 + sin(t * 0.4 + seed3 * 6.28) * 0.4,
+          1.2 - fallT * 2.4
+        );
+        vec2 rel = p - c;
+        float ang = t * (0.6 + seed * 1.2) + seed3 * 6.28;
+        rel = rot(rel, ang);
+        rel.x *= 1.0;
+        rel.y *= 1.8;   // petal elongation
+        // petal shape via polar
+        float aa = atan(rel.y, rel.x);
+        float rr = length(rel);
+        float shape = smoothstep(0.20, 0.05, rr) * abs(sin(aa * 2.0)) * 0.6 + 0.4;
+        petals += shape * exp(-rr * 4.0) * (1.0 - fallT * 0.4);
       }
-      v = many * 0.75 + fbm(p * 4.0 + t * 0.03) * 0.3;
+      v = clamp(petals, 0.0, 1.0) * smoothstep(1.6, 0.4, length(p))
+        + fbm(p * 3.0 + t * 0.03) * 0.15;
     `
   },
 
   {
     name: "Coffee",
     cat: "organic",
-    desc: "Warm, slow crema flow",
-    a: "#170d07",
-    b: "#8b4f2e",
+    desc: "Latte art swirl",
+    a: "#100803",
+    b: "#a0603a",
     motion: -1,
-    speed: 0.28,
+    speed: 0.22,
     soft: 0.35,
     custom: `
-      // Slow vortex with a faint crema pattern on the surface.
-      float r = length(p);
+      // Rosetta latte art: two symmetric spirals from the centre.
       float a = atan(p.y, p.x);
-      vec2 q = rot(p, a * 0.35 + r * 2.0 + t * 0.1);
-      float swirl = fbm(q * 2.0 + t * 0.04);
-      float crema = fbm(p * 6.0 + t * 0.02) * 0.5 + 0.5;
-      v = (swirl * 0.75 + crema * 0.25) * smoothstep(1.5, 0.25, r);
+      float r = length(p);
+      float ros = sin(a * 3.0 + r * 12.0 - t * 0.6) * 0.5 + 0.5;
+      ros *= sin(a * 5.0 - r * 8.0 + t * 0.5) * 0.5 + 0.5;
+      float crema = fbm(p * 4.0 + t * 0.05) * 0.35;
+      float depth = 1.0 - smoothstep(0.9, 1.15, r);
+      v = clamp((ros * 0.55 + crema) * depth, 0.0, 1.0);
     `
   },
 
   {
     name: "Swamp Spores",
     cat: "organic",
-    desc: "Suspended earthy growth",
-    a: "#101a0b",
-    b: "#6f8f49",
+    desc: "Layered fog with fireflies",
+    a: "#0a1406",
+    b: "#7fb040",
     motion: -1,
-    speed: 0.4,
-    soft: 0.4,
+    speed: 0.3,
+    soft: 0.6,
+    glow: 0.9,
     custom: `
-      // Thick domain-warped blobs with small spores flecked on top.
-      vec2 q = p * 2.0;
-      q.x += fbm(q * 1.5 + t * 0.05) * 0.42;
-      q.y += fbm(q * 1.5 + 3.7 + t * 0.04) * 0.42;
-      float blob = smoothstep(0.35, 0.7, fbm(q * 2.0 + t * 0.03));
-      float spores = fbm(q * 12.0 + t * 0.15);
-      float dots = smoothstep(0.75, 0.87, spores);
-      v = blob * 0.75 + dots * 0.3;
+      // Horizontal fog bands + flickering spore specks.
+      float fog = 0.0;
+      for (int i = 0; i < 4; i++) {
+        float fi = float(i);
+        float y = sin(p.x * 1.5 + t * 0.2 + fi * 1.7) * 0.3
+                + (fi - 1.5) * 0.35;
+        fog += exp(-abs(p.y - y) * 6.0) * fbm(vec2(p.x * 2.0, y) + fi);
+      }
+      float spores = 0.0;
+      vec2 sp = p * 12.0;
+      vec2 si = floor(sp), sf = fract(sp);
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(si + g), hash(si + g + 2.2));
+        o.y += fract(t * 0.4 + hash(si + g + 5.5));
+        float flick = 0.5 + 0.5 * sin(t * 6.0 + hash(si + g) * 20.0);
+        spores += exp(-length(sf - g - o) * 26.0) * flick;
+      }
+      v = clamp(fog * 0.35 + spores * 0.9, 0.0, 1.0);
     `
   },
 
   {
     name: "Blood",
     cat: "organic",
-    desc: "Deep red viscous waves",
-    a: "#260508",
-    b: "#a51e2b",
+    desc: "Plasma and cells in flow",
+    a: "#1a0304",
+    b: "#c8202e",
     motion: -1,
-    speed: 0.24,
-    soft: 0.3,
+    speed: 0.35,
     custom: `
-      // Slow warped Worley cells — viscous plasma.
-      vec2 q = p * 2.0;
-      vec2 w = vec2(fbm(q * 0.8 + t * 0.02),
-                    fbm(q * 0.8 + 3.3 + t * 0.02));
-      q += w * 0.55;
-      vec2 i = floor(q), f = fract(q);
-      float md = 8.0;
-      for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-          vec2 g = vec2(float(x), float(y));
-          vec2 o = vec2(hash(i + g), hash(i + g + 2.7));
-          md = min(md, length(f - g - o));
-        }
+      // Warped Worley + red blood cell ellipses drifting.
+      vec2 q = p * 1.6;
+      q += vec2(fbm(q * 1.2 + t * 0.05),
+                fbm(q * 1.2 + 4.7 + t * 0.05)) * 0.5;
+      // plasma filaments
+      float plasma = fbm(q * 3.0 + t * 0.08);
+      plasma = pow(1.0 - abs(plasma - 0.5) * 2.0, 3.0);
+      // cells: ellipses with dimple
+      float cells = 0.0;
+      vec2 sp = q * 2.2;
+      vec2 si = floor(sp), sf = fract(sp);
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(si + g), hash(si + g + 3.1));
+        vec2 rel = sf - g - o;
+        rel = rot(rel, hash(si + g + 7.7) * 6.28);
+        rel.y *= 1.6;
+        float rr = length(rel);
+        float ring = exp(-abs(rr - 0.22) * 30.0);
+        float dimple = exp(-rr * 8.0) * 0.3;
+        cells += ring + dimple;
       }
-      float cell = smoothstep(0.35, 0.15, md);
-      float plasma = fbm(q * 3.0 + t * 0.03);
-      v = cell * 0.45 + plasma * 0.55;
+      v = clamp(plasma * 0.5 + cells * 0.7, 0.0, 1.0);
     `
   },
 
   {
     name: "Oat Milk",
     cat: "organic",
-    desc: "Soft creamy surface",
-    a: "#242018",
-    b: "#b9a98c",
+    desc: "Creamy surface with soft specular",
+    a: "#1f1c14",
+    b: "#d9c9a8",
     motion: -1,
-    speed: 0.2,
-    soft: 0.65,
+    speed: 0.15,
+    soft: 0.6,
     custom: `
-      // Very soft warp, low-frequency cream.
-      vec2 q = p * 1.5;
-      q += vec2(fbm(q * 0.8 + t * 0.02),
-                fbm(q * 0.8 + 5.5 + t * 0.02)) * 0.4;
-      float cream = fbm(q * 1.8 + t * 0.03);
-      v = cream * 0.7 + pow(cream, 2.0) * 0.3;
+      // Very low frequency height field + a single soft specular lobe.
+      vec2 q = p * 1.3;
+      float h  = fbm(q + t * 0.03);
+      float hx = fbm(q + vec2(0.02, 0.0) + t * 0.03);
+      float hy = fbm(q + vec2(0.0, 0.02) + t * 0.03);
+      vec3 n = normalize(vec3((hx - h) * 3.0, (hy - h) * 3.0, 1.0));
+      float spec = pow(max(0.0, dot(n, normalize(vec3(0.3, 0.5, 0.8)))), 6.0);
+      v = clamp(h * 0.85 + spec * 0.5, 0.0, 1.0);
     `
   },
 
   {
     name: "Black Tea",
     cat: "organic",
-    desc: "Calm amber-brown flow",
-    a: "#1b1009",
-    b: "#7d4d2c",
+    desc: "Amber tea with rising leaves",
+    a: "#140a04",
+    b: "#c08a4e",
     motion: -1,
-    speed: 0.22,
+    speed: 0.18,
     soft: 0.35,
     custom: `
-      // Gentle swirl with fine leaf specks suspended.
+      // Gentle radial warmth + fine leaf specks drifting upward.
       float r = length(p);
-      vec2 q = rot(p, r * 1.5 + t * 0.1);
-      float swirl = fbm(q * 2.0 + t * 0.03);
-      float leaf  = smoothstep(0.82, 0.92, fbm(q * 15.0 + t * 0.1));
-      v = swirl * 0.65 + leaf * 0.2 + smoothstep(0.0, 0.7, r) * 0.15;
+      float warm = fbm(p * 1.5 + t * 0.03) * 0.7 + 0.3;
+      warm *= exp(-r * 0.9);
+      float leaves = 0.0;
+      vec2 sp = p * 7.0;
+      vec2 si = floor(sp), sf = fract(sp);
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(si + g), hash(si + g + 6.2));
+        o.y -= fract(t * 0.15 + hash(si + g + 1.4));
+        vec2 rel = sf - g - o;
+        rel = rot(rel, hash(si + g + 3.3) * 6.28);
+        rel.x *= 0.4;
+        leaves += exp(-length(rel) * 14.0);
+      }
+      v = clamp(warm * 0.7 + leaves * 0.5, 0.0, 1.0);
     `
   },
 
   {
     name: "Lavender Water",
     cat: "organic",
-    desc: "Quiet violet diffusion",
-    a: "#171323",
-    b: "#766b91",
+    desc: "Diffusing violet petals",
+    a: "#100a18",
+    b: "#a894d6",
     motion: -1,
-    speed: 0.18,
-    soft: 0.7,
+    speed: 0.15,
+    soft: 0.75,
     custom: `
-      // Slow diffusion — heavy domain warp of a low-frequency fbm.
+      // Very slow diffusion — heavy domain warp, then soft threshold.
       vec2 q = p;
-      q += vec2(fbm(q * 0.6 + t * 0.01),
-                fbm(q * 0.6 + 6.6 + t * 0.01)) * 0.85;
-      v = smoothstep(0.3, 0.72, fbm(q * 1.2 + t * 0.02));
+      for (int i = 0; i < 3; i++) {
+        q += vec2(fbm(q * 0.7 + float(i) * 2.0 + t * 0.015),
+                  fbm(q * 0.7 + 8.8 + float(i) * 2.0 + t * 0.015)) * 0.35;
+      }
+      float soft = fbm(q * 1.2 + t * 0.02);
+      v = smoothstep(0.28, 0.75, soft) * 0.85 + soft * 0.15;
     `
   },
 
   {
     name: "Honey",
     cat: "organic",
-    desc: "Thick golden current",
-    a: "#2b1b06",
-    b: "#b18438",
+    desc: "Golden viscous light-bending",
+    a: "#1e1206",
+    b: "#f0b64a",
     motion: -1,
-    speed: 0.18,
+    speed: 0.14,
     soft: 0.25,
-    glow: 0.7,
+    glow: 0.9,
     custom: `
-      // Thick viscous flow with a specular highlight from a fake normal.
-      vec2 q = p;
-      q += vec2(fbm(q * 0.8 + t * 0.01),
-                fbm(q * 0.8 + 4.4 + t * 0.01)) * 0.5;
-      float h = fbm(q * 1.5 + t * 0.015);
-      float e = 0.02;
-      float hx = fbm((q + vec2(e, 0.0)) * 1.5 + t * 0.015);
-      float hy = fbm((q + vec2(0.0, e)) * 1.5 + t * 0.015);
-      vec3 n = normalize(vec3((hx - h) * 5.0, (hy - h) * 5.0, 1.0));
-      float spec = pow(max(0.0, dot(n, normalize(vec3(0.5, 0.5, 1.0)))), 8.0);
-      v = clamp(h * 0.7 + spec * 0.55, 0.0, 1.0);
+      // Viscous warp + a strong refraction-style highlight from a light beam.
+      vec2 q = p * 1.1;
+      q += vec2(fbm(q * 0.6 + t * 0.02),
+                fbm(q * 0.6 + 4.4 + t * 0.02)) * 0.65;
+      float h  = fbm(q * 1.5 + t * 0.02);
+      float hx = fbm((q + vec2(0.02, 0.0)) * 1.5 + t * 0.02);
+      float hy = fbm((q + vec2(0.0, 0.02)) * 1.5 + t * 0.02);
+      vec3 n = normalize(vec3((hx - h) * 4.0, (hy - h) * 4.0, 1.0));
+      // sun through glass
+      vec3 L = normalize(vec3(0.5, 0.8, 0.9));
+      float diff = max(0.0, dot(n, L));
+      float spec = pow(diff, 20.0) * 1.4;
+      v = clamp(h * 0.7 + diff * 0.25 + spec * 0.6, 0.0, 1.0);
     `
   },
 
-  // ==================================================================
-  //  ENERGY
-  // ==================================================================
+  // =============================================================
+  // ENERGY
+  // =============================================================
 
   {
     name: "Solar Plasma",
     cat: "energy",
-    desc: "Muted flare turbulence",
-    a: "#301d0b",
-    b: "#c77832",
+    desc: "Prominences and sunspots",
+    a: "#1c0f03",
+    b: "#ffb347",
     motion: -1,
-    speed: 0.75,
-    glow: 1.0,
+    speed: 0.6,
+    glow: 1.5,
     custom: `
-      // Fake sphere lit from upper-left, covered in turbulent plasma.
+      // Fake 3D sun: turbulent surface, corona ring, prominence arcs.
       float r = length(p);
-      float sphere = sqrt(max(0.0, 1.0 - r * r));
-      float heat = fbm(p * 3.0 + vec2(t * 0.15, -t * 0.1));
-      heat = fbm(p * 2.0 + heat * 1.5 + t * 0.05);
-      float lit = sphere * 0.6 + 0.4;
-      float limb = smoothstep(1.0, 0.85, r);
-      v = clamp(heat * lit * limb, 0.0, 1.0);
+      float R = 0.6;
+      float sphere = sqrt(max(0.0, R * R - r * r));
+      vec3 n = normalize(vec3(p, sphere));
+      float turb = fbm(n.xy * 4.0 + n.z * 1.5 + t * 0.2);
+      turb = fbm(n.xy * 6.0 + turb * 2.0 + t * 0.15);
+      float sunspots = smoothstep(0.62, 0.68, turb);
+      // corona
+      float corona = exp(-abs(r - R) * 10.0) * (1.0 - sunspots);
+      // prominence arcs (raised bumps)
+      float prom = 0.0;
+      for (int i = 0; i < 4; i++) {
+        float fi = float(i);
+        float ang = fi * 1.57 + t * 0.15;
+        vec2 dir = vec2(cos(ang), sin(ang));
+        float proj = dot(p, dir);
+        float perp = abs(p.x * dir.y - p.y * dir.x);
+        prom += exp(-perp * 20.0) * exp(-abs(proj - (R + 0.15 + 0.05 * sin(t + fi))) * 8.0);
+      }
+      // disk lighting
+      float lit = max(0.0, dot(n, normalize(vec3(0.3, 0.5, 0.8)))) * 0.5 + 0.4;
+      v = clamp(turb * lit + corona * 0.9 + prom * 0.6, 0.0, 1.0)
+        * smoothstep(1.05, 0.55, r);
     `
   },
 
   {
     name: "Matrix Rain",
     cat: "energy",
-    desc: "Quiet digital cascade",
-    a: "#07190b",
-    b: "#4f9b62",
+    desc: "Falling glyphs with glitch heads",
+    a: "#020b05",
+    b: "#66ff99",
     motion: -1,
     speed: 0.5,
-    glow: 0.75,
+    glow: 1.2,
     custom: `
-      // Falling glyph columns with random per-column speeds, heads and trails.
+      // Falling columns of glyph-shaped segments with a bright glitch head.
       vec2 q = p * 3.0;
+      q.y -= t * 1.6;
       float col = floor(q.x);
-      float speedMod = 0.5 + hash(vec2(col, 0.0)) * 0.9;
-      float yy = fract(q.y * 0.5 + t * 0.4 * speedMod);
-      float drop  = smoothstep(0.98, 0.7, yy) * smoothstep(0.0, 0.1, yy);
-      float head  = smoothstep(0.02, 0.0, yy);
-      float trail = smoothstep(0.55, 0.05, yy) * 0.3;
-      float glow  = drop + head + trail;
-      v = clamp(glow * 0.75 + fbm(vec2(q.x * 4.0, q.y * 2.0 + t * 0.3)) * 0.3,
-                0.0, 1.0);
+      float colSpeed = 0.5 + hash(vec2(col, 1.1)) * 0.8;
+      q.y -= (colSpeed - 0.9) * t * 0.4;
+      vec2 i = vec2(col, floor(q.y));
+      vec2 f = fract(q);
+      // trail strength based on vertical position
+      float head = fract(q.y * 0.5);
+      float trail = smoothstep(0.7, 0.05, head) * smoothstep(0.0, 0.05, head);
+      // glyph: random 5-segment pattern
+      float gs = hash(i);
+      float glyph = 0.0;
+      // horizontal strokes
+      glyph += step(0.5, f.y) * smoothstep(0.05, 0.0, abs(f.x - 0.5)) * 0.0; // placeholder
+      // five horizontal bars at random y
+      for (int k = 0; k < 4; k++) {
+        float fk = float(k);
+        float yb = 0.15 + fk * 0.22 + hash(i + fk) * 0.08;
+        float inBar = smoothstep(0.02, 0.0, abs(f.y - yb));
+        float width = 0.35 + hash(i + fk + 5.0) * 0.4;
+        glyph += inBar * step(abs(f.x - 0.5), width);
+      }
+      // vertical bar sometimes
+      float vb = step(0.7, hash(i + 9.9));
+      glyph += vb * smoothstep(0.03, 0.0, abs(f.x - 0.5));
+      glyph = clamp(glyph, 0.0, 1.0);
+      float headBright = smoothstep(0.05, 0.0, head);
+      float lit = glyph * trail + headBright * 0.8;
+      v = clamp(lit * 0.9 + trail * 0.15, 0.0, 1.0);
     `
   },
 
   {
     name: "Neon Sunset",
     cat: "energy",
-    desc: "Soft ribbon plasma",
-    a: "#25120b",
-    b: "#b85f3e",
+    desc: "Synthwave sun over scanlines",
+    a: "#160610",
+    b: "#ff3ea5",
     motion: -1,
-    speed: 0.65,
-    glow: 0.85,
-    soft: 0.3,
+    speed: 0.35,
+    glow: 1.6,
     custom: `
-      // Horizontal ribbons — sine bands warped by fbm, hot cores on crests.
+      // Retro synthwave sun with horizontal stripe cutouts, scanlines, glow.
       vec2 q = p;
-      float bands = sin(q.y * 8.0 + fbm(q * 2.0) * 3.0 + t * 0.3) * 0.5 + 0.5;
-      float glow = smoothstep(0.3, 1.0, bands);
-      float hot  = pow(bands, 3.0);
-      float streak = fbm(vec2(q.x * 4.0, q.y * 1.5) + t * 0.1);
-      v = (glow * 0.5 + hot * 0.3 + streak * 0.2) * smoothstep(1.5, 0.5, length(p));
+      float sunY = 0.15;
+      vec2 rel = q - vec2(0.0, sunY);
+      float r = length(rel);
+      float R = 0.55;
+      float disk = smoothstep(R, R - 0.02, r);
+      // horizontal cut stripes across the lower half of the sun
+      float stripes = step(0.55, fract(q.y * 14.0 + 0.5));
+      stripes *= smoothstep(sunY + 0.05, sunY - 0.3, q.y);   // only lower
+      disk *= (1.0 - stripes);
+      // outer glow
+      float glow = exp(-abs(r - R) * 5.0) * 1.2;
+      // scanlines
+      float scan = 0.85 + 0.15 * sin(q.y * 200.0);
+      // horizon grid
+      float gridX = smoothstep(0.9, 1.0, abs(sin(q.x * 30.0)));
+      float gridY = smoothstep(0.9, 1.0, abs(sin((q.y + t * 0.3) * 24.0)));
+      float grid = (gridX + gridY) * 0.4 * smoothstep(-0.05, -0.3, q.y - sunY);
+      v = clamp((disk * 0.9 + glow * 0.6 + grid) * scan, 0.0, 1.0);
     `
   },
 
   {
     name: "Aurora Curtains",
     cat: "energy",
-    desc: "Muted magnetic sheets",
-    a: "#071b1b",
-    b: "#54aaa0",
+    desc: "Three drifting magnetic curtains",
+    a: "#031410",
+    b: "#6effc1",
     motion: -1,
-    speed: 0.48,
-    soft: 0.45,
-    glow: 0.9,
+    speed: 0.45,
+    glow: 1.4,
+    soft: 0.4,
     custom: `
-      // Vertical curtains modulated by two fbm layers, faded top/bottom.
+      // Three vertical curtains that ripple horizontally, each with a
+      // different height profile and brightness pulse.
       vec2 q = p;
-      float v1 = fbm(vec2(q.x * 3.0, q.y * 1.2 + t * 0.1));
-      float v2 = fbm(vec2(q.x * 6.0, q.y * 1.5 - t * 0.07));
-      float curtain = sin(q.x * 10.0 + v1 * 6.0 + t * 0.4) * 0.5 + 0.5;
-      float fade = smoothstep(-1.2, -0.3, q.y) * smoothstep(1.2, 0.3, q.y);
-      v = (v2 * 0.6 + curtain * 0.4) * fade;
+      float acc = 0.0;
+      for (int i = 0; i < 3; i++) {
+        float fi = float(i);
+        float xShift = fbm(vec2(q.x * 2.0 + fi * 5.0, t * 0.25)) * 2.2;
+        float yOff = sin(q.x * 3.0 + xShift + t * 0.4 + fi * 1.7) * 0.35
+                   + (fi - 1.0) * 0.35;
+        float width = 0.22 + fi * 0.05;
+        float curtain = exp(-pow((q.y - yOff) / width, 2.0));
+        // vertical streak detail
+        curtain *= 0.7 + 0.3 * fbm(vec2(q.x * 8.0, t * 0.6 + fi));
+        float pulse = 0.6 + 0.4 * sin(t * 1.4 + fi * 2.1);
+        acc += curtain * pulse * (1.0 - fi * 0.15);
+      }
+      v = clamp(acc * 0.65, 0.0, 1.0);
     `
   },
 
   {
     name: "Electric Spiral",
     cat: "energy",
-    desc: "Gentle charged vortex",
-    a: "#120c22",
-    b: "#8066bd",
+    desc: "Tesla-coil lightning arcs",
+    a: "#08061a",
+    b: "#a582ff",
     motion: -1,
-    speed: 0.55,
-    glow: 0.85,
+    speed: 0.7,
+    glow: 1.6,
+    pulse: 1.5,
     custom: `
-      // Spiral warped by noise, sharpened into bright arcing filaments.
-      float a = atan(p.y, p.x);
+      // Central electrode with bolts shooting outwards at drifting angles.
       float r = length(p);
-      float warp = fbm(vec2(a * 2.0, r * 3.0) + t * 0.1);
-      float spiral = sin(a * 8.0 + r * 10.0 + warp * 4.0 - t * 2.0) * 0.5 + 0.5;
-      float branch = pow(spiral, 3.0);
-      float ring   = sin(r * 15.0 - t * 3.0) * 0.5 + 0.5;
-      v = (spiral * 0.5 + branch * 0.3 + ring * 0.2) * smoothstep(1.35, 0.1, r);
+      float a = atan(p.y, p.x);
+      float core = exp(-r * 30.0);
+      // 6 bolts
+      float bolts = 0.0;
+      for (int i = 0; i < 6; i++) {
+        float fi = float(i);
+        float baseAng = fi * 1.047 + sin(t * 0.3 + fi) * 0.2;
+        // Each bolt travels along a drifting path
+        float adiff = a - baseAng;
+        // wrap to [-PI, PI]
+        adiff = atan(sin(adiff), cos(adiff));
+        // bolt thickness modulates with hash-noise along radius
+        float wob = fbm(vec2(r * 4.0 + fi * 3.0, t * 2.0));
+        float thick = 0.05 + 0.05 * wob;
+        float bolt = exp(-pow(adiff / thick, 2.0)) * exp(-r * 1.2);
+        // Broken filaments (bolt flickers)
+        bolt *= smoothstep(0.3, 0.7, fbm(vec2(r * 12.0, t * 6.0 + fi)));
+        bolts += bolt;
+      }
+      float arcs = 0.0;
+      for (int i = 0; i < 3; i++) {
+        float fi = float(i);
+        float radius = 0.35 + fi * 0.22 + 0.05 * sin(t * 0.6 + fi);
+        float ring = exp(-abs(r - radius) * 30.0);
+        float broken = smoothstep(0.4, 0.7, fbm(vec2(a * 8.0 + fi * 3.0, t * 3.0)));
+        arcs += ring * broken;
+      }
+      v = clamp(core * 1.2 + bolts * 0.9 + arcs * 0.7, 0.0, 1.0);
     `
   },
 
   {
     name: "Fire Veins",
     cat: "energy",
-    desc: "Dim branching heat",
-    a: "#240e08",
-    b: "#b84f2d",
+    desc: "Ridged fractal fire",
+    a: "#140502",
+    b: "#ff7a2a",
     motion: -1,
-    speed: 0.6,
-    glow: 1.0,
+    speed: 0.55,
+    glow: 1.5,
     custom: `
-      // Ridged fbm — bright thin filaments with hot cores.
-      vec2 q = p * 2.0;
-      float ridged = 0.0, amp = 0.5, freq = 1.0;
+      // Ridged-multifractal flame with turbulent hot cores.
+      vec2 q = p * 1.4;
+      q.y -= t * 0.25;
+      // domain warp upward
+      q += vec2(fbm(q * 1.1 + t * 0.1) * 0.3, 0.0);
+      float n1 = fbm(q * 2.0);
+      float ridged = 0.0, amp = 0.55, freq = 1.0;
       for (int i = 0; i < 5; i++) {
-        float n = fbm(q * freq + t * 0.05);
-        n = 1.0 - abs(n - 0.5) * 2.0;
-        ridged += n * amp;
-        freq *= 2.0;
-        amp  *= 0.5;
+        float v1 = fbm(q * freq + t * 0.15);
+        ridged += (1.0 - abs(v1 - 0.5) * 2.0) * amp;
+        freq *= 1.9;
+        amp  *= 0.55;
       }
-      float veins = pow(ridged, 2.5);
-      float hot   = smoothstep(0.6, 0.92, ridged);
-      v = veins * 0.7 + hot * 0.35;
+      float veins = pow(ridged, 2.6);
+      float hot   = pow(max(0.0, ridged - 0.55) * 2.0, 1.5);
+      // vertical plume fade
+      float plume = smoothstep(1.2, 0.0, length(p * vec2(1.5, 0.8)));
+      v = clamp((veins * 0.7 + hot * 0.9) * plume, 0.0, 1.0);
     `
   },
 
   {
     name: "Cyan Shock",
     cat: "energy",
-    desc: "Low-energy pressure waves",
-    a: "#052023",
-    b: "#43a9ad",
+    desc: "Cascading ripple rings",
+    a: "#020e14",
+    b: "#4ed4e0",
     motion: -1,
     speed: 0.6,
-    glow: 1.0,
+    glow: 1.3,
     pulse: 1.4,
     custom: `
-      // Four expanding shockwave rings, each fading as it grows.
+      // Rings pulse outward continuously with warp-induced breaks.
       float r = length(p);
       float rings = 0.0;
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 6; i++) {
         float fi = float(i);
-        float phase = fract(t * 0.15 + fi * 0.25);
-        float radius = phase * 1.5;
-        float ring = exp(-abs(r - radius) * 12.0);
+        float phase = fract(t * 0.18 + fi * 0.166);
+        float radius = phase * 1.4;
+        float ring = exp(-pow((r - radius) * 18.0, 2.0));
+        ring *= 0.5 + 0.5 * sin(atan(p.y, p.x) * 8.0 + t * 3.0 + fi);
         rings += ring * (1.0 - phase);
       }
-      vec2 q = p + vec2(fbm(p * 3.0 + t * 0.05),
-                        fbm(p * 3.0 + 5.5 + t * 0.05)) * 0.2;
-      v = clamp(rings * 0.7 + fbm(q * 4.0 + t * 0.1) * 0.3, 0.0, 1.0);
+      // ambient ripple background
+      float bg = sin(r * 40.0 - t * 6.0) * 0.5 + 0.5;
+      bg *= smoothstep(1.4, 0.2, r);
+      v = clamp(rings * 1.0 + bg * 0.15, 0.0, 1.0);
     `
   },
 
   {
     name: "Solar Wind",
     cat: "energy",
-    desc: "Charged particle stream",
-    a: "#1a1208",
-    b: "#ffaa33",
+    desc: "Fast particle stream",
+    a: "#100a04",
+    b: "#ffcf5a",
     motion: -1,
     speed: 0.8,
-    glow: 1.1,
-    warp: 0.15,
+    glow: 1.4,
     custom: `
-      // Elongated particles streaking in +X, with a flowing background.
-      vec2 q = p * 3.0;
-      q.x -= t * 0.8;
-      q.y += sin(q.x * 0.5 + t * 0.1) * 0.3;
+      // Long comet-style streaks moving right, with shimmering tails.
+      vec2 q = p * 2.0;
+      q.x -= t * 3.0;   // fast horizontal scroll
       vec2 i = floor(q), f = fract(q);
-      float streak = 0.0;
+      float streaks = 0.0;
       for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
+        for (int x = -4; x <= 0; x++) {
           vec2 g = vec2(float(x), float(y));
-          vec2 o = vec2(hash(i + g), hash(i + g + 5.5));
-          vec2 d = f - g - o;
-          d.x *= 0.3;
-          float p2 = exp(-length(d) * 8.0);
-          float life = hash(i + g + 3.3);
-          p2 *= smoothstep(0.0, 0.2, life) * smoothstep(1.0, 0.8, life);
-          streak = max(streak, p2);
+          vec2 o = vec2(hash(i + g), hash(i + g + 3.7));
+          vec2 rel = f - g - o;
+          rel.x *= 0.15;   // long horizontal
+          rel.y *= 2.5;    // thin vertically
+          float d2 = dot(rel, rel);
+          streaks += exp(-d2 * 40.0);
         }
       }
-      v = clamp(streak * 0.75 + fbm(p * 2.0 - vec2(t * 0.2, 0.0)) * 0.3,
-                0.0, 1.0);
+      // background plasma stream
+      float plasma = fbm(vec2(p.x * 4.0 - t * 2.0, p.y * 2.0)) * 0.4;
+      v = clamp(streaks * 0.85 + plasma * 0.4, 0.0, 1.0);
     `
   },
 
-  // ==================================================================
-  //  MATTER
-  // ==================================================================
+  // =============================================================
+  // MATTER
+  // =============================================================
 
   {
     name: "Molten Gold",
     cat: "matter",
-    desc: "Warm cellular heat",
-    a: "#2b1705",
-    b: "#b47b32",
+    desc: "Metallic Voronoi with pulsing cracks",
+    a: "#1a0d03",
+    b: "#ffc266",
     motion: -1,
-    speed: 0.7,
-    glow: 0.9,
+    speed: 0.5,
+    glow: 1.4,
     custom: `
-      // Voronoi cells with glowing borders (hot cracks).
-      vec2 q = p * 2.5 + vec2(t * 0.05, -t * 0.03);
+      // 3D-lit Voronoi cells + animated glowing crack borders.
+      vec2 q = p * 2.2;
+      q += vec2(fbm(q * 0.8 + t * 0.05),
+                fbm(q * 0.8 + 3.9 + t * 0.05)) * 0.25;
       vec2 i = floor(q), f = fract(q);
       float md1 = 8.0, md2 = 8.0;
-      for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-          vec2 g = vec2(float(x), float(y));
-          vec2 o = vec2(hash(i + g), hash(i + g + 7.7));
-          float dd = length(f - g - o);
-          if (dd < md1) { md2 = md1; md1 = dd; }
-          else if (dd < md2) { md2 = dd; }
-        }
+      vec2 id1 = vec2(0.0);
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(i + g), hash(i + g + 7.7));
+        float dd = length(f - g - o);
+        if (dd < md1) { md2 = md1; md1 = dd; id1 = i + g; }
+        else if (dd < md2) { md2 = dd; }
       }
-      float border = md2 - md1;
-      float cells  = smoothstep(0.02, 0.15, border);
-      v = mix(1.0 - cells * 0.7, cells, 0.6);
+      // fake normal per cell (slopes toward cell edge)
+      vec3 n = normalize(vec3(f.x - 0.5, f.y - 0.5, 0.6));
+      float lit = max(0.0, dot(n, normalize(vec3(0.4, 0.6, 0.7))));
+      float metal = 0.5 + 0.5 * hash(id1);
+      // crack: thin bright line between cells
+      float crack = smoothstep(0.06, 0.0, md2 - md1);
+      // pulsing crack
+      float pulse = 0.7 + 0.5 * sin(t * 2.0 + hash(id1) * 6.28);
+      v = clamp(metal * lit * 0.5 + crack * pulse * 1.4, 0.0, 1.0);
     `
   },
 
   {
     name: "Crystal Melt",
     cat: "matter",
-    desc: "Slow geometric facets",
-    a: "#171326",
-    b: "#8d7dbd",
+    desc: "Kaleidoscopic faceted frost",
+    a: "#0f0a18",
+    b: "#b7a2ff",
     motion: -1,
-    speed: 0.55,
-    soft: 0.2,
+    speed: 0.4,
+    soft: 0.15,
+    glow: 1.1,
     custom: `
-      // Two overlapping square grids (45° apart) forming faceted crystal.
-      vec2 q = rot(p, t * 0.05) * 3.0;
-      vec2 g1 = abs(fract(q) - 0.5);
-      vec2 q2 = rot(q, 1.5708);
-      vec2 g2 = abs(fract(q2) - 0.5);
-      float facet = min(max(g1.x, g1.y), max(g2.x, g2.y));
-      float shimmer = fbm(p * 2.0 + t * 0.06);
-      v = facet * 0.7 + shimmer * 0.3;
+      // 6-fold kaleidoscope of a rotating facet pattern.
+      float a = atan(p.y, p.x);
+      float r = length(p);
+      a = mod(a, 3.14159 / 3.0);
+      a = abs(a - 3.14159 / 6.0);
+      vec2 k = vec2(cos(a), sin(a)) * r;
+      k = rot(k, t * 0.1);
+      vec2 g = abs(fract(k * 5.0) - 0.5);
+      float facet = 1.0 - max(g.x, g.y) * 2.0;
+      // add slow melting warp
+      facet += fbm(k * 2.0 + t * 0.15) * 0.3;
+      v = clamp(facet, 0.0, 1.0) * smoothstep(1.6, 0.5, r);
     `
   },
 
   {
     name: "Arctic Waves",
     cat: "matter",
-    desc: "Frozen ribbons",
-    a: "#081a24",
-    b: "#6caec1",
+    desc: "Ice with aurora reflection",
+    a: "#050e18",
+    b: "#7ac8e8",
     motion: -1,
-    speed: 0.45,
-    soft: 0.25,
+    speed: 0.4,
+    soft: 0.3,
+    glow: 0.9,
     custom: `
-      // Long horizontal ribbons warped by three layered sine modifiers.
+      // Layered ice sheet: long horizontal ribbons + vein cracks.
       vec2 q = p;
       for (int i = 0; i < 3; i++) {
-        float fi = float(i);
-        q.y += sin(q.x * (3.0 + fi) + t * 0.3 * (1.0 + fi * 0.3)) * 0.06;
+        q.y += sin(q.x * (2.0 + float(i)) + t * 0.2 * (1.0 + float(i) * 0.3)) * 0.08;
       }
-      float base = fbm(q * vec2(1.2, 3.0) + vec2(t * 0.03, 0.0));
-      float streak = fbm(q * vec2(6.0, 1.0));
-      v = base * 0.7 + streak * 0.3;
+      float ice = fbm(q * vec2(1.2, 4.0) + t * 0.05);
+      // crack lines
+      float cracks = pow(1.0 - abs(fbm(q * 3.5 + t * 0.1) - 0.5) * 2.0, 6.0);
+      v = clamp(ice * 0.7 + cracks * 0.7, 0.0, 1.0);
     `
   },
 
   {
     name: "Toxic Bubbles",
     cat: "matter",
-    desc: "Low-key gas pockets",
-    a: "#152006",
-    b: "#79a33d",
+    desc: "3D-lit bubbles with rims",
+    a: "#081202",
+    b: "#9ee83d",
     motion: -1,
-    speed: 0.55,
-    glow: 0.8,
+    speed: 0.5,
+    glow: 1.2,
     custom: `
-      // Rising bubble field — Worley cells with rim + inner glow + highlight.
+      // Rising bubbles — SDF circles with true 3D normal lighting.
+      float bubbles = 0.0;
       vec2 q = p * 3.0;
-      q.y += t * 0.3;
+      q.y += t * 0.6;
       vec2 i = floor(q), f = fract(q);
-      float md = 8.0;
-      for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-          vec2 g = vec2(float(x), float(y));
-          vec2 o = vec2(hash(i + g), hash(i + g + 3.14));
-          md = min(md, length(f - g - o));
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(i + g), hash(i + g + 3.1));
+        vec2 rel = f - g - o;
+        float r = length(rel);
+        float R = 0.28 + hash(i + g + 6.0) * 0.12;
+        if (r < R) {
+          // 3D sphere normal at this point
+          float z = sqrt(R * R - r * r);
+          vec3 n = normalize(vec3(rel, z));
+          vec3 L = normalize(vec3(0.3, 0.7, 0.7));
+          float dif = max(0.0, dot(n, L));
+          float spc = pow(dif, 40.0) * 2.0;
+          float rim = pow(1.0 - z / R, 2.5);
+          bubbles += dif * 0.35 + spc + rim * 0.6;
         }
       }
-      float rim       = smoothstep(0.35, 0.15, md);
-      float inside    = smoothstep(0.15, 0.05, md);
-      float highlight = smoothstep(0.08, 0.0, md - 0.05);
-      v = rim * 0.7 + inside * 0.2 + highlight * 0.35;
+      v = clamp(bubbles, 0.0, 1.0);
     `
   },
 
   {
     name: "Copper Oxide",
     cat: "matter",
-    desc: "Oxidized flow",
-    a: "#21140b",
-    b: "#8e8064",
+    desc: "Patina crystals on metal",
+    a: "#1a0f08",
+    b: "#6ec6a6",
     motion: -1,
-    speed: 0.5,
+    speed: 0.35,
     soft: 0.3,
     custom: `
-      // Worley patina pattern blended with medium-frequency noise.
-      vec2 q = p * 2.0 + vec2(t * 0.02, -t * 0.03);
-      vec2 i = floor(q), f = fract(q);
-      float md = 8.0;
-      for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-          vec2 g = vec2(float(x), float(y));
-          vec2 o = vec2(hash(i + g), hash(i + g + 2.3));
-          md = min(md, length(f - g - o));
-        }
+      // Two-tone: underlying copper metal + crystalline verdigris patches.
+      vec2 q = p * 1.8 + vec2(t * 0.02, -t * 0.03);
+      // metal underneath
+      vec2 g = abs(fract(q * 3.0) - 0.5);
+      float metal = 1.0 - max(g.x, g.y) * 1.5;
+      float brushed = fbm(vec2(q.x * 20.0, q.y * 2.0)) * 0.15;
+      metal = metal * 0.6 + brushed;
+      // verdigris crystals
+      float crys = smoothstep(0.55, 0.72, fbm(q * 2.5 + 8.0));
+      float details = 0.0;
+      for (int i = 0; i < 3; i++) {
+        vec2 qq = rot(q, float(i) * 0.7) * (3.0 + float(i));
+        vec2 gg = abs(fract(qq) - 0.5);
+        details = max(details, (1.0 - max(gg.x, gg.y) * 1.8) * crys);
       }
-      float patina = smoothstep(0.05, 0.3, md);
-      float noise  = fbm(p * 5.0 + t * 0.03);
-      v = patina * 0.5 + noise * 0.5;
+      v = clamp(metal * 0.4 + details * 0.9 + crys * 0.3, 0.0, 1.0);
     `
   },
 
   {
     name: "Liquid Mercury",
     cat: "matter",
-    desc: "Cool reflective waves",
-    a: "#1c2025",
-    b: "#b7c0c7",
+    desc: "True chrome reflection",
+    a: "#0e1115",
+    b: "#dfe6ec",
     motion: -1,
-    speed: 0.45,
-    soft: 0.15,
-    glow: 0.75,
+    speed: 0.3,
+    soft: 0.05,
+    glow: 1.0,
     custom: `
-      // Fake normal from height derivative → fresnel + lit metal.
-      vec2 q = p;
-      float h = fbm(q * 2.5 + t * 0.05);
-      float e = 0.012;
-      float hx = fbm((q + vec2(e, 0.0)) * 2.5 + t * 0.05);
-      float hy = fbm((q + vec2(0.0, e)) * 2.5 + t * 0.05);
-      vec3 n = normalize(vec3(hx - h, hy - h, e * 3.0));
-      float fres = pow(1.0 - abs(n.z), 2.0);
-      float lit  = dot(n, normalize(vec3(0.5, 0.7, 0.5))) * 0.5 + 0.5;
-      v = lit * 0.55 + fres * 0.55;
+      // Chrome: compute normal from height, then reflect a fake environment.
+      vec2 q = p * 1.2;
+      float h  = fbm(q * 2.0 + t * 0.03);
+      float e  = 0.008;
+      float hx = fbm((q + vec2(e, 0.0)) * 2.0 + t * 0.03);
+      float hy = fbm((q + vec2(0.0, e)) * 2.0 + t * 0.03);
+      vec3 n = normalize(vec3((hx - h) * 8.0, (hy - h) * 8.0, 1.0));
+      // fake env: sky gradient up, dark down
+      vec3 ref = reflect(normalize(vec3(0.0, 0.0, -1.0)), n);
+      float sky = ref.y * 0.5 + 0.5;
+      float env = mix(0.15, 1.0, sky);
+      // specular to a bright light
+      vec3 L = normalize(vec3(0.6, 0.8, 0.9));
+      float spec = pow(max(0.0, dot(n, L)), 80.0) * 2.5;
+      v = clamp(env * 0.6 + h * 0.2 + spec, 0.0, 1.0);
     `
   },
 
   {
     name: "Carbon Lattice",
     cat: "matter",
-    desc: "Dense hard-surface flow",
-    a: "#0c1017",
-    b: "#657080",
+    desc: "Graphene in perspective",
+    a: "#05070d",
+    b: "#7d8794",
     motion: -1,
-    speed: 0.35,
+    speed: 0.3,
     soft: 0.1,
     custom: `
-      // Hexagonal grid with subtle inner-cell glow.
-      vec2 q = p * 4.0 + t * 0.05;
+      // Hex lattice on a fake-3D plane with parallax warping.
+      vec2 q = p * 4.0;
+      // perspective: scale by y
+      float persp = 1.0 / (0.5 + (p.y + 1.0) * 0.7);
+      q *= persp;
+      q.y += t * 0.4;
+      // hex grid
       vec2 h = vec2(1.0, 1.7320508);
       vec2 a1 = mod(q, h) - h * 0.5;
       vec2 a2 = mod(q + h * 0.5, h) - h * 0.5;
-      vec2 a = length(a1) < length(a2) ? a1 : a2;
-      float d = length(a);
-      float cell = smoothstep(0.45, 0.48, d);
-      float inner = smoothstep(0.45, 0.25, d) * 0.15;
-      v = clamp((1.0 - cell) + inner, 0.0, 1.0);
+      vec2 aa = length(a1) < length(a2) ? a1 : a2;
+      float d = length(aa);
+      float edge = smoothstep(0.42, 0.48, d);
+      float node = smoothstep(0.30, 0.10, d);
+      // subtle warp makes it feel alive
+      float warp = fbm(p * 2.0 + t * 0.05) * 0.1;
+      edge += warp;
+      v = clamp((1.0 - edge) * 0.5 + node * 0.9, 0.0, 1.0);
     `
   },
 
   {
     name: "Liquid Chrome",
     cat: "matter",
-    desc: "Soft mirror distortion",
-    a: "#20252b",
-    b: "#c4ccd2",
+    desc: "HDR environment chrome",
+    a: "#0c1015",
+    b: "#ffffff",
     motion: -1,
-    speed: 0.4,
-    soft: 0.15,
-    glow: 0.8,
+    speed: 0.35,
+    soft: 0.05,
+    glow: 1.2,
     custom: `
-      // Chrome — environment reflection pattern with sharp specular.
-      vec2 q = p;
-      float h  = fbm(q * 3.0 + vec2(t * 0.04, -t * 0.03));
-      float e  = 0.015;
-      float hx = fbm((q + vec2(e, 0.0)) * 3.0 + vec2(t * 0.04, -t * 0.03));
-      float hy = fbm((q + vec2(0.0, e)) * 3.0 + vec2(t * 0.04, -t * 0.03));
-      vec3 n = normalize(vec3((hx - h) * 8.0, (hy - h) * 8.0, 1.0));
-      float refl  = 0.5 + 0.5 * n.y;
-      float sharp = pow(max(0.0, n.z), 4.0);
-      v = refl * 0.6 + sharp * 0.45;
+      // Chrome with a strong environment gradient and sharp highlights.
+      vec2 q = p * 1.1 + vec2(t * 0.05, 0.0);
+      float h  = fbm(q * 2.5 + t * 0.04);
+      float e  = 0.006;
+      float hx = fbm((q + vec2(e, 0.0)) * 2.5 + t * 0.04);
+      float hy = fbm((q + vec2(0.0, e)) * 2.5 + t * 0.04);
+      vec3 n = normalize(vec3((hx - h) * 14.0, (hy - h) * 14.0, 1.0));
+      // fake HDR env: black top, bright horizon, black bottom
+      float sky = smoothstep(-0.4, 0.4, n.y);
+      float horizon = 1.0 - abs(n.y);
+      horizon = pow(horizon, 8.0) * 2.5;
+      float spec = pow(max(0.0, dot(n, normalize(vec3(0.3, 0.9, 0.5)))), 100.0) * 3.0;
+      v = clamp(sky * 0.4 + horizon * 0.7 + spec + h * 0.1, 0.0, 1.0);
     `
   },
 
   {
     name: "Rain Glass",
     cat: "matter",
-    desc: "Vertical fluid sheets",
-    a: "#081a22",
-    b: "#71a7ba",
+    desc: "Drops on a window with refraction",
+    a: "#060f14",
+    b: "#8ec9dd",
     motion: -1,
-    speed: 0.38,
-    soft: 0.2,
-    glow: 0.7,
+    speed: 0.3,
+    soft: 0.15,
+    glow: 0.9,
     custom: `
-      // Falling droplet field with refraction inside each drop.
+      // Drops that slide down, refract a background fbm inside them.
+      float bg = fbm(p * 2.0 + t * 0.05);
+      float drops = 0.0;
       vec2 q = p * 3.0;
+      // slow fall per column
+      q.y += t * 0.5;
       vec2 i = floor(q), f = fract(q);
-      float md = 8.0;
-      vec2 mdId = vec2(0.0);
-      for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-          vec2 g = vec2(float(x), float(y));
-          vec2 o = vec2(hash(i + g), hash(i + g + 5.5));
-          o.y += fract(t * 0.3 + hash(i + g + 2.2) * 10.0);
-          float dd = length(f - g - o);
-          if (dd < md) { md = dd; mdId = i + g; }
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(i + g), hash(i + g + 4.4));
+        vec2 rel = f - g - o;
+        // slide drops downward using per-cell speed
+        rel.y -= fract(t * 0.15 + hash(i + g + 2.0)) * 0.8;
+        float r = length(rel);
+        float R = 0.22 + hash(i + g + 7.1) * 0.10;
+        if (r < R) {
+          // refraction: sample bg with offset toward centre
+          vec2 ref = rel / R;
+          float inside = length(ref);
+          float lum = 1.0 - inside * 0.6;
+          drops += lum * 0.9;
+          // bright rim
+          drops += smoothstep(R * 0.7, R, r) * 0.6;
         }
       }
-      vec2 refr = (f - fract(mdId) - 0.5) * 0.2;
-      float bg = fbm(p * 2.0 + refr + t * 0.03);
-      float drop = smoothstep(0.4, 0.15, md);
-      float edge = smoothstep(0.4, 0.35, md) * smoothstep(0.2, 0.3, md);
-      v = bg * 0.55 + drop * 0.3 + edge * 0.3;
+      v = clamp(bg * 0.35 + drops * 0.9, 0.0, 1.0);
     `
   },
 
   {
     name: "Amber Lava",
     cat: "matter",
-    desc: "Slow cracked convection",
-    a: "#281708",
-    b: "#bd7b2f",
+    desc: "Cracked crust over molten flow",
+    a: "#1a0d03",
+    b: "#ff8a1c",
     motion: -1,
-    speed: 0.55,
-    glow: 1.0,
+    speed: 0.4,
+    glow: 1.6,
     custom: `
-      // Convection cells — 3D fake lighting per cell + hot cracks between.
-      vec2 q = p * 2.0 + vec2(t * 0.03, -t * 0.02);
+      // Cooled dark crust with bright glowing cracks and bubbling underneath.
+      vec2 q = p * 2.0;
       vec2 i = floor(q), f = fract(q);
       float md1 = 8.0, md2 = 8.0;
-      for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-          vec2 g = vec2(float(x), float(y));
-          vec2 o = vec2(hash(i + g), hash(i + g + 4.4));
-          float dd = length(f - g - o);
-          if (dd < md1) { md2 = md1; md1 = dd; }
-          else if (dd < md2) { md2 = dd; }
-        }
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(i + g), hash(i + g + 4.4));
+        float dd = length(f - g - o);
+        if (dd < md1) { md2 = md1; md1 = dd; } else if (dd < md2) { md2 = dd; }
       }
-      float crack = md2 - md1;
-      float cellHeight = 1.0 - md1;
-      vec3 n = normalize(vec3(f.x - 0.5, f.y - 0.5, cellHeight * 2.0));
-      float lit = dot(n, normalize(vec3(0.4, 0.6, 0.7))) * 0.5 + 0.5;
-      float glow = smoothstep(0.15, 0.0, crack);
-      v = clamp(lit * 0.6 + glow * 0.55, 0.0, 1.0);
+      float border = md2 - md1;
+      // crust: lit cell interior
+      vec3 n = normalize(vec3(f - 0.5, 0.6));
+      float lit = max(0.0, dot(n, normalize(vec3(0.4, 0.6, 0.7)))) * 0.35 + 0.2;
+      // glowing crack
+      float crack = smoothstep(0.14, 0.0, border);
+      // flowing hot glow beneath cracks
+      float flow = fbm(p * 4.0 + vec2(t * 0.3, -t * 0.1));
+      crack *= 0.7 + 0.5 * flow;
+      v = clamp(lit * 0.4 + crack * 1.6, 0.0, 1.0);
     `
   },
 
   {
     name: "Dirty Water",
     cat: "matter",
-    desc: "Heavy surface current",
-    a: "#10191b",
-    b: "#496d72",
+    desc: "Underwater with rising bubbles",
+    a: "#0a1215",
+    b: "#5d8f96",
     motion: -1,
-    speed: 0.22,
-    soft: 0.4,
+    speed: 0.25,
+    soft: 0.5,
     custom: `
-      // Domain-warped mud with fine sediment flecks.
-      vec2 q = p * 1.5;
-      q += vec2(fbm(q + 1.2), fbm(q + 5.7)) * 0.7;
-      float mud = fbm(q * 2.0 + t * 0.02);
-      float sed = smoothstep(0.7, 0.85, fbm(q * 8.0 + t * 0.05));
-      v = mud * 0.75 + sed * 0.3;
+      // Slow muddy warp + suspended particles + a few rising bubbles.
+      vec2 q = p * 1.4;
+      q.x += fbm(q * 1.2 + t * 0.03) * 0.5;
+      q.y += fbm(q * 1.2 + 4.0 + t * 0.03) * 0.5;
+      float murk = fbm(q * 2.0 + t * 0.03);
+      // particulates
+      float parts = 0.0;
+      vec2 sp = p * 10.0;
+      vec2 si = floor(sp), sf = fract(sp);
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(si + g), hash(si + g + 1.1));
+        o.y += fract(t * 0.3 + hash(si + g + 3.3));
+        parts += exp(-length(sf - g - o) * 22.0);
+      }
+      v = clamp(murk * 0.65 + parts * 0.4, 0.0, 1.0);
     `
   },
 
   {
     name: "Black Oil",
     cat: "matter",
-    desc: "Very slow viscous flow",
-    a: "#050607",
-    b: "#252a2d",
+    desc: "True iridescent oil slick",
+    a: "#030308",
+    b: "#6a3ca8",
     motion: -1,
-    speed: 0.18,
-    soft: 0.2,
-    glow: 0.8,
+    speed: 0.25,
+    glow: 1.0,
     custom: `
-      // Dark slick with an interference sheen and sharp highlights.
-      vec2 q = p;
-      float h = fbm(q * 2.5 + vec2(t * 0.03, -t * 0.02));
-      float sheen = fbm(q * 6.0 + h * 2.0 + t * 0.04);
-      float slick = smoothstep(0.45, 0.55, h);
-      float highlight = pow(max(0.0, h - 0.7), 2.0) * 4.0;
-      v = clamp(slick * 0.4 + sheen * 0.3 + highlight * 0.45, 0.0, 1.0);
+      // Thin-film interference: film thickness modulates a rainbow phase,
+      // sampled as three sinusoids at different frequencies to fake RGB bands.
+      vec2 q = p * 1.3;
+      float film = fbm(q * 2.0 + t * 0.03);
+      float film2 = fbm(q * 3.0 + film * 1.5 + t * 0.05);
+      float phase = film * 10.0 + film2 * 6.0 + t * 0.2;
+      // Three colour bands (R, G, B) offset in phase
+      float r = sin(phase) * 0.5 + 0.5;
+      float g = sin(phase + 2.09) * 0.5 + 0.5;
+      float b = sin(phase + 4.18) * 0.5 + 0.5;
+      float bands = (r + g + b) / 3.0 + max(r, max(g, b)) * 0.5;
+      // dark oily base
+      float base = fbm(q * 4.0 + t * 0.02) * 0.3;
+      v = clamp(bands * 0.55 + base, 0.0, 1.0);
     `
   },
 
   {
     name: "Industrial Coolant",
     cat: "matter",
-    desc: "Steady chemical flow",
-    a: "#071817",
-    b: "#43867f",
+    desc: "Radioactive ooze with bubbles",
+    a: "#03120e",
+    b: "#3dff8a",
     motion: -1,
-    speed: 0.28,
-    soft: 0.3,
+    speed: 0.3,
+    glow: 1.5,
     custom: `
-      // Steady horizontal flow with banded edges.
-      vec2 q = p;
-      q.x += t * 0.4;
-      float bands = sin(q.x * 5.0 + fbm(q * 2.0 + t * 0.05) * 4.0) * 0.5 + 0.5;
-      float flow  = fbm(q * 3.0 - vec2(t * 0.2, 0.0));
-      float edge  = smoothstep(0.4, 0.5, bands) * smoothstep(0.6, 0.5, bands);
-      v = (flow * 0.5 + bands * 0.3 + edge * 0.3) * smoothstep(1.4, 0.3, length(p));
+      // Glowing ooze with slow bubbles rising + chemical banding.
+      vec2 q = p * 2.0;
+      q.y -= t * 0.4;
+      // chemical bands
+      float bands = sin(q.y * 3.0 + fbm(q * 2.0 + t * 0.1) * 3.0) * 0.5 + 0.5;
+      // rising bubbles
+      float bubbles = 0.0;
+      vec2 qq = p * 4.0;
+      qq.y += t * 0.6;
+      vec2 i = floor(qq), f = fract(qq);
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(i + g), hash(i + g + 3.3));
+        float r = length(f - g - o);
+        float R = 0.20 + hash(i + g + 6.0) * 0.08;
+        if (r < R) {
+          float z = sqrt(R * R - r * r);
+          vec3 n = normalize(vec3(f - g - o, z));
+          float dif = max(0.0, dot(n, normalize(vec3(0.3, 0.6, 0.7))));
+          float rim = pow(1.0 - z / R, 3.0);
+          bubbles += dif * 0.5 + rim * 0.9;
+        }
+      }
+      v = clamp(bands * 0.4 + bubbles * 1.0, 0.0, 1.0);
     `
   },
 
   {
     name: "Rust Slurry",
     cat: "matter",
-    desc: "Dense sediment flow",
-    a: "#21110b",
-    b: "#8c4d35",
+    desc: "Suspended metal shavings",
+    a: "#130a06",
+    b: "#c27b45",
     motion: -1,
-    speed: 0.28,
-    soft: 0.3,
+    speed: 0.25,
+    soft: 0.35,
     custom: `
-      // Warped crystalline grid over rough noise — sediment in suspension.
-      vec2 q = p * 2.5;
-      q.x += fbm(q * 1.2 + t * 0.03) * 0.5;
-      q.y += fbm(q * 1.2 + 3.7 + t * 0.04) * 0.5;
-      vec2 g = abs(fract(q) - 0.5);
-      float crystal = max(g.x, g.y);
-      float rough = fbm(q * 3.0 + t * 0.05);
-      v = clamp(crystal * 0.5 + rough * 0.6, 0.0, 1.0);
+      // Muddy flow + many fine metal shavings (line segments) suspended.
+      vec2 q = p * 1.3;
+      q.x += fbm(q * 1.2 + t * 0.04) * 0.5;
+      q.y += fbm(q * 1.2 + 5.5 + t * 0.03) * 0.5;
+      float mud = fbm(q * 2.5 + t * 0.03);
+      // shavings: short segments
+      float shav = 0.0;
+      vec2 sp = p * 8.0;
+      vec2 si = floor(sp), sf = fract(sp);
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(si + g), hash(si + g + 6.6));
+        vec2 rel = sf - g - o;
+        rel = rot(rel, hash(si + g + 2.2) * 6.28);
+        // segment along x axis
+        rel.x *= 0.3;
+        rel.y *= 2.0;
+        shav += exp(-length(rel) * 18.0);
+      }
+      v = clamp(mud * 0.5 + shav * 0.6, 0.0, 1.0);
     `
   },
 
   {
     name: "Sewage",
     cat: "matter",
-    desc: "Murky particulate flow",
-    a: "#10160a",
-    b: "#55613a",
+    desc: "Murky debris in flow",
+    a: "#0a0f05",
+    b: "#6a7a45",
     motion: -1,
     speed: 0.18,
-    soft: 0.5,
+    soft: 0.55,
     custom: `
-      // Slow muddy warp with coarse particulates.
-      vec2 q = p * 1.2;
-      q.x += fbm(q * 1.5 + t * 0.04) * 0.6;
-      q.y += fbm(q * 1.5 + 4.1 + t * 0.03) * 0.6;
-      float murky = fbm(q * 2.0 + t * 0.02);
-      float chunks = smoothstep(0.72, 0.88, fbm(q * 10.0 + t * 0.15));
-      v = murky * 0.7 + chunks * 0.35;
+      // Very chunky warp + dark debris + slow bubbling.
+      vec2 q = p * 1.1;
+      q += vec2(fbm(q * 1.5 + t * 0.03), fbm(q * 1.5 + 4.1 + t * 0.03)) * 0.7;
+      float murk = fbm(q * 1.8 + t * 0.02);
+      // debris
+      vec2 sp = q * 5.0;
+      vec2 si = floor(sp), sf = fract(sp);
+      float debris = 0.0;
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(si + g), hash(si + g + 2.5));
+        debris += smoothstep(0.15, 0.05, length(sf - g - o));
+      }
+      v = clamp(murk * 0.6 + debris * 0.5, 0.0, 1.0);
     `
   },
 
   {
     name: "Sea Glass",
     cat: "matter",
-    desc: "Slow cool translucent drift",
-    a: "#07191b",
-    b: "#4b8e8d",
+    desc: "Frosted glass with light through it",
+    a: "#051012",
+    b: "#7dc4c1",
     motion: -1,
     speed: 0.22,
-    soft: 0.35,
-    glow: 0.6,
+    soft: 0.4,
+    glow: 0.9,
     custom: `
-      // Fake refraction — noise offsets the sampling position of a second noise.
+      // Frosted refraction: two-layer warp, then a soft forward-scatter glow.
       vec2 q = p;
-      vec2 refr = vec2(fbm(q * 2.0 + t * 0.05),
-                       fbm(q * 2.0 + 3.1 + t * 0.05)) - 0.5;
-      float refracted = fbm(q * 1.5 + refr * 0.9 + t * 0.02);
-      float edges = smoothstep(0.55, 0.78, fbm(q * 6.0 + refr * 0.3 + t * 0.04));
-      v = refracted * 0.6 + edges * 0.45;
+      vec2 refr = (vec2(fbm(q * 2.0 + t * 0.04),
+                        fbm(q * 2.0 + 3.1 + t * 0.04)) - 0.5) * 0.8;
+      float inner = fbm(q * 1.5 + refr + t * 0.02);
+      float frost = fbm(q * 8.0 + refr * 0.5 + t * 0.05);
+      // forward scatter from a light source top-left
+      float lite = exp(-length(p - vec2(-0.6, 0.6)) * 2.5);
+      v = clamp(inner * 0.6 + frost * 0.3 + lite * 0.4, 0.0, 1.0);
     `
   },
 
   {
     name: "Rainwater",
     cat: "matter",
-    desc: "Barely moving clear water",
-    a: "#07131a",
-    b: "#568493",
+    desc: "Puddle with raindrop impacts",
+    a: "#040d12",
+    b: "#6ba0b5",
     motion: -1,
-    speed: 0.2,
-    soft: 0.25,
-    glow: 0.5,
+    speed: 0.3,
+    glow: 0.8,
     custom: `
-      // Concentric ripples from the centre — three overlapping frequencies.
-      float r = length(p);
-      float r1 = sin(r * 20.0 - t * 3.0) * 0.5 + 0.5;
-      float r2 = sin(r * 30.0 - t * 4.5) * 0.5 + 0.5;
-      float r3 = sin(r * 12.0 - t * 2.0) * 0.5 + 0.5;
-      float combined = (r1 + r2 * 0.5 + r3 * 0.7) / 2.2;
-      float water = fbm(p * 3.0 + t * 0.1) * 0.3;
-      v = (combined * 0.7 + water) * smoothstep(1.5, 0.3, r);
+      // Multiple raindrops falling into a puddle — each spawns concentric
+      // ripples that expand and fade.
+      float ripples = 0.0;
+      for (int i = 0; i < 5; i++) {
+        float fi = float(i);
+        float seed = hash(vec2(fi, 2.7));
+        float cyc = fract(t * (0.4 + seed * 0.4) + seed * 3.0);
+        float radius = cyc * 0.9;
+        vec2 c = vec2((hash(vec2(fi, 1.1)) - 0.5) * 1.6,
+                      (hash(vec2(fi, 5.5)) - 0.5) * 1.6);
+        float r = length(p - c);
+        float ring = sin((r - radius) * 40.0) * 0.5 + 0.5;
+        ring *= exp(-abs(r - radius) * 8.0) * (1.0 - cyc);
+        ripples += ring;
+      }
+      float base = fbm(p * 2.5 + t * 0.05) * 0.3;
+      v = clamp(ripples * 0.7 + base, 0.0, 1.0);
     `
   },
 
   {
     name: "Clay Wash",
     cat: "matter",
-    desc: "Earthy suspended flow",
-    a: "#1e120c",
-    b: "#795c47",
+    desc: "Swirling mud vortex",
+    a: "#150a05",
+    b: "#a87a5a",
     motion: -1,
-    speed: 0.17,
+    speed: 0.15,
     soft: 0.4,
     custom: `
-      // Swirling clay — polar rotation plus chunky low-frequency noise.
-      vec2 q = p * 1.5;
-      float r = length(q);
+      // Polar swirl with hash-driven chunky sediment.
+      vec2 q = p * 1.3;
       float a = atan(q.y, q.x);
-      q = rot(q, a * 0.4 + r * 1.5 + t * 0.05);
+      float r = length(q);
+      q = rot(q, a * 0.5 + r * 2.5 + t * 0.05);
       float clay = fbm(q * 2.0 + t * 0.03);
-      float chunk = smoothstep(0.6, 0.75, fbm(q * 8.0 + t * 0.06));
-      v = clay * 0.7 + chunk * 0.35;
+      float chunks = smoothstep(0.55, 0.72, fbm(q * 7.0 + t * 0.05));
+      v = clay * 0.7 + chunks * 0.35;
     `
   },
 
-  // ==================================================================
-  //  STRANGE
-  // ==================================================================
+  // =============================================================
+  // STRANGE
+  // =============================================================
 
   {
     name: "Midnight Nebula",
     cat: "strange",
-    desc: "Quiet orbital clouds",
-    a: "#0b0820",
-    b: "#645a9f",
+    desc: "Deep field with parallax stars",
+    a: "#040211",
+    b: "#7a6df0",
     motion: -1,
-    speed: 0.5,
+    speed: 0.35,
     soft: 0.6,
     glow: 0.7,
     custom: `
-      // Multi-layer clouds with twinkling stars baked in.
+      // Two parallax layers of stars + drifting nebula clouds.
+      float stars = 0.0;
+      for (int layer = 0; layer < 3; layer++) {
+        float fl = float(layer);
+        float scale = 20.0 + fl * 15.0;
+        vec2 q = p * scale - t * (0.05 + fl * 0.03);
+        vec2 i = floor(q);
+        float star = step(0.982, hash(i));
+        float tw = 0.5 + 0.5 * sin(t * 3.0 + hash(i + 8.8) * 20.0);
+        stars += star * tw * (1.0 - fl * 0.2);
+      }
+      // clouds
       vec2 q = p;
       float clouds = 0.0, amp = 0.5;
       for (int i = 0; i < 5; i++) {
         float fi = float(i);
-        vec2 qq = q + vec2(t * 0.02 * (1.0 + fi * 0.3),
-                           -t * 0.015 * (1.0 - fi * 0.1));
+        vec2 qq = q + vec2(t * 0.02 * (1.0 + fi * 0.3), -t * 0.015 * (1.0 - fi * 0.1));
         clouds += fbm(qq * (1.0 + fi * 0.5)) * amp;
         amp *= 0.6;
       }
-      vec2 sp = p * 25.0;
-      vec2 si = floor(sp);
-      float star = step(0.985, hash(si));
-      float twinkle = 0.5 + 0.5 * sin(t * 3.0 + hash(si) * 100.0);
-      v = clamp(clouds * 0.7 + star * twinkle * 0.5, 0.0, 1.0);
+      v = clamp(clouds * 0.55 + stars * 1.2, 0.0, 1.0);
     `
   },
 
   {
     name: "Eclipse Ink",
     cat: "strange",
-    desc: "Soft reactive ring",
-    a: "#210d13",
-    b: "#a84459",
+    desc: "Total solar eclipse with corona",
+    a: "#0a0308",
+    b: "#ffb0c8",
     motion: -1,
-    speed: 0.45,
-    soft: 0.3,
-    glow: 0.85,
+    speed: 0.3,
+    glow: 1.5,
     custom: `
-      // Moire of two close-frequency rings — soft reactive ink.
+      // Black moon disc + streaming corona + diamond-ring flash.
       float r = length(p);
-      float ring  = sin(r * 15.0 - t * 2.0) * 0.5 + 0.5;
-      float ring2 = sin(r * 17.0 + t * 1.5) * 0.5 + 0.5;
-      float moire = ring * ring2;
-      float ink   = fbm(p * 3.0 + t * 0.05);
-      v = (moire * 0.5 + ink * 0.5) * smoothstep(1.25, 0.1, r);
+      float R = 0.55;
+      // moon: dark disc
+      float moon = smoothstep(R, R - 0.01, r);
+      // corona: radial streaks
+      float a = atan(p.y, p.x);
+      float corona = 0.0;
+      for (int i = 0; i < 20; i++) {
+        float fi = float(i);
+        float ang = fi * 0.314;
+        float align = cos(a - ang);
+        float strength = 0.5 + 0.5 * hash(vec2(fi, 1.1));
+        corona += pow(max(0.0, align), 40.0) * strength;
+      }
+      corona *= exp(-abs(r - R) * 3.5);
+      // diamond-ring flash (bright point at one edge)
+      float flashAng = t * 0.4;
+      vec2 flashPos = vec2(cos(flashAng), sin(flashAng)) * R;
+      float flash = exp(-length(p - flashPos) * 30.0);
+      v = clamp(corona * 0.9 + flash * 1.6 + moon * 0.02, 0.0, 1.0);
     `
   },
 
   {
     name: "Rose Smoke",
     cat: "strange",
-    desc: "Floral low-density turbulence",
-    a: "#220c17",
-    b: "#ad4f78",
+    desc: "Recursive curl smoke",
+    a: "#150710",
+    b: "#e58ab5",
     motion: -1,
-    speed: 0.4,
-    soft: 0.6,
+    speed: 0.35,
+    soft: 0.55,
+    glow: 1.0,
     custom: `
-      // Recursive domain warp — soft smoke that curls back on itself.
+      // Curl-noise-ish smoke via 4 iterations of domain warp, then threshold.
       vec2 q = p;
-      float smoke = 0.0, amp = 0.5;
       for (int i = 0; i < 4; i++) {
         float fi = float(i);
-        vec2 qq = q + vec2(t * 0.03 * fi, -t * 0.02 * (1.0 + fi * 0.2));
-        qq += vec2(fbm(qq * 0.8 + fi * 3.0),
-                   fbm(qq * 0.8 + fi * 3.0 + 2.1)) * 0.6;
-        smoke += fbm(qq * (1.5 + fi * 0.4)) * amp;
-        amp *= 0.6;
+        vec2 w = vec2(fbm(q * 0.9 + fi * 3.0 + t * 0.05),
+                      fbm(q * 0.9 + fi * 3.0 + 2.1 + t * 0.05));
+        q += w * 0.55;
       }
-      v = smoke;
+      float smoke = fbm(q * 1.5 + t * 0.03);
+      // thickness gives a bright core
+      float core = pow(smoothstep(0.4, 0.75, smoke), 1.6);
+      v = clamp(smoke * 0.55 + core * 0.7, 0.0, 1.0);
     `
   },
 
   {
     name: "Moon Milk",
     cat: "strange",
-    desc: "Pale nocturnal drift",
-    a: "#171922",
-    b: "#9aa1b2",
+    desc: "Cosmic milk drift",
+    a: "#0d0f18",
+    b: "#c5cbe0",
     motion: -1,
-    speed: 0.18,
-    soft: 0.65,
+    speed: 0.15,
+    soft: 0.7,
     custom: `
-      // Very soft drifting clouds, biased toward mid-bright.
+      // Pure soft drifting clouds with a faint gravity well in the middle.
       vec2 q = p;
-      q += vec2(fbm(q * 0.7 + t * 0.02),
-                fbm(q * 0.7 + 8.8 + t * 0.02)) * 0.9;
-      float clouds = fbm(q * 1.3 + t * 0.025);
-      v = smoothstep(0.25, 0.75, clouds) * 0.7 + clouds * 0.3;
+      q += vec2(fbm(q * 0.6 + t * 0.02),
+                fbm(q * 0.6 + 8.8 + t * 0.02)) * 0.9;
+      float clouds = fbm(q * 1.2 + t * 0.025);
+      float well = exp(-length(p) * 0.7) * 0.2;
+      v = clamp(smoothstep(0.25, 0.75, clouds) * 0.7 + clouds * 0.25 + well, 0.0, 1.0);
     `
   },
 
   {
     name: "Quantum Foam",
     cat: "strange",
-    desc: "Subatomic shimmer",
-    a: "#0a0a1a",
-    b: "#7a8cff",
+    desc: "Bubbles appearing and popping",
+    a: "#03030f",
+    b: "#8ea3ff",
     motion: -1,
     speed: 0.6,
-    glow: 1.1,
+    glow: 1.3,
     custom: `
-      // Grid of bubbles that pop and reform — bright popping rims.
+      // Grid of cells; each cell runs its own bubble lifecycle.
       vec2 q = p * 6.0;
       vec2 i = floor(q), f = fract(q);
       float glow = 0.0;
-      for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-          vec2 g = vec2(float(x), float(y));
-          float hh = hash(i + g);
-          float life = fract(t * 0.6 + hh * 3.0);
-          float radius = 0.1 + 0.25 * sin(life * 3.14159);
-          vec2 o = vec2(0.5) + (vec2(hash(i + g + 1.7),
-                                     hash(i + g + 3.2)) - 0.5) * 0.4;
-          float dd = length(f - g - o);
-          float ring = exp(-abs(dd - radius) * 25.0) * (1.0 - life);
-          glow = max(glow, ring);
-        }
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 cell = i + g;
+        float seed = hash(cell);
+        float life = fract(t * (0.5 + seed * 0.6) + seed * 3.0);
+        float radius = 0.06 + 0.24 * sin(life * 3.14159);
+        vec2 center = vec2(hash(cell + 1.7), hash(cell + 3.2)) * 0.6 + 0.2;
+        float r = length(f - g - center);
+        // expanding bright rim that fades as bubble pops
+        float rim = exp(-pow((r - radius) * 22.0, 2.0)) * (1.0 - life);
+        // inner glow
+        float inside = smoothstep(radius, radius - 0.02, r) * 0.4;
+        glow += rim + inside;
       }
       v = clamp(glow, 0.0, 1.0);
     `
@@ -1080,167 +1345,191 @@ export default [
   {
     name: "Nebula Bloom",
     cat: "organic",
-    desc: "Expansive cosmic cloud",
-    a: "#120a1e",
-    b: "#b57aff",
+    desc: "Spiral galaxy with arms",
+    a: "#080414",
+    b: "#c08bff",
     motion: -1,
-    speed: 0.4,
-    soft: 0.55,
-    glow: 1.0,
-    warp: 0.15,
+    speed: 0.3,
+    soft: 0.5,
+    glow: 1.2,
     custom: `
-      // Volumetric-style layered clouds with parallax depth + central bloom.
-      float acc = 0.0, amp = 0.5;
-      for (int i = 0; i < 6; i++) {
-        float fi = float(i);
-        vec2 qq = p * (1.0 + fi * 0.4)
-                + vec2(t * 0.03 / (1.0 + fi * 0.5),
-                       -t * 0.02 / (1.0 + fi * 0.5));
-        float density = smoothstep(0.4, 0.75, fbm(qq + fi * 3.0));
-        acc += density * amp;
-        amp *= 0.65;
-      }
-      float bloom = exp(-length(p) * 1.5) * 0.3;
-      v = clamp(acc * 0.8 + bloom * 0.4, 0.0, 1.0);
+      // 2-arm logarithmic spiral galaxy + dense core + scattered stars.
+      float a = atan(p.y, p.x);
+      float r = length(p);
+      // spiral arm field
+      float arms = sin(a * 2.0 - log(r + 0.15) * 4.0 + t * 0.4) * 0.5 + 0.5;
+      arms = pow(arms, 1.8);
+      // density falls off with radius
+      float density = arms * exp(-r * 1.5);
+      // core
+      float core = exp(-r * 8.0) * 1.2;
+      // grain: fine fbm speckle
+      float grain = fbm(p * 6.0 + t * 0.08) * 0.4;
+      // sprinkle stars on top
+      vec2 sp = p * 26.0;
+      vec2 si = floor(sp);
+      float stars = step(0.984, hash(si)) * (0.5 + 0.5 * sin(t * 3.0 + hash(si) * 20.0));
+      v = clamp(density * 0.6 + core + grain * 0.3 + stars * 0.6, 0.0, 1.0);
     `
   },
 
   {
     name: "Magma Core",
     cat: "matter",
-    desc: "Deep planetary heat",
-    a: "#1a0602",
-    b: "#ff6b2b",
+    desc: "Planet with glowing crust cracks",
+    a: "#120402",
+    b: "#ff6a1a",
     motion: -1,
-    speed: 0.5,
-    glow: 1.3,
-    warp: 0.25,
-    pulse: 1.4,
+    speed: 0.4,
+    glow: 1.8,
+    pulse: 1.3,
     custom: `
-      // Fake 3D sphere with a hot fbm surface, lit from upper-right with rim.
+      // Fake 3D planet: lit hemisphere + glowing crack network + outer haze.
       float r = length(p);
-      float sphere = sqrt(max(0.0, 1.0 - r * r));
+      float R = 0.6;
+      float sphere = sqrt(max(0.0, R * R - r * r));
       vec3 n = normalize(vec3(p, sphere));
-      float heat = fbm(n.xy * 2.0 + n.z + vec2(t * 0.1, -t * 0.08));
-      heat = fbm(n.xy * 3.0 + heat * 1.5 + t * 0.05);
-      float lit = max(0.0, dot(n, normalize(vec3(0.5, 0.7, 0.6))));
-      float rim = pow(1.0 - sphere, 2.0) * 0.55;
-      v = clamp(heat * (lit * 0.6 + 0.25) + rim, 0.0, 1.0) * smoothstep(1.1, 0.95, r);
+      // crack network from fbm ridges
+      vec2 q = n.xy * 4.0;
+      float ridged = 0.0, amp = 0.5, freq = 1.0;
+      for (int i = 0; i < 4; i++) {
+        float v1 = fbm(q * freq + t * 0.08);
+        ridged += (1.0 - abs(v1 - 0.5) * 2.0) * amp;
+        freq *= 2.0;
+        amp  *= 0.55;
+      }
+      float cracks = pow(ridged, 4.0) * 3.0;
+      // surface lighting
+      float lit = max(0.0, dot(n, normalize(vec3(0.4, 0.6, 0.7)))) * 0.5 + 0.3;
+      // outer glow
+      float haze = exp(-abs(r - R) * 6.0) * 0.6;
+      // disk mask
+      float mask = smoothstep(R, R - 0.01, r);
+      v = clamp((lit * 0.4 + cracks) * mask + haze, 0.0, 1.0);
     `
   },
 
   {
     name: "Frost Crystal",
     cat: "matter",
-    desc: "Icy geometric growth",
-    a: "#0a1420",
-    b: "#a8d8ff",
+    desc: "Growing ice dendrites",
+    a: "#040e18",
+    b: "#b0e6ff",
     motion: -1,
-    speed: 0.35,
+    speed: 0.3,
     soft: 0.1,
-    glow: 0.9,
-    scale: 1.2,
+    glow: 1.1,
     custom: `
-      // Three overlapping rotated grids → faceted ice, with sparkle highlights.
-      vec2 q = rot(p, t * 0.03);
-      vec2 g1 = abs(fract(q * 4.0) - 0.5);
-      vec2 g2 = abs(fract(rot(q, 1.05) * 5.0) - 0.5);
-      vec2 g3 = abs(fract(rot(q, 2.10) * 3.5) - 0.5);
-      float facet = min(min(max(g1.x, g1.y),
-                            max(g2.x, g2.y)),
-                            max(g3.x, g3.y));
-      float light = smoothstep(0.5, 0.0, facet);
-      float sparkle = pow(max(0.0, fbm(q * 20.0 + t * 0.2) - 0.7), 2.0) * 6.0;
-      v = clamp(light * 0.7 + facet * 0.4 + sparkle * 0.4, 0.0, 1.0);
+      // Hexagonal ice dendrites via three rotated grids + a growing factor.
+      vec2 q = p * 2.4;
+      float grow = 0.6 + 0.4 * sin(t * 0.4);
+      float acc = 0.0;
+      for (int i = 0; i < 3; i++) {
+        float fi = float(i);
+        vec2 qq = rot(q, fi * 1.047);
+        vec2 g = abs(fract(qq) - 0.5);
+        float line = smoothstep(0.02, 0.0, g.x) + smoothstep(0.02, 0.0, g.y);
+        acc += line * exp(-length(qq) * 0.4) * grow;
+      }
+      // hexagonal highlight from a fake normal on top of dendrites
+      float hex = 0.0;
+      vec2 h = vec2(1.0, 1.7320508);
+      vec2 a1 = mod(q, h) - h * 0.5;
+      vec2 a2 = mod(q + h * 0.5, h) - h * 0.5;
+      vec2 aa = length(a1) < length(a2) ? a1 : a2;
+      float d = length(aa);
+      hex = smoothstep(0.42, 0.48, d);
+      v = clamp(acc * 0.6 + (1.0 - hex) * 0.5 * grow, 0.0, 1.0);
     `
   },
 
   {
     name: "Void Silk",
     cat: "strange",
-    desc: "Dark elegant folds",
-    a: "#08080c",
-    b: "#6a4c93",
+    desc: "Folded black silk with directional light",
+    a: "#050507",
+    b: "#9a7fd1",
     motion: -1,
-    speed: 0.3,
-    soft: 0.6,
-    glow: 0.7,
+    speed: 0.25,
+    soft: 0.55,
+    glow: 0.8,
     custom: `
-      // Domain-warped cloth with directional fake lighting.
+      // Deep folds via heavy domain warp; fake light picks out the ridges.
       vec2 q = p;
-      q += vec2(fbm(q * 1.2 + t * 0.02),
-                fbm(q * 1.2 + 4.4 + t * 0.02)) * 0.8;
-      float h  = fbm(q * 2.0 + t * 0.025);
-      float e  = 0.02;
-      float hx = fbm((q + vec2(e, 0.0)) * 2.0 + t * 0.025);
-      float hy = fbm((q + vec2(0.0, e)) * 2.0 + t * 0.025);
-      vec3 n = normalize(vec3((hx - h) * 4.0, (hy - h) * 4.0, 1.0));
-      float lit = max(0.0, dot(n, normalize(vec3(-0.5, 0.6, 0.6))));
-      float shadow = max(0.0, dot(n, normalize(vec3(0.5, -0.4, 0.6)))) * 0.2;
-      v = clamp(lit * 0.7 + shadow + h * 0.3, 0.0, 1.0);
+      q += vec2(fbm(q * 1.0 + t * 0.02),
+                fbm(q * 1.0 + 4.4 + t * 0.02)) * 1.0;
+      float h  = fbm(q * 2.0 + t * 0.02);
+      float e  = 0.015;
+      float hx = fbm((q + vec2(e, 0.0)) * 2.0 + t * 0.02);
+      float hy = fbm((q + vec2(0.0, e)) * 2.0 + t * 0.02);
+      vec3 n = normalize(vec3((hx - h) * 6.0, (hy - h) * 6.0, 1.0));
+      // key light: only picks up the ridges facing up-left
+      vec3 L = normalize(vec3(-0.4, 0.7, 0.6));
+      float lit = max(0.0, dot(n, L));
+      float spec = pow(lit, 30.0) * 1.2;
+      v = clamp(lit * 0.55 + spec + h * 0.25, 0.0, 1.0);
     `
   },
 
   {
     name: "Abyssal Glow",
     cat: "organic",
-    desc: "Deep sea bioluminescence",
-    a: "#021a1a",
-    b: "#2ee6c8",
+    desc: "Deep-sea creature with tendrils",
+    a: "#010e0e",
+    b: "#4affd6",
     motion: -1,
-    speed: 0.25,
-    glow: 1.4,
-    pulse: 1.5,
+    speed: 0.2,
+    glow: 1.6,
+    pulse: 1.6,
     soft: 0.4,
     custom: `
-      // Three drifting bioluminescent worm-creatures — Worley blobs at
-      // offset positions, each with its own motion path.
-      vec2 q = p * 1.8;
-      q.x += fbm(q * 1.5 + t * 0.04) * 0.5;
-      q.y += fbm(q * 1.5 + 6.1 + t * 0.03) * 0.5;
-      float glow = 0.0;
-      for (int i = 0; i < 3; i++) {
+      // Central glow + pulsing tendrils radiating outward like an anemone.
+      float glow = exp(-length(p) * 5.0) * 1.2;
+      float a = atan(p.y, p.x);
+      float r = length(p);
+      float tendrils = 0.0;
+      for (int i = 0; i < 10; i++) {
         float fi = float(i);
-        vec2 off = vec2(sin(t * 0.2 + fi * 2.3),
-                        cos(t * 0.15 + fi * 1.7)) * 0.8;
-        vec2 qq = q + off;
-        vec2 i2 = floor(qq), f2 = fract(qq);
-        float md = 8.0;
-        for (int y = -1; y <= 1; y++) {
-          for (int x = -1; x <= 1; x++) {
-            vec2 g = vec2(float(x), float(y));
-            vec2 o = vec2(hash(i2 + g + fi * 3.3),
-                          hash(i2 + g + fi * 5.5));
-            md = min(md, length(f2 - g - o));
-          }
-        }
-        glow += smoothstep(0.35, 0.05, md) * (1.0 - fi * 0.3);
+        float baseAng = fi * 0.628;
+        float wobble = sin(t * 1.5 + fi) * 0.12;
+        float dAng = abs(atan(sin(a - baseAng), cos(a - baseAng)));
+        float thick = 0.05 + 0.03 * sin(t * 2.0 + fi * 2.1);
+        float tendril = exp(-pow(dAng / thick, 2.0))
+                      * exp(-abs(r - 0.4 - 0.15 * sin(t * 1.2 + fi)) * 3.0);
+        tendrils += tendril;
       }
-      v = clamp(glow, 0.0, 1.0);
+      // ambient particles
+      vec2 sp = p * 14.0;
+      vec2 si = floor(sp);
+      float parts = step(0.985, hash(si)) * (0.6 + 0.4 * sin(t * 3.0 + hash(si) * 20.0));
+      v = clamp(glow * 0.7 + tendrils * 0.9 + parts * 0.6, 0.0, 1.0);
     `
   },
 
   {
     name: "Chromatic Oil",
     cat: "matter",
-    desc: "Iridescent thin film",
-    a: "#101018",
-    b: "#c77dff",
+    desc: "Full-spectrum thin-film rainbow",
+    a: "#050508",
+    b: "#e0b3ff",
     motion: -1,
-    speed: 0.4,
+    speed: 0.35,
     soft: 0.2,
-    glow: 0.85,
-    scale: 0.9,
+    glow: 1.2,
     custom: `
-      // Thin-film interference — two coupled fbm layers drive a fast
-      // sine phase that produces a rainbow-like band structure.
-      vec2 q = p;
-      float film  = fbm(q * 2.0 + vec2(t * 0.03, -t * 0.02));
-      float film2 = fbm(q * 3.5 + film * 1.5 + t * 0.04);
-      float phase = film * 8.0 + film2 * 4.0 + t * 0.1;
-      float bands = abs(sin(phase)) * 0.5 + 0.5;
-      float slick = smoothstep(0.35, 0.65, film);
-      v = clamp(bands * 0.55 + slick * 0.5, 0.0, 1.0);
+      // Proper RGB-split thin-film interference: three sine phases drive
+      // three independent colour channels, then we take their max.
+      vec2 q = p * 1.1;
+      float film  = fbm(q * 2.0 + vec2(t * 0.04, -t * 0.03));
+      float film2 = fbm(q * 3.5 + film * 1.5 + t * 0.05);
+      float film3 = fbm(q * 5.5 + film2 * 1.2 + t * 0.06);
+      float phase = film * 12.0 + film2 * 8.0 + film3 * 6.0 + t * 0.3;
+      float rr = sin(phase) * 0.5 + 0.5;
+      float gg = sin(phase + 2.094) * 0.5 + 0.5;
+      float bb = sin(phase + 4.188) * 0.5 + 0.5;
+      float irid = max(rr, max(gg, bb));
+      float base = film * 0.35;
+      v = clamp(irid * 0.55 + base + pow(irid, 3.0) * 0.4, 0.0, 1.0);
     `
   }
 
