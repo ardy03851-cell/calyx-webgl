@@ -4,7 +4,7 @@
 
 **A procedural fluid laboratory for the browser.**
 
-Live GPU shaders · Hand-written motion code · Zero build step
+Live GPU shaders · Hand-written motion code · Zero build step **made by Ardy/Oleksandr and my man deepseek, thanks to him for adding notes and fixing bugs, true hommie**
 
 </div>
 
