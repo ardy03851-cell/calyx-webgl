@@ -2,666 +2,1081 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-    <title>Calyx — Fluid Laboratory</title>
-    <link rel="icon" type="image/png" href="icon.png">
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none
-        }
-
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #030509;
-            color: #edf3fb;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif
-        }
-
-        button {
-            font: inherit
-        }
-
-        #gl {
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            display: block
-        }
-
-        .vignette {
-            position: fixed;
-            inset: 0;
-            z-index: 2;
-            pointer-events: none;
-            background: radial-gradient(circle at 50% 45%, transparent 38%, #0009 100%)
-        }
-
-        .hud {
-            position: fixed;
-            z-index: 10;
-            top: 18px;
-            left: 18px;
-            right: 18px;
-            display: flex;
-            justify-content: space-between;
-            pointer-events: none
-        }
-
-        .brand {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            pointer-events: auto
-        }
-
-        .brand img {
-            width: 40px;
-            height: 40px;
-            border: 1px solid #fff2;
-            border-radius: 15px 6px 15px 6px;
-            box-shadow: 0 10px 35px #0008
-        }
-
-        .brand b {
-            font-size: 12px;
-            letter-spacing: .22em;
-            text-transform: uppercase
-        }
-
-        .brand span {
-            display: block;
-            color: #788497;
-            font-size: 8px;
-            letter-spacing: .12em;
-            margin-top: 3px
-        }
-
-        .status {
-            pointer-events: auto;
-            padding: 9px 12px;
-            border: 1px solid #fff2;
-            background: #070a10b8;
-            backdrop-filter: blur(18px);
-            border-radius: 13px 6px 13px 6px;
-            font-size: 9px;
-            letter-spacing: .13em;
-            color: #9da8bc
-        }
-
-        .status i {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #7ed7b9;
-            margin-right: 7px
-        }
-
-        .rail {
-            position: fixed;
-            z-index: 11;
-            left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            padding: 7px;
-            width: 58px;
-            border: 1px solid #fff2;
-            background: #070a11b8;
-            backdrop-filter: blur(22px);
-            border-radius: 19px 7px 19px 7px;
-            box-shadow: 0 20px 55px #0009
-        }
-
-        .rail button {
-            width: 42px;
-            height: 42px;
-            border: 1px solid transparent;
-            background: transparent;
-            color: #8290a7;
-            border-radius: 13px 5px 13px 5px;
-            display: grid;
-            place-items: center;
-            cursor: pointer;
-            transition: .18s
-        }
-
-        .rail button:hover,
-        .rail button.on {
-            color: #fff;
-            background: #fff0a;
-            border-color: #fff2
-        }
-
-        .rail svg {
-            width: 18px;
-            height: 18px
-        }
-
-        .rail hr {
-            border: 0;
-            border-top: 1px solid #fff12;
-            margin: 7px 5px
-        }
-
-        .center {
-            position: fixed;
-            z-index: 4;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            pointer-events: none;
-            mix-blend-mode: screen
-        }
-
-        .center h1 {
-            font-weight: 500;
-            font-size: clamp(30px, 6vw, 74px);
-            letter-spacing: -.065em;
-            text-shadow: 0 0 50px #74aaff2a
-        }
-
-        .center p {
-            font-size: 9px;
-            letter-spacing: .35em;
-            color: #8995aa;
-            margin-top: 9px;
-            text-transform: uppercase
-        }
-
-        .dock {
-            position: fixed;
-            z-index: 12;
-            left: 50%;
-            bottom: 18px;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 7px;
-            background: #070a11c7;
-            backdrop-filter: blur(25px);
-            border: 1px solid #fff2;
-            border-radius: 19px 7px 19px 7px;
-            box-shadow: 0 20px 60px #0009
-        }
-
-        .btn {
-            height: 40px;
-            border: 1px solid #fff13;
-            background: #fff08;
-            color: #b7c1d1;
-            padding: 0 13px;
-            border-radius: 12px 5px 12px 5px;
-            font-size: 9px;
-            letter-spacing: .12em;
-            cursor: pointer
-        }
-
-        .btn:hover {
-            color: #fff;
-            background: #fff12
-        }
-
-        .btn.primary {
-            background: linear-gradient(135deg, #426bff28, #6ef1e30e);
-            border-color: #7596ff35;
-            color: #fff
-        }
-
-        .read {
-            min-width: 145px;
-            padding: 0 7px
-        }
-
-        .read b {
-            font-size: 11px
-        }
-
-        .read small {
-            display: block;
-            color: #69768d;
-            font-size: 8px;
-            letter-spacing: .11em;
-            text-transform: uppercase;
-            margin-top: 4px
-        }
-
-        .vault {
-            position: fixed;
-            inset: 0;
-            z-index: 30;
-            padding: 18px;
-            display: grid;
-            grid-template-columns: 180px 1fr;
-            gap: 11px;
-            background: #02040bd9 url("bh.png") center/cover no-repeat;
-            backdrop-filter: blur(20px);
-            opacity: 0;
-            pointer-events: none;
-            transform: scale(1.015);
-            transition: .25s
-        }
-
-        .vault.open {
-            opacity: 1;
-            pointer-events: auto;
-            transform: none
-        }
-
-        .nav,
-        .main {
-            border: 1px solid #fff2;
-            background: #070a11df;
-            box-shadow: inset 0 1px #fff1, 0 25px 80px #0009
-        }
-
-        .nav {
-            border-radius: 23px 7px 23px 7px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column
-        }
-
-        .nav h2 {
-            font-size: 15px
-        }
-
-        .nav p {
-            font-size: 9px;
-            line-height: 1.6;
-            color: #68758c;
-            margin-top: 5px
-        }
-
-        .filters {
-            display: grid;
-            gap: 4px;
-            margin-top: 16px
-        }
-
-        .filters button {
-            border: 1px solid transparent;
-            background: transparent;
-            color: #7c889c;
-            text-align: left;
-            padding: 9px;
-            border-radius: 9px;
-            font-size: 9px;
-            cursor: pointer
-        }
-
-        .filters button.active,
-        .filters button:hover {
-            color: #fff;
-            background: #fff09;
-            border-color: #fff15
-        }
-
-        .nav .editor {
-            margin-top: 10px
-        }
-
-        .hint {
-            margin-top: auto;
-            padding-top: 12px;
-            border-top: 1px solid #fff12;
-            color: #647087;
-            font-size: 8px;
-            line-height: 1.8
-        }
-
-        .main {
-            min-width: 0;
-            border-radius: 23px 7px 23px 7px;
-            padding: 14px;
-            display: flex;
-            flex-direction: column
-        }
-
-        .vhead {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 3px 2px 12px
-        }
-
-        .vhead h2 {
-            font-size: 22px;
-            letter-spacing: -.04em
-        }
-
-        .vhead p {
-            font-size: 9px;
-            color: #68758c;
-            margin-top: 5px
-        }
-
-        .close {
-            width: 40px;
-            height: 40px;
-            border: 1px solid #fff2;
-            background: #fff08;
-            color: #fff;
-            border-radius: 13px 5px 13px 5px;
-            font-size: 18px;
-            cursor: pointer
-        }
-
-        .grid {
-            min-height: 0;
-            overflow-y: auto;
-            overflow-x: hidden;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
-            gap: 9px;
-            padding: 2px 3px 18px;
-            overscroll-behavior: contain;
-            scrollbar-width: thin;
-            scrollbar-color: #ffffff38 transparent
-        }
-
-        .grid::-webkit-scrollbar {
-            width: 7px
-        }
-
-        .grid::-webkit-scrollbar-track {
-            background: #ffffff05;
-            border-radius: 8px
-        }
-
-        .grid::-webkit-scrollbar-thumb {
-            background: #ffffff38;
-            border-radius: 8px
-        }
-
-        .grid::-webkit-scrollbar-thumb:hover {
-            background: #ffffff58
-        }
-
-        .card {
-            --accent: #7aa0ff;
-            position: relative;
-            min-height: 108px;
-            overflow: hidden;
-            display: grid;
-            grid-template-columns: 76px 1fr;
-            gap: 12px;
-            align-items: center;
-            padding: 10px;
-            border: 1px solid #fff13;
-            background: #090c14e8;
-            border-radius: 19px 6px 19px 6px;
-            cursor: pointer;
-            transition: .18s
-        }
-
-        .card:before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 0 0, var(--accent), transparent 48%);
-            opacity: .035;
-            pointer-events: none
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            border-color: #fff3
-        }
-
-        .card.active {
-            border-color: var(--accent);
-            box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 15%, transparent)
-        }
-
-        .preview {
-            width: 76px;
-            height: 76px;
-            border-radius: 20px 6px 20px 6px;
-            border: 1px solid #fff2;
-            overflow: hidden;
-            background: #000;
-            box-shadow: inset 0 1px #fff2, 0 10px 25px #0008
-        }
-
-        .preview canvas {
-            width: 100%;
-            height: 100%;
-            display: block
-        }
-
-        .card h3 {
-            font-size: 11px
-        }
-
-        .card small {
-            display: block;
-            color: #69768c;
-            font-size: 8px;
-            line-height: 1.5;
-            margin-top: 5px
-        }
-
-        .tag {
-            display: inline-block;
-            margin-top: 8px;
-            border: 1px solid #fff15;
-            color: #9aa6bb;
-            padding: 3px 5px;
-            border-radius: 5px;
-            font-size: 7px;
-            letter-spacing: .1em;
-            text-transform: uppercase
-        }
-
-        @media(max-width:700px) {
-            .hud {
-                top: 10px;
-                left: 10px;
-                right: 10px
-            }
-
-            .rail {
-                left: 9px;
-                width: 52px
-            }
-
-            .rail button {
-                width: 36px;
-                height: 36px
-            }
-
-            .dock {
-                bottom: 9px;
-                max-width: calc(100% - 18px)
-            }
-
-            .read {
-                min-width: 105px
-            }
-
-            .vault {
-                padding: 9px;
-                grid-template-columns: 1fr
-            }
-
-            .nav {
-                display: none
-            }
-
-            .grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 7px
-            }
-
-            .card {
-                grid-template-columns: 1fr;
-                min-height: 145px
-            }
-
-            .preview {
-                width: 100%;
-                height: 86px
-            }
-        }
-
-        @media(max-width:400px) {
-            .read {
-                display: none
-            }
-
-            .grid {
-                grid-template-columns: 1fr 1fr
-            }
-
-            .card {
-                padding: 8px
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Calyx — Fluid Laboratory</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #030509;
+      color: #edf3fb;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif
+    }
+
+    button {
+      font: inherit
+    }
+
+    #gl {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 45%, transparent 38%, #0009 100%)
+    }
+
+    .hud {
+      position: fixed;
+      z-index: 10;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none
+    }
+
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      pointer-events: auto
+    }
+
+    .brand img {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #fff2;
+      border-radius: 15px 6px 15px 6px;
+      box-shadow: 0 10px 35px #0008
+    }
+
+    .brand b {
+      font-size: 12px;
+      letter-spacing: .22em;
+      text-transform: uppercase
+    }
+
+    .brand span {
+      display: block;
+      color: #788497;
+      font-size: 8px;
+      letter-spacing: .12em;
+      margin-top: 3px
+    }
+
+    .status {
+      pointer-events: auto;
+      padding: 9px 12px;
+      border: 1px solid #fff2;
+      background: #070a10b8;
+      backdrop-filter: blur(18px);
+      border-radius: 13px 6px 13px 6px;
+      font-size: 9px;
+      letter-spacing: .13em;
+      color: #9da8bc;
+      transition: color .3s
+    }
+
+    .status i {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #7ed7b9;
+      margin-right: 7px;
+      box-shadow: 0 0 8px #7ed7b9
+    }
+
+    .rail {
+      position: fixed;
+      z-index: 11;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 7px;
+      width: 58px;
+      border: 1px solid #fff2;
+      background: #070a11b8;
+      backdrop-filter: blur(22px);
+      border-radius: 19px 7px 19px 7px;
+      box-shadow: 0 20px 55px #0009
+    }
+
+    .rail button {
+      width: 42px;
+      height: 42px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #8290a7;
+      border-radius: 13px 5px 13px 5px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: .18s
+    }
+
+    .rail button:hover,
+    .rail button.on {
+      color: #fff;
+      background: #fff0a;
+      border-color: #fff2
+    }
+
+    .rail svg {
+      width: 18px;
+      height: 18px
+    }
+
+    .rail hr {
+      border: 0;
+      border-top: 1px solid #fff12;
+      margin: 7px 5px
+    }
+
+    .center {
+      position: fixed;
+      z-index: 4;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      mix-blend-mode: screen
+    }
+
+    .center h1 {
+      font-weight: 500;
+      font-size: clamp(30px, 6vw, 74px);
+      letter-spacing: -.065em;
+      text-shadow: 0 0 50px #74aaff2a;
+      transition: text-shadow .4s
+    }
+
+    .center p {
+      font-size: 9px;
+      letter-spacing: .35em;
+      color: #8995aa;
+      margin-top: 9px;
+      text-transform: uppercase
+    }
+
+    .dock {
+      position: fixed;
+      z-index: 12;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px;
+      background: #070a11c7;
+      backdrop-filter: blur(25px);
+      border: 1px solid #fff2;
+      border-radius: 19px 7px 19px 7px;
+      box-shadow: 0 20px 60px #0009
+    }
+
+    .btn {
+      height: 40px;
+      border: 1px solid #fff13;
+      background: #fff08;
+      color: #b7c1d1;
+      padding: 0 13px;
+      border-radius: 12px 5px 12px 5px;
+      font-size: 9px;
+      letter-spacing: .12em;
+      cursor: pointer;
+      transition: .18s
+    }
+
+    .btn:hover {
+      color: #fff;
+      background: #fff12
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, #426bff28, #6ef1e30e);
+      border-color: #7596ff35;
+      color: #fff
+    }
+
+    .read {
+      min-width: 145px;
+      padding: 0 7px
+    }
+
+    .read b {
+      font-size: 11px
+    }
+
+    .read small {
+      display: block;
+      color: #69768d;
+      font-size: 8px;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+      margin-top: 4px
+    }
+
+    /* VAULT */
+    .vault {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 11px;
+      background: #02040bd9 url("bh.png") center/cover no-repeat;
+      backdrop-filter: blur(20px);
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(1.015);
+      transition: opacity .25s, transform .25s
+    }
+
+    .vault.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: none
+    }
+
+    .nav,
+    .main {
+      border: 1px solid #fff2;
+      background: #070a11df;
+      box-shadow: inset 0 1px #fff1, 0 25px 80px #0009
+    }
+
+    .nav {
+      border-radius: 23px 7px 23px 7px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #ffffff38 transparent
+    }
+
+    .nav::-webkit-scrollbar {
+      width: 4px
+    }
+
+    .nav::-webkit-scrollbar-thumb {
+      background: #ffffff38;
+      border-radius: 8px
+    }
+
+    .nav h2 {
+      font-size: 15px
+    }
+
+    .nav p {
+      font-size: 9px;
+      line-height: 1.6;
+      color: #68758c;
+      margin-top: 5px
+    }
+
+    .filters {
+      display: grid;
+      gap: 4px;
+      margin-top: 16px
+    }
+
+    .filters button {
+      border: 1px solid transparent;
+      background: transparent;
+      color: #7c889c;
+      text-align: left;
+      padding: 9px;
+      border-radius: 9px;
+      font-size: 9px;
+      cursor: pointer;
+      transition: .18s
+    }
+
+    .filters button.active,
+    .filters button:hover {
+      color: #fff;
+      background: #fff09;
+      border-color: #fff15
+    }
+
+    .nav .editor {
+      margin-top: 10px
+    }
+
+    .hint {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid #fff12;
+      color: #647087;
+      font-size: 8px;
+      line-height: 1.8
+    }
+
+    .main {
+      min-width: 0;
+      border-radius: 23px 7px 23px 7px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .vhead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 3px 2px 12px;
+      flex-shrink: 0
+    }
+
+    .vhead h2 {
+      font-size: 22px;
+      letter-spacing: -.04em
+    }
+
+    .vhead p {
+      font-size: 9px;
+      color: #68758c;
+      margin-top: 5px
+    }
+
+    .close {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #fff2;
+      background: #fff08;
+      color: #fff;
+      border-radius: 13px 5px 13px 5px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: .18s
+    }
+
+    .close:hover {
+      background: #fff12
+    }
+
+    .grid {
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+      gap: 9px;
+      padding: 2px 3px 18px;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: #ffffff38 transparent;
+      scroll-behavior: smooth
+    }
+
+    .grid::-webkit-scrollbar {
+      width: 7px
+    }
+
+    .grid::-webkit-scrollbar-track {
+      background: #ffffff05;
+      border-radius: 8px
+    }
+
+    .grid::-webkit-scrollbar-thumb {
+      background: #ffffff38;
+      border-radius: 8px
+    }
+
+    .grid::-webkit-scrollbar-thumb:hover {
+      background: #ffffff58
+    }
+
+    .card {
+      --accent: #7aa0ff;
+      position: relative;
+      min-height: 108px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid #fff13;
+      background: #090c14e8;
+      border-radius: 19px 6px 19px 6px;
+      cursor: pointer;
+      transition: transform .18s, border-color .18s, box-shadow .18s
+    }
+
+    .card:before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 0 0, var(--accent), transparent 48%);
+      opacity: .035;
+      pointer-events: none
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: #fff3
+    }
+
+    .card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 15%, transparent)
+    }
+
+    .preview {
+      width: 76px;
+      height: 76px;
+      border-radius: 20px 6px 20px 6px;
+      border: 1px solid #fff2;
+      overflow: hidden;
+      background: #000;
+      box-shadow: inset 0 1px #fff2, 0 10px 25px #0008
+    }
+
+    .preview canvas {
+      width: 100%;
+      height: 100%;
+      display: block
+    }
+
+    .card h3 {
+      font-size: 11px
+    }
+
+    .card small {
+      display: block;
+      color: #69768c;
+      font-size: 8px;
+      line-height: 1.5;
+      margin-top: 5px
+    }
+
+    .tag {
+      display: inline-block;
+      margin-top: 8px;
+      border: 1px solid #fff15;
+      color: #9aa6bb;
+      padding: 3px 5px;
+      border-radius: 5px;
+      font-size: 7px;
+      letter-spacing: .1em;
+      text-transform: uppercase
+    }
+
+    @media(max-width:700px) {
+      .hud {
+        top: 10px;
+        left: 10px;
+        right: 10px
+      }
+
+      .rail {
+        left: 9px;
+        width: 52px
+      }
+
+      .rail button {
+        width: 36px;
+        height: 36px
+      }
+
+      .dock {
+        bottom: 9px;
+        max-width: calc(100% - 18px)
+      }
+
+      .read {
+        min-width: 105px
+      }
+
+      .vault {
+        padding: 9px;
+        grid-template-columns: 1fr
+      }
+
+      .nav {
+        display: none
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px
+      }
+
+      .card {
+        grid-template-columns: 1fr;
+        min-height: 145px
+      }
+
+      .preview {
+        width: 100%;
+        height: 86px
+      }
+    }
+
+    @media(max-width:400px) {
+      .read {
+        display: none
+      }
+
+      .grid {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .card {
+        padding: 8px
+      }
+    }
+
+    /* Additional polish */
+    .glow-pulse {
+      animation: glowPulse 1.2s ease-out
+    }
+
+    @keyframes glowPulse {
+      0% {
+        text-shadow: 0 0 50px #74aaff2a
+      }
+
+      30% {
+        text-shadow: 0 0 80px #74aaff88
+      }
+
+      100% {
+        text-shadow: 0 0 50px #74aaff2a
+      }
+    }
+
+    .status.pulse i {
+      background: #ffb86b;
+      box-shadow: 0 0 14px #ffb86b
+    }
+
+    .status.pulse {
+      color: #ffb86b
+    }
+  </style>
 </head>
 
 <body>
-    <canvas id="gl"></canvas>
-    <div class="vignette"></div>
-    <div class="hud">
-        <div class="brand"><img src="icon.png" alt="">
-            <div><b>Calyx</b><span>procedural fluid laboratory</span></div>
+  <canvas id="gl"></canvas>
+  <div class="vignette"></div>
+
+  <div class="hud">
+    <div class="brand">
+      <img src="icon.png" alt="">
+      <div><b>Calyx</b><span>procedural fluid laboratory</span></div>
+    </div>
+    <div class="status" id="statusBox"><i></i><span id="status">ENGINE ONLINE</span></div>
+  </div>
+
+  <div class="rail">
+    <button class="on" id="vaultBtn" title="Liquid projects">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3C9 7 5 10.2 5 14.2a7 7 0 0 0 14 0C19 10.2 15 7 12 3Z"/></svg>
+    </button>
+    <hr>
+    <button id="pulse" title="Pulse">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>
+    </button>
+    <button id="editorBtn" title="Preset editor">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+    </button>
+    <button id="full" title="Fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+    </button>
+  </div>
+
+  <div class="center">
+    <h1 id="hero">Deep Obsidian</h1>
+    <p>move through the surface</p>
+  </div>
+
+  <div class="dock">
+    <button class="btn primary" id="open">PROJECTS <span id="count">42</span></button>
+    <div class="read"><b id="name">Deep Obsidian</b><small id="kind">Flowing strata</small></div>
+    <button class="btn" id="random">RANDOM</button>
+  </div>
+
+  <section class="vault" id="vault">
+    <aside class="nav">
+      <h2>Projects</h2>
+      <p>Quiet fluid profiles, plus room for your own presets.</p>
+      <div class="filters">
+        <button class="active" data-filter="all">ALL</button>
+        <button data-filter="organic">ORGANIC</button>
+        <button data-filter="energy">ENERGY</button>
+        <button data-filter="matter">MATTER</button>
+        <button data-filter="strange">STRANGE</button>
+      </div>
+      <button class="btn primary editor" id="editorNav">CREATE PRESET</button>
+      <div class="hint">
+        LIVE GPU SHADER<br>
+        SUBTLE MOTION<br>
+        SPACE = PULSE<br>
+        SCROLL TO EXPLORE
+      </div>
+    </aside>
+    <main class="main">
+      <header class="vhead">
+        <div>
+          <h2>Fluid Profiles</h2>
+          <p id="info">42 distinct motion systems</p>
         </div>
-        <div class="status"><i></i><span id="status">ENGINE ONLINE</span></div>
-    </div>
-    <div class="rail">
-        <button class="on" id="vaultBtn" title="Liquid projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3C9 7 5 10.2 5 14.2a7 7 0 0 0 14 0C19 10.2 15 7 12 3Z"/></svg></button>
-        <hr>
-        <button id="pulse" title="Pulse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg></button>
-        <button id="editorBtn" title="Preset editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg></button>
-        <button id="full" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
-    </div>
-    <div class="center">
-        <h1 id="hero">Deep Obsidian</h1>
-        <p>move through the surface</p>
-    </div>
-    <div class="dock"><button class="btn primary" id="open">PROJECTS <span id="count">42</span></button>
-        <div class="read"><b id="name">Deep Obsidian</b><small id="kind">Flowing strata</small></div>
-        <button class="btn" id="random">RANDOM</button>
-    </div>
-    <section class="vault" id="vault">
-        <aside class="nav">
-            <h2>Projects</h2>
-            <p>Quiet fluid profiles, plus room for your own presets.</p>
-            <div class="filters">
-                <button class="active" data-filter="all">ALL</button><button data-filter="organic">ORGANIC</button><button data-filter="energy">ENERGY</button><button data-filter="matter">MATTER</button><button data-filter="strange">STRANGE</button>
-            </div><button class="btn primary editor" id="editorNav">CREATE PRESET</button>
-            <div class="hint">LIVE GPU SHADER<br>SUBTLE MOTION<br>SPACE = PULSE<br>SCROLL TO EXPLORE</div>
-        </aside>
-        <main class="main">
-            <header class="vhead">
-                <div>
-                    <h2>Fluid Profiles</h2>
-                    <p id="info">42 distinct motion systems</p>
-                </div><button class="close" id="close">×</button>
-            </header>
-            <div class="grid" id="grid"></div>
-        </main>
-    </section>
+        <button class="close" id="close">×</button>
+      </header>
+      <div class="grid" id="grid"></div>
+    </main>
+  </section>
 
-    <script id="vs" type="x-shader/x-vertex">
-        attribute vec2 a_position;void main(){gl_Position=vec4(a_position,0.,1.);}
-</script>
-    <script id="fs" type="x-shader/x-fragment">
-        precision mediump float;
-uniform vec2 u_resolution,u_mouse;
-uniform float u_time,u_pulse,u_speed,u_soft,u_glow;
-uniform vec3 u_a,u_b;
-uniform int u_motion;
-float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
-float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=noise(p)*a;p*=2.;a*=.5;}return v;}
-vec2 rot(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(c*p.x-s*p.y,s*p.x+c*p.y);}
-void main(){
- vec2 uv=(gl_FragCoord.xy-.5*u_resolution.xy)/min(u_resolution.x,u_resolution.y);
- vec2 mouse=(u_mouse-.5*u_resolution.xy)/min(u_resolution.x,u_resolution.y);
- vec2 p=uv;float t=u_time*u_speed;float d=length(p);
- p+=(mouse-p)*.055/(length(mouse-p)+.45);
- float v=0.;
- if(u_motion==0){vec2 q=p;q.x+=sin(q.y*6.-t*.65)*.16;v=fbm(q*2.7+vec2(t*.06,-t*.03));}
- else if(u_motion==1){vec2 q=p*2.5;v=fbm(q+vec2(t*.08,-t*.04));}
- else if(u_motion==2){vec2 q=rot(p,t*.05);v=fbm(q*3.0);v=.5+.5*v+sin(q.x*7.+v*3.-t)*.08;}
- else if(u_motion==3){vec2 q=p;q.y+=sin(q.x*5.+t*.45)*.12;v=fbm(q*3.2);}
- else if(u_motion==4){vec2 q=p*3.;vec2 g=abs(fract(q)-.5);v=1.-length(g)*1.45;v=v*.7+fbm(q+t*.04)*.3;}
- else if(u_motion==5){vec2 q=p*2.1;v=fbm(q+vec2(t*.16,-t*.08));v=.5+.5*v;}
- else if(u_motion==6){vec2 q=p*3.;q.y+=sin(q.x*5.+t*.5)*.10;v=fbm(q);}
- else if(u_motion==7){vec2 q=p*2.8;v=sin(length(q+vec2(sin(t),cos(t))*.12)*7.-t)*.10+.5+fbm(q+t*.03)*.35;}
- else if(u_motion==8){vec2 q=rot(p,t*.035);v=fbm(q*2.2);}
- else if(u_motion==9){vec2 q=p*3.;v=fbm(q*1.6+vec2(t*.05,-t*.02));v+=sin(q.x*8.+q.y*3.-t)*.08;}
- else if(u_motion==10){vec2 q=p*3.5;v=fbm(q+vec2(sin(t*.3),cos(t*.25))*.12);}
- else if(u_motion==11){vec2 q=p*2.5;v=fbm(q);v+=sin(q.x*5.+fbm(q*2.)*2.-t*.35)*.10;}
- else if(u_motion==12){vec2 q=p;q.x+=fbm(q*2.)*.28;v=fbm(q*3.+vec2(t*.035,-t*.018));}
- else if(u_motion==13){vec2 q=p*2.;q.y+=sin(q.x*4.+t*.2)*.08;v=fbm(q*2.);v+=sin(q.x*4.+v*2.-t*.15)*.06;}
- else if(u_motion==14){vec2 q=p*4.;float col=floor(q.x);float yy=fract(q.y+t*.12*(.5+hash(vec2(col,2.))));v=smoothstep(.92,.12,yy)*.24+fbm(q*.7)*.55;}
- else if(u_motion==15){vec2 q=rot(p,t*.02);v=fbm(q*2.4);v+=sin(q.x*5.+v*5.-t*.25)*.08;}
- else if(u_motion==16){vec2 q=p;q.y+=sin(q.x*4.+t*.25)*.14;v=fbm(q*2.5);}
- else if(u_motion==17){vec2 q=p*2.;v=fbm(q+vec2(sin(t*.2),cos(t*.17))*.08);v+=sin(q.x*3.+q.y*2.-t*.15)*.05;}
- else {v=fbm(p*2.5+t*.02);}
- v=clamp(v,.02,.98);
- float structure=smoothstep(.15,.85,v);
- vec3 color=mix(u_a,u_b,structure);
- float highlight=pow(max(0.,1.-abs(v-.58)*3.2),2.)*.10*u_glow;
- float edge=smoothstep(.02,.18,1.-abs(v-.5)*2.)*.035*u_glow;
- float pointer=exp(-length(p-mouse)*6.)*.06*u_glow;
- float pulse=exp(-abs(d-(.28+u_pulse*.12))*25.)*.16*u_glow;
- color+=vec3(.8,.9,1.)*(highlight+edge+pointer+pulse);
- color*=1.05-.38*smoothstep(.2,1.,d);
- gl_FragColor=vec4(max(color,vec3(0.)),1.);
-}
-</script>
-    <script>
-        const liquids=[{"name":"Deep Obsidian","cat":"organic","desc":"Flowing strata","a":"#17243d","b":"#5c82c9","motion":0,"speed":0.65},{"name":"Ink Tendrils","cat":"strange","desc":"Soft branching ink","a":"#100d1c","b":"#71538f","motion":1,"speed":0.55},{"name":"Molten Gold","cat":"matter","desc":"Warm cellular heat","a":"#2b1705","b":"#b47b32","motion":2,"speed":0.7},{"name":"Emerald Vortex","cat":"organic","desc":"Quiet rotational fluid","a":"#06231b","b":"#3a9f7b","motion":3,"speed":0.55},{"name":"Crystal Melt","cat":"matter","desc":"Slow geometric facets","a":"#171326","b":"#8d7dbd","motion":4,"speed":0.55},{"name":"Solar Plasma","cat":"energy","desc":"Muted flare turbulence","a":"#301d0b","b":"#c77832","motion":5,"speed":0.75},{"name":"Arctic Waves","cat":"matter","desc":"Frozen ribbons","a":"#081a24","b":"#6caec1","motion":6,"speed":0.45},{"name":"Toxic Bubbles","cat":"strange","desc":"Low-key gas pockets","a":"#152006","b":"#79a33d","motion":7,"speed":0.55},{"name":"Midnight Nebula","cat":"strange","desc":"Quiet orbital clouds","a":"#0b0820","b":"#645a9f","motion":8,"speed":0.5},{"name":"Eclipse Ink","cat":"strange","desc":"Soft reactive ring","a":"#210d13","b":"#a84459","motion":9,"speed":0.45},{"name":"Biolume Spores","cat":"organic","desc":"Dim living particles","a":"#06201d","b":"#37a996","motion":10,"speed":0.55},{"name":"Copper Oxide","cat":"matter","desc":"Oxidized flow","a":"#21140b","b":"#8e8064","motion":11,"speed":0.5},{"name":"Sakura Petals","cat":"organic","desc":"Gentle petal drift","a":"#240f19","b":"#b86c8d","motion":3,"speed":0.38},{"name":"Coffee","cat":"organic","desc":"Warm, slow crema flow","a":"#170d07","b":"#8b4f2e","motion":12,"speed":0.28},{"name":"Matrix Rain","cat":"energy","desc":"Quiet digital cascade","a":"#07190b","b":"#4f9b62","motion":14,"speed":0.5},{"name":"Royal Velvet","cat":"organic","desc":"Heavy folded fluid","a":"#160d20","b":"#8b639e","motion":15,"speed":0.4},{"name":"Neon Sunset","cat":"energy","desc":"Soft ribbon plasma","a":"#25120b","b":"#b85f3e","motion":16,"speed":0.65},{"name":"Aurora Curtains","cat":"energy","desc":"Muted magnetic sheets","a":"#071b1b","b":"#54aaa0","motion":17,"speed":0.48},{"name":"Liquid Mercury","cat":"matter","desc":"Cool reflective waves","a":"#1c2025","b":"#b7c0c7","motion":18,"speed":0.45},{"name":"Carbon Lattice","cat":"matter","desc":"Dense hard-surface flow","a":"#0c1017","b":"#657080","motion":19,"speed":0.35},{"name":"Electric Spiral","cat":"energy","desc":"Gentle charged vortex","a":"#120c22","b":"#8066bd","motion":20,"speed":0.55},{"name":"Swamp Spores","cat":"organic","desc":"Suspended earthy growth","a":"#101a0b","b":"#6f8f49","motion":21,"speed":0.4},{"name":"Fire Veins","cat":"energy","desc":"Dim branching heat","a":"#240e08","b":"#b84f2d","motion":22,"speed":0.6},{"name":"Liquid Chrome","cat":"matter","desc":"Soft mirror distortion","a":"#20252b","b":"#c4ccd2","motion":23,"speed":0.4},{"name":"Rain Glass","cat":"matter","desc":"Vertical fluid sheets","a":"#081a22","b":"#71a7ba","motion":24,"speed":0.38},{"name":"Rose Smoke","cat":"strange","desc":"Floral low-density turbulence","a":"#220c17","b":"#ad4f78","motion":25,"speed":0.4},{"name":"Cyan Shock","cat":"energy","desc":"Low-energy pressure waves","a":"#052023","b":"#43a9ad","motion":26,"speed":0.6},{"name":"Amber Lava","cat":"matter","desc":"Slow cracked convection","a":"#281708","b":"#bd7b2f","motion":27,"speed":0.55},{"name":"Dirty Water","cat":"matter","desc":"Heavy surface current","a":"#10191b","b":"#496d72","motion":12,"speed":0.22},{"name":"Black Oil","cat":"matter","desc":"Very slow viscous flow","a":"#050607","b":"#252a2d","motion":12,"speed":0.18},{"name":"Industrial Coolant","cat":"matter","desc":"Steady chemical flow","a":"#071817","b":"#43867f","motion":6,"speed":0.28},{"name":"Rust Slurry","cat":"matter","desc":"Dense sediment flow","a":"#21110b","b":"#8c4d35","motion":2,"speed":0.28},{"name":"Blood","cat":"organic","desc":"Deep red viscous waves","a":"#260508","b":"#a51e2b","motion":12,"speed":0.24},{"name":"Sewage","cat":"matter","desc":"Murky particulate flow","a":"#10160a","b":"#55613a","motion":11,"speed":0.18},{"name":"Oat Milk","cat":"organic","desc":"Soft creamy surface","a":"#242018","b":"#b9a98c","motion":12,"speed":0.2},{"name":"Black Tea","cat":"organic","desc":"Calm amber-brown flow","a":"#1b1009","b":"#7d4d2c","motion":12,"speed":0.22},{"name":"Sea Glass","cat":"matter","desc":"Slow cool translucent drift","a":"#07191b","b":"#4b8e8d","motion":6,"speed":0.22},{"name":"Rainwater","cat":"matter","desc":"Barely moving clear water","a":"#07131a","b":"#568493","motion":0,"speed":0.2},{"name":"Lavender Water","cat":"organic","desc":"Quiet violet diffusion","a":"#171323","b":"#766b91","motion":15,"speed":0.18},{"name":"Honey","cat":"organic","desc":"Thick golden current","a":"#2b1b06","b":"#b18438","motion":13,"speed":0.18},{"name":"Clay Wash","cat":"matter","desc":"Earthy suspended flow","a":"#1e120c","b":"#795c47","motion":12,"speed":0.17},{"name":"Moon Milk","cat":"strange","desc":"Pale nocturnal drift","a":"#171922","b":"#9aa1b2","motion":15,"speed":0.18}];
-const canvas=document.getElementById("gl"),gl=canvas.getContext("webgl",{antialias:false,preserveDrawingBuffer:false});
-if(!gl){document.body.innerHTML='<div style="padding:30px;color:white">WebGL is unavailable in this browser.</div>';throw Error("WebGL unavailable")}
-function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s}
-const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,document.getElementById("vs").textContent));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,document.getElementById("fs").textContent));gl.linkProgram(program);gl.useProgram(program);
-const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
-const pos=gl.getAttribLocation(program,"a_position");gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
-const U={res:gl.getUniformLocation(program,"u_resolution"),mouse:gl.getUniformLocation(program,"u_mouse"),time:gl.getUniformLocation(program,"u_time"),motion:gl.getUniformLocation(program,"u_motion"),pulse:gl.getUniformLocation(program,"u_pulse"),a:gl.getUniformLocation(program,"u_a"),b:gl.getUniformLocation(program,"u_b"),speed:gl.getUniformLocation(program,"u_speed"),soft:gl.getUniformLocation(program,"u_soft"),glow:gl.getUniformLocation(program,"u_glow")};
-let dpr=1,W=1,H=1,mx=innerWidth/2,my=innerHeight/2,tx=mx,ty=innerHeight-my,current=0,pulse=0,raf=0,last=0;
-function resize(){dpr=Math.min(devicePixelRatio||1,1.25);W=Math.max(1,Math.floor(innerWidth*dpr));H=Math.max(1,Math.floor(innerHeight*dpr));canvas.width=W;canvas.height=H;gl.viewport(0,0,W,H)}
-addEventListener("resize",resize,{passive:true});resize();
-addEventListener("pointermove",e=>{tx=e.clientX*dpr;ty=(innerHeight-e.clientY)*dpr},{passive:true});addEventListener("pointerdown",()=>pulse=1,{passive:true});
-function rgb(hex){hex=hex.replace("#","");return [parseInt(hex.slice(0,2),16)/255,parseInt(hex.slice(2,4),16)/255,parseInt(hex.slice(4,6),16)/255]}
-const grid=document.getElementById("grid"),cards=[];
-function addCard(l,i){const c=document.createElement("article");c.className="card";c.dataset.cat=l.cat;c.style.setProperty("--accent",l.b);c.innerHTML='<div class="preview"><canvas width="76" height="76"></canvas></div><div><h3>'+l.name+'</h3><small>'+l.desc+'</small><span class="tag">'+l.cat+'</span></div>';c.onclick=()=>{setLiquid(i);vault.classList.remove("open")};grid.appendChild(c);cards.push(c)}
-liquids.forEach(addCard);document.getElementById("count").textContent=liquids.length;document.getElementById("info").textContent=liquids.length+" distinct fluid profiles";
-function setLiquid(i){current=i;const l=liquids[i];document.getElementById("hero").textContent=l.name;document.getElementById("name").textContent=l.name;document.getElementById("kind").textContent=l.desc;cards.forEach((c,n)=>c.classList.toggle("active",n===i))}
-setLiquid(0);
-function drawMain(t){if(document.hidden){raf=requestAnimationFrame(drawMain);return}if(t-last<15){raf=requestAnimationFrame(drawMain);return}last=t;mx+=(tx-mx)*.08;my+=(ty-my)*.08;pulse*=.92;const l=liquids[current];gl.uniform2f(U.res,W,H);gl.uniform2f(U.mouse,mx,my);gl.uniform1f(U.time,t*.001);gl.uniform1i(U.motion,l.motion%18);gl.uniform1f(U.pulse,pulse);gl.uniform3fv(U.a,rgb(l.a));gl.uniform3fv(U.b,rgb(l.b));gl.uniform1f(U.speed,l.speed||.3);gl.uniform1f(U.soft,.3);gl.uniform1f(U.glow,.45);gl.drawArrays(gl.TRIANGLES,0,6);raf=requestAnimationFrame(drawMain)}
-raf=requestAnimationFrame(drawMain);
+  <!-- Vertex shader -->
+  <script id="vs" type="x-shader/x-vertex">
+    attribute vec2 a_position;
+    void main(){ gl_Position = vec4(a_position, 0., 1.); }
+  </script>
 
-const mini=cards.map((c,i)=>({c,i,phase:i*.37,visible:true}));
-const io="IntersectionObserver" in window?new IntersectionObserver(es=>es.forEach(e=>{const o=mini.find(x=>x.c===e.target);if(o)o.visible=e.isIntersecting}),{root:grid,rootMargin:"120px"}):null;
-mini.forEach(o=>io?.observe(o.c));
-let miniBusy=false;
-function miniFrame(t){if(miniBusy)return;miniBusy=true;mini.forEach(o=>{if(!o.visible)return;const c=o.c.querySelector("canvas"),x=c.getContext("2d"),l=liquids[o.i],a=l.a,b=l.b,q=t*.00045*l.speed+o.phase,w=c.width,h=c.height;x.fillStyle=a;x.fillRect(0,0,w,h);const g=x.createLinearGradient(0,0,w,h);g.addColorStop(0,a);g.addColorStop(.55,b+"cc");g.addColorStop(1,a);x.globalAlpha=.9;x.fillStyle=g;x.fillRect(0,0,w,h);x.globalAlpha=.45;for(let k=0;k<3;k++){x.beginPath();for(let n=0;n<=40;n++){let xx=n/40*w,yy=h*.48+Math.sin(n*.28+q*(1+k*.16)+o.phase)*h*(.055+k*.035);if(n)x.lineTo(xx,yy);else x.moveTo(xx,yy)}x.strokeStyle=b;x.lineWidth=3-k*.65;x.stroke()}x.globalAlpha=1});miniBusy=false;setTimeout(()=>requestAnimationFrame(miniFrame),70)}
-requestAnimationFrame(miniFrame);
+  <!-- Fragment shader: supports all motion types 0–25+ and more; robust default -->
+  <script id="fs" type="x-shader/x-fragment">
+    precision mediump float;
+    uniform vec2 u_resolution, u_mouse;
+    uniform float u_time, u_pulse, u_speed, u_soft, u_glow;
+    uniform vec3 u_a, u_b;
+    uniform int u_motion;
 
-const vault=document.getElementById("vault");document.getElementById("vaultBtn").onclick=()=>vault.classList.add("open");document.getElementById("open").onclick=()=>vault.classList.add("open");document.getElementById("close").onclick=()=>vault.classList.remove("open");
-const goEditor=()=>location.href="editor.html";document.getElementById("editorBtn").onclick=goEditor;document.getElementById("editorNav").onclick=goEditor;
-document.getElementById("pulse").onclick=()=>{pulse=1;document.getElementById("status").textContent="FLUID PULSE";setTimeout(()=>document.getElementById("status").textContent="ENGINE ONLINE",700)};
-document.getElementById("random").onclick=()=>{setLiquid(Math.floor(Math.random()*liquids.length));pulse=1};
-document.getElementById("full").onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
-document.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("active"));b.classList.add("active");const f=b.dataset.filter;cards.forEach(c=>c.style.display=f==="all"?"":c.dataset.cat===f?"":"none")});
-addEventListener("keydown",e=>{if(e.key==="Escape")vault.classList.remove("open");if(e.code==="Space"){e.preventDefault();pulse=1}});
-    </script>
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p){
+      vec2 i = floor(p), f = fract(p);
+      f = f * f * (3. - 2. * f);
+      return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x),
+                 mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y);
+    }
+    float fbm(vec2 p){
+      float v = 0., a = .5;
+      for(int i = 0; i < 5; i++){ v += noise(p) * a; p *= 2.; a *= .5; }
+      return v;
+    }
+    vec2 rot(vec2 p, float a){ float c = cos(a), s = sin(a); return vec2(c*p.x - s*p.y, s*p.x + c*p.y); }
+
+    void main(){
+      vec2 uv = (gl_FragCoord.xy - .5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+      vec2 mouse = (u_mouse - .5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+      vec2 p = uv;
+      float t = u_time * u_speed;
+      float d = length(p);
+
+      // mouse repulsion
+      vec2 md = p - mouse;
+      float mdist = length(md);
+      if (mdist < .8) {
+        p += normalize(md) * .055 * (1. - mdist / .8);
+      }
+
+      float v = 0.;
+      // Extended motion set — all original + more variations; fallback to fbm
+      if(u_motion == 0) {
+        vec2 q = p; q.x += sin(q.y * 6. - t * .65) * .16;
+        v = fbm(q * 2.7 + vec2(t * .06, -t * .03));
+      } else if(u_motion == 1) {
+        vec2 q = p * 2.5; v = fbm(q + vec2(t * .08, -t * .04));
+      } else if(u_motion == 2) {
+        vec2 q = rot(p, t * .05); v = fbm(q * 3.0);
+        v = .5 + .5 * v + sin(q.x * 7. + v * 3. - t) * .08;
+      } else if(u_motion == 3) {
+        vec2 q = p; q.y += sin(q.x * 5. + t * .45) * .12;
+        v = fbm(q * 3.2);
+      } else if(u_motion == 4) {
+        vec2 q = p * 3.; vec2 g = abs(fract(q) - .5);
+        v = 1. - length(g) * 1.45;
+        v = v * .7 + fbm(q + t * .04) * .3;
+      } else if(u_motion == 5) {
+        vec2 q = p * 2.1; v = fbm(q + vec2(t * .16, -t * .08));
+        v = .5 + .5 * v;
+      } else if(u_motion == 6) {
+        vec2 q = p * 3.; q.y += sin(q.x * 5. + t * .5) * .10;
+        v = fbm(q);
+      } else if(u_motion == 7) {
+        vec2 q = p * 2.8;
+        v = sin(length(q + vec2(sin(t), cos(t)) * .12) * 7. - t) * .10 + .5 + fbm(q + t * .03) * .35;
+      } else if(u_motion == 8) {
+        vec2 q = rot(p, t * .035); v = fbm(q * 2.2);
+      } else if(u_motion == 9) {
+        vec2 q = p * 3.; v = fbm(q * 1.6 + vec2(t * .05, -t * .02));
+        v += sin(q.x * 8. + q.y * 3. - t) * .08;
+      } else if(u_motion == 10) {
+        vec2 q = p * 3.5; v = fbm(q + vec2(sin(t * .3), cos(t * .25)) * .12);
+      } else if(u_motion == 11) {
+        vec2 q = p * 2.5; v = fbm(q);
+        v += sin(q.x * 5. + fbm(q * 2.) * 2. - t * .35) * .10;
+      } else if(u_motion == 12) {
+        vec2 q = p; q.x += fbm(q * 2.) * .28;
+        v = fbm(q * 3. + vec2(t * .035, -t * .018));
+      } else if(u_motion == 13) {
+        vec2 q = p * 2.; q.y += sin(q.x * 4. + t * .2) * .08;
+        v = fbm(q * 2.);
+        v += sin(q.x * 4. + v * 2. - t * .15) * .06;
+      } else if(u_motion == 14) {
+        vec2 q = p * 4.; float col = floor(q.x);
+        float yy = fract(q.y + t * .12 * (.5 + hash(vec2(col, 2.))));
+        v = smoothstep(.92, .12, yy) * .24 + fbm(q * .7) * .55;
+      } else if(u_motion == 15) {
+        vec2 q = rot(p, t * .02); v = fbm(q * 2.4);
+        v += sin(q.x * 5. + v * 5. - t * .25) * .08;
+      } else if(u_motion == 16) {
+        vec2 q = p; q.y += sin(q.x * 4. + t * .25) * .14;
+        v = fbm(q * 2.5);
+      } else if(u_motion == 17) {
+        vec2 q = p * 2.; v = fbm(q + vec2(sin(t * .2), cos(t * .17)) * .08);
+        v += sin(q.x * 3. + q.y * 2. - t * .15) * .05;
+      } else if(u_motion == 18) {
+        vec2 q = p * 2.2; v = fbm(q + vec2(t * .04, -t * .02));
+        v += sin(q.y * 6. + v * 2.) * .06;
+      } else if(u_motion == 19) {
+        vec2 q = p * 1.8; v = fbm(q * 2. + vec2(-t * .03, t * .06));
+        v = pow(v, 1.2);
+      } else if(u_motion == 20) {
+        vec2 q = rot(p, t * .07); v = fbm(q * 2.5 + vec2(sin(t * .5), cos(t * .3)) * .1);
+      } else if(u_motion == 21) {
+        vec2 q = p * 3.2; v = fbm(q * .8 + vec2(t * .02, -t * .01));
+        v += sin(q.x * 3. + q.y * 5. - t) * .1;
+      } else if(u_motion == 22) {
+        vec2 q = p * 2.4; v = fbm(q + vec2(t * .09, t * .04));
+        v += sin(q.x * 7. + fbm(q * 3.) * 3. - t * .4) * .09;
+      } else if(u_motion == 23) {
+        vec2 q = p * 2.0; v = fbm(q + vec2(sin(t * .1), cos(t * .15)) * .2);
+      } else if(u_motion == 24) {
+        vec2 q = p * 2.6; v = fbm(q + vec2(t * .02, -t * .1));
+        v += sin(q.y * 8. + t) * .07;
+      } else if(u_motion == 25) {
+        vec2 q = rot(p, t * .015); v = fbm(q * 2.8 + vec2(t * .05, 0.));
+      } else {
+        // fallback for any unlisted motion id
+        v = fbm(p * 2.5 + t * .02);
+      }
+
+      v = clamp(v, .02, .98);
+      float structure = smoothstep(.15, .85, v);
+      vec3 color = mix(u_a, u_b, structure);
+
+      float highlight = pow(max(0., 1. - abs(v - .58) * 3.2), 2.) * .10 * u_glow;
+      float edge = smoothstep(.02, .18, 1. - abs(v - .5) * 2.) * .035 * u_glow;
+      float pointer = exp(-length(p - mouse) * 6.) * .06 * u_glow;
+      float pulse = exp(-abs(d - (.28 + u_pulse * .12)) * 25.) * .16 * u_glow;
+      color += vec3(.8, .9, 1.) * (highlight + edge + pointer + pulse);
+      color *= 1.05 - .38 * smoothstep(.2, 1., d);
+
+      gl_FragColor = vec4(max(color, vec3(0.)), 1.);
+    }
+  </script>
+
+  <!-- MAIN SCRIPT — liquids imported via native ES module -->
+  <script type="module">
+    // ------------------------------------------------------------
+    // IMPORT LIQUIDS (separate file: liquids.js)
+    // ------------------------------------------------------------
+    import liquids from './liquids.js';
+
+    // ---- WebGL setup ----
+    const canvas = document.getElementById("gl");
+    const gl = canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer: false });
+    if (!gl) {
+      document.body.innerHTML = '<div style="padding:30px;color:white">WebGL is unavailable in this browser.</div>';
+      throw Error("WebGL unavailable");
+    }
+
+    function shader(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw Error(gl.getShaderInfoLog(s));
+      return s;
+    }
+
+    const program = gl.createProgram();
+    gl.attachShader(program, shader(gl.VERTEX_SHADER, document.getElementById("vs").textContent));
+    gl.attachShader(program, shader(gl.FRAGMENT_SHADER, document.getElementById("fs").textContent));
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+
+    const pos = gl.getAttribLocation(program, "a_position");
+    gl.enableVertexAttribArray(pos);
+    gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+
+    const U = {
+      res: gl.getUniformLocation(program, "u_resolution"),
+      mouse: gl.getUniformLocation(program, "u_mouse"),
+      time: gl.getUniformLocation(program, "u_time"),
+      motion: gl.getUniformLocation(program, "u_motion"),
+      pulse: gl.getUniformLocation(program, "u_pulse"),
+      a: gl.getUniformLocation(program, "u_a"),
+      b: gl.getUniformLocation(program, "u_b"),
+      speed: gl.getUniformLocation(program, "u_speed"),
+      soft: gl.getUniformLocation(program, "u_soft"),
+      glow: gl.getUniformLocation(program, "u_glow")
+    };
+
+    let dpr = 1, W = 1, H = 1;
+    let mx = innerWidth / 2, my = innerHeight / 2;
+    let tx = mx, ty = innerHeight - my;
+    let current = 0, pulse = 0, raf = 0, last = 0;
+
+    function resize() {
+      dpr = Math.min(devicePixelRatio || 1, 1.25);
+      W = Math.max(1, Math.floor(innerWidth * dpr));
+      H = Math.max(1, Math.floor(innerHeight * dpr));
+      canvas.width = W;
+      canvas.height = H;
+      gl.viewport(0, 0, W, H);
+    }
+    addEventListener("resize", resize, { passive: true });
+    resize();
+
+    addEventListener("pointermove", e => {
+      tx = e.clientX * dpr;
+      ty = (innerHeight - e.clientY) * dpr;
+    }, { passive: true });
+    addEventListener("pointerdown", () => pulse = 1, { passive: true });
+
+    function rgb(hex) {
+      hex = hex.replace("#", "");
+      return [
+        parseInt(hex.slice(0, 2), 16) / 255,
+        parseInt(hex.slice(2, 4), 16) / 255,
+        parseInt(hex.slice(4, 6), 16) / 255
+      ];
+    }
+
+    // ---- DOM refs ----
+    const grid = document.getElementById("grid");
+    const cards = [];
+    const vault = document.getElementById("vault");
+    const statusEl = document.getElementById("status");
+    const statusBox = document.getElementById("statusBox");
+    const hero = document.getElementById("hero");
+    const nameEl = document.getElementById("name");
+    const kindEl = document.getElementById("kind");
+
+    // ---- Card generation ----
+    function addCard(l, i) {
+      const c = document.createElement("article");
+      c.className = "card";
+      c.dataset.cat = l.cat;
+      c.style.setProperty("--accent", l.b);
+      c.innerHTML = `
+        <div class="preview"><canvas width="76" height="76"></canvas></div>
+        <div>
+          <h3>${l.name}</h3>
+          <small>${l.desc}</small>
+          <span class="tag">${l.cat}</span>
+        </div>
+      `;
+      c.onclick = () => {
+        setLiquid(i);
+        vault.classList.remove("open");
+      };
+      grid.appendChild(c);
+      cards.push(c);
+    }
+
+    liquids.forEach(addCard);
+    document.getElementById("count").textContent = liquids.length;
+    document.getElementById("info").textContent = liquids.length + " distinct fluid profiles";
+
+    function setLiquid(i) {
+      current = i;
+      const l = liquids[i];
+      hero.textContent = l.name;
+      nameEl.textContent = l.name;
+      kindEl.textContent = l.desc;
+      cards.forEach((c, n) => c.classList.toggle("active", n === i));
+      // subtle glow animation
+      hero.classList.remove("glow-pulse");
+      void hero.offsetWidth;
+      hero.classList.add("glow-pulse");
+    }
+
+    setLiquid(0);
+
+    // ---- Main render loop ----
+    function drawMain(t) {
+      if (document.hidden) {
+        raf = requestAnimationFrame(drawMain);
+        return;
+      }
+      if (t - last < 15) {
+        raf = requestAnimationFrame(drawMain);
+        return;
+      }
+      last = t;
+      mx += (tx - mx) * .08;
+      my += (ty - my) * .08;
+      pulse *= .92;
+
+      const l = liquids[current];
+      gl.uniform2f(U.res, W, H);
+      gl.uniform2f(U.mouse, mx, my);
+      gl.uniform1f(U.time, t * .001);
+      gl.uniform1i(U.motion, l.motion % 32); // supports up to 31 motion types
+      gl.uniform1f(U.pulse, pulse);
+      gl.uniform3fv(U.a, rgb(l.a));
+      gl.uniform3fv(U.b, rgb(l.b));
+      gl.uniform1f(U.speed, l.speed || .3);
+      gl.uniform1f(U.soft, .3);
+      gl.uniform1f(U.glow, .45);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      raf = requestAnimationFrame(drawMain);
+    }
+
+    raf = requestAnimationFrame(drawMain);
+
+    // ---- Mini canvas previews (live thumbnails) ----
+    const mini = cards.map((c, i) => ({ c, i, phase: i * .37, visible: true }));
+    const io = "IntersectionObserver" in window ? new IntersectionObserver(es => {
+      es.forEach(e => {
+        const o = mini.find(x => x.c === e.target);
+        if (o) o.visible = e.isIntersecting;
+      });
+    }, { root: grid, rootMargin: "120px" }) : null;
+
+    mini.forEach(o => io?.observe(o.c));
+
+    let miniBusy = false;
+    function miniFrame(t) {
+      if (miniBusy) return;
+      miniBusy = true;
+      mini.forEach(o => {
+        if (!o.visible) return;
+        const c = o.c.querySelector("canvas");
+        if (!c) return;
+        const x = c.getContext("2d");
+        const l = liquids[o.i];
+        const a = l.a, b = l.b;
+        const q = t * .00045 * (l.speed || .3) + o.phase;
+        const w = c.width, h = c.height;
+        x.fillStyle = a;
+        x.fillRect(0, 0, w, h);
+        const g = x.createLinearGradient(0, 0, w, h);
+        g.addColorStop(0, a);
+        g.addColorStop(.55, b + "cc");
+        g.addColorStop(1, a);
+        x.globalAlpha = .9;
+        x.fillStyle = g;
+        x.fillRect(0, 0, w, h);
+        x.globalAlpha = .45;
+        for (let k = 0; k < 3; k++) {
+          x.beginPath();
+          for (let n = 0; n <= 40; n++) {
+            let xx = n / 40 * w;
+            let yy = h * .48 + Math.sin(n * .28 + q * (1 + k * .16) + o.phase) * h * (.055 + k * .035);
+            if (n) x.lineTo(xx, yy);
+            else x.moveTo(xx, yy);
+          }
+          x.strokeStyle = b;
+          x.lineWidth = 3 - k * .65;
+          x.stroke();
+        }
+        x.globalAlpha = 1;
+      });
+      miniBusy = false;
+      setTimeout(() => requestAnimationFrame(miniFrame), 70);
+    }
+    requestAnimationFrame(miniFrame);
+
+    // ---- Vault UI ----
+    document.getElementById("vaultBtn").onclick = () => vault.classList.add("open");
+    document.getElementById("open").onclick = () => vault.classList.add("open");
+    document.getElementById("close").onclick = () => vault.classList.remove("open");
+
+    const goEditor = () => location.href = "editor.html";
+    document.getElementById("editorBtn").onclick = goEditor;
+    document.getElementById("editorNav").onclick = goEditor;
+
+    function triggerPulse() {
+      pulse = 1;
+      statusEl.textContent = "FLUID PULSE";
+      statusBox.classList.add("pulse");
+      setTimeout(() => {
+        statusEl.textContent = "ENGINE ONLINE";
+        statusBox.classList.remove("pulse");
+      }, 700);
+    }
+
+    document.getElementById("pulse").onclick = triggerPulse;
+    document.getElementById("random").onclick = () => {
+      setLiquid(Math.floor(Math.random() * liquids.length));
+      pulse = 1;
+    };
+
+    document.getElementById("full").onclick = () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    };
+
+    // ---- Filter buttons ----
+    document.querySelectorAll(".filters button").forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll(".filters button").forEach(x => x.classList.remove("active"));
+        b.classList.add("active");
+        const f = b.dataset.filter;
+        cards.forEach(c => {
+          c.style.display = f === "all" ? "" : (c.dataset.cat === f ? "" : "none");
+        });
+      };
+    });
+
+    // ---- Keyboard ----
+    addEventListener("keydown", e => {
+      if (e.key === "Escape") vault.classList.remove("open");
+      if (e.code === "Space") {
+        e.preventDefault();
+        triggerPulse();
+      }
+    });
+
+    // ---- Scroll polishing: smooth wheel inside grid is native; add parallax feel ----
+    grid.addEventListener("wheel", (e) => {
+      // let browser handle scroll; just prevent page bounce if needed
+      e.stopPropagation();
+    }, { passive: true });
+
+    // ---- Extra polish: subtle card entrance animation ----
+    const style = document.createElement('style');
+    style.textContent = `
+      .card { animation: cardFade .35s ease-out both; }
+      @keyframes cardFade { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+    `;
+    document.head.appendChild(style);
+  </script>
 </body>
 
 </html>
