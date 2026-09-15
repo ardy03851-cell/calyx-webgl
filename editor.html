@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Calyx — Preset Editor</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #030509;
+            color: #edf3fb;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif
+        }
+
+        button,
+        input,
+        select {
+            font: inherit
+        }
+
+        button {
+            cursor: pointer
+        }
+
+        #gl {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block
+        }
+
+        .shade {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 45%, transparent 32%, #000b 100%);
+            z-index: 2
+        }
+
+        .panel {
+            position: fixed;
+            z-index: 10;
+            background: #070a11b9;
+            border: 1px solid #fff2;
+            backdrop-filter: blur(24px);
+            box-shadow: 0 22px 70px #0009
+        }
+
+        .side {
+            left: 16px;
+            top: 16px;
+            bottom: 88px;
+            width: 270px;
+            border-radius: 22px 7px 22px 7px;
+            padding: 15px;
+            overflow: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #ffffff30 transparent
+        }
+
+        .side::-webkit-scrollbar {
+            width: 6px
+        }
+
+        .side::-webkit-scrollbar-thumb {
+            background: #ffffff30;
+            border-radius: 9px
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 18px
+        }
+
+        .brand img {
+            width: 38px;
+            height: 38px;
+            border-radius: 14px 5px 14px 5px;
+            border: 1px solid #fff2
+        }
+
+        .brand b {
+            font-size: 12px;
+            letter-spacing: .2em;
+            text-transform: uppercase
+        }
+
+        .brand small {
+            display: block;
+            color: #68758c;
+            font-size: 8px;
+            margin-top: 3px;
+            letter-spacing: .1em
+        }
+
+        .section {
+            border-top: 1px solid #fff12;
+            padding-top: 12px;
+            margin-top: 12px
+        }
+
+        .section:first-of-type {
+            border-top: 0;
+            padding-top: 0;
+            margin-top: 0
+        }
+
+        .label {
+            display: block;
+            color: #738096;
+            font-size: 8px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin-bottom: 6px
+        }
+
+        input[type=text],
+        select {
+            width: 100%;
+            height: 35px;
+            background: #02050a99;
+            border: 1px solid #fff17;
+            color: #e8eef7;
+            border-radius: 9px;
+            padding: 0 10px;
+            outline: 0
+        }
+
+        input[type=text]:focus,
+        select:focus {
+            border-color: #8baeff66
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px
+        }
+
+        .field {
+            margin-top: 9px
+        }
+
+        .color {
+            height: 38px;
+            width: 100%;
+            border: 1px solid #fff17;
+            border-radius: 9px;
+            background: #111;
+            overflow: hidden
+        }
+
+        .color input {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            padding: 0;
+            background: none
+        }
+
+        .range {
+            width: 100%;
+            accent-color: #8ca8ff
+        }
+
+        .rangeRow {
+            display: flex;
+            justify-content: space-between;
+            color: #8793a7;
+            font-size: 8px
+        }
+
+        .rangeRow output {
+            color: #dbe5f4
+        }
+
+        .bottom {
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            height: 58px;
+            border-radius: 19px 7px 19px 7px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px
+        }
+
+        .btn {
+            height: 40px;
+            border: 1px solid #fff16;
+            background: #ffffff08;
+            color: #b9c4d5;
+            padding: 0 13px;
+            border-radius: 12px 5px 12px 5px;
+            font-size: 9px;
+            letter-spacing: .11em
+        }
+
+        .btn:hover {
+            background: #ffffff12;
+            color: #fff
+        }
+
+        .primary {
+            background: linear-gradient(135deg, #426bff2c, #6ef1e310);
+            color: #fff;
+            border-color: #7596ff38
+        }
+
+        .spacer {
+            flex: 1
+        }
+
+        .presetName {
+            color: #77849a;
+            font-size: 8px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 0 8px
+        }
+
+        .cards {
+            margin-top: 9px;
+            display: grid;
+            gap: 5px
+        }
+
+        .preset {
+            border: 1px solid #fff12;
+            background: #ffffff05;
+            color: #aab5c5;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: left;
+            font-size: 8px
+        }
+
+        .preset:hover {
+            background: #ffffff0b;
+            color: #fff
+        }
+
+        .empty {
+            color: #5f6b7e;
+            font-size: 8px;
+            line-height: 1.6;
+            padding: 5px 0
+        }
+
+        @media(max-width:760px) {
+            .side {
+                width: 230px;
+                left: 8px;
+                top: 8px;
+                bottom: 78px
+            }
+
+            .bottom {
+                left: 8px;
+                right: 8px;
+                bottom: 8px;
+                overflow: auto
+            }
+
+            .bottom .btn {
+                flex: none
+            }
+
+            .presetName {
+                display: none
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="gl"></canvas>
+    <div class="shade"></div>
+    <aside class="panel side">
+        <div class="brand"><img src="icon.png" alt="">
+            <div><b>Calyx</b><small>liquid preset editor</small></div>
+        </div>
+        <div class="section"><label class="label">Preset name</label><input id="name" type="text" value="My Calm Liquid" maxlength="32">
+        </div>
+        <div class="section">
+            <label class="label">Category</label><select id="cat"><option>organic</option><option>energy</option><option>matter</option><option>strange</option></select>
+        </div>
+        <div class="section"><label class="label">Liquid colours</label>
+            <div class="row">
+                <div><label class="label">Base</label>
+                    <div class="color"><input id="a" type="color" value="#0d1118"></div>
+                </div>
+                <div><label class="label">Flow</label>
+                    <div class="color"><input id="b" type="color" value="#55718d"></div>
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <label class="label">Motion</label><select id="motion"><option value="0">Soft strata</option><option value="1">Cloudy flow</option><option value="2">Slow fold</option><option value="3">Gentle waves</option><option value="4">Quiet facets</option><option value="5">Warm drift</option><option value="6">Water current</option><option value="7">Soft rings</option><option value="8">Rotational haze</option><option value="9">Fine current</option><option value="10">Floating cloud</option><option value="11">Heavy flow</option><option value="12">Viscous blend</option><option value="13">Creamy ribbons</option><option value="14">Faint rain</option><option value="15">Velvet fold</option><option value="16">Long waves</option><option value="17">Still water</option></select>
+            <div class="field">
+                <div class="rangeRow"><span>Speed</span><output id="speedOut">0.28</output></div><input class="range" id="speed" type="range" min=".03" max="1.2" step=".01" value=".28">
+            </div>
+            <div class="field">
+                <div class="rangeRow"><span>Glow</span><output id="glowOut">0.30</output></div><input class="range" id="glow" type="range" min="0" max="1" step=".01" value=".30">
+            </div>
+            <div class="field">
+                <div class="rangeRow"><span>Softness</span><output id="softOut">0.55</output></div><input class="range" id="soft" type="range" min="0" max="1" step=".01" value=".55">
+            </div>
+        </div>
+        <div class="section"><label class="label">Saved presets</label>
+            <div id="saved" class="cards"></div>
+        </div>
+    </aside>
+    <div class="panel bottom">
+        <button class="btn" id="back">PROJECTS</button><button class="btn primary" id="save">SAVE PRESET</button><button class="btn" id="export">EXPORT</button><button class="btn" id="import">IMPORT</button><input id="file" type="file" accept=".json,application/json" hidden><span class="spacer"></span><span class="presetName" id="status">LIVE PREVIEW</span>
+    </div>
+    <script id="vs" type="x-shader/x-vertex">attribute vec2 a_position;void main(){gl_Position=vec4(a_position,0.,1.);}
+    </script>
+    <script id="fs" type="x-shader/x-fragment">
+        precision mediump float;
+uniform vec2 u_resolution,u_mouse;uniform float u_time,u_pulse,u_speed,u_soft,u_glow;uniform vec3 u_a,u_b;uniform int u_motion;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=noise(p)*a;p*=2.;a*=.5;}return v;}
+vec2 rot(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(c*p.x-s*p.y,s*p.x+c*p.y);}
+void main(){
+vec2 uv=(gl_FragCoord.xy-.5*u_resolution.xy)/min(u_resolution.x,u_resolution.y),mouse=(u_mouse-.5*u_resolution.xy)/min(u_resolution.x,u_resolution.y),p=uv;
+float t=u_time*u_speed,d=length(p);p+=(mouse-p)*.055/(length(mouse-p)+.45);float v=0.;
+if(u_motion==0){vec2 q=p;q.x+=sin(q.y*6.-t*.65)*.16;v=fbm(q*2.7+vec2(t*.06,-t*.03));}
+else if(u_motion==1){vec2 q=p*2.5;v=fbm(q+vec2(t*.08,-t*.04));}
+else if(u_motion==2){vec2 q=rot(p,t*.05);v=fbm(q*3.0);v=.5+.5*v+sin(q.x*7.+v*3.-t)*.08;}
+else if(u_motion==3){vec2 q=p;q.y+=sin(q.x*5.+t*.45)*.12;v=fbm(q*3.2);}
+else if(u_motion==4){vec2 q=p*3.;vec2 g=abs(fract(q)-.5);v=1.-length(g)*1.45;v=v*.7+fbm(q+t*.04)*.3;}
+else if(u_motion==5){vec2 q=p*2.1;v=fbm(q+vec2(t*.16,-t*.08));v=.5+.5*v;}
+else if(u_motion==6){vec2 q=p*3.;q.y+=sin(q.x*5.+t*.5)*.10;v=fbm(q);}
+else if(u_motion==7){vec2 q=p*2.8;v=sin(length(q+vec2(sin(t),cos(t))*.12)*7.-t)*.10+.5+fbm(q+t*.03)*.35;}
+else if(u_motion==8){vec2 q=rot(p,t*.035);v=fbm(q*2.2);}
+else if(u_motion==9){vec2 q=p*3.;v=fbm(q*1.6+vec2(t*.05,-t*.02));v+=sin(q.x*8.+q.y*3.-t)*.08;}
+else if(u_motion==10){vec2 q=p*3.5;v=fbm(q+vec2(sin(t*.3),cos(t*.25))*.12);}
+else if(u_motion==11){vec2 q=p*2.5;v=fbm(q);v+=sin(q.x*5.+fbm(q*2.)*2.-t*.35)*.10;}
+else if(u_motion==12){vec2 q=p;q.x+=fbm(q*2.)*.28;v=fbm(q*3.+vec2(t*.035,-t*.018));}
+else if(u_motion==13){vec2 q=p*2.;q.y+=sin(q.x*4.+t*.2)*.08;v=fbm(q*2.);v+=sin(q.x*4.+v*2.-t*.15)*.06;}
+else if(u_motion==14){vec2 q=p*4.;float col=floor(q.x);float yy=fract(q.y+t*.12*(.5+hash(vec2(col,2.))));v=smoothstep(.92,.12,yy)*.24+fbm(q*.7)*.55;}
+else if(u_motion==15){vec2 q=rot(p,t*.02);v=fbm(q*2.4);v+=sin(q.x*5.+v*5.-t*.25)*.08;}
+else if(u_motion==16){vec2 q=p;q.y+=sin(q.x*4.+t*.25)*.14;v=fbm(q*2.5);}
+else {vec2 q=p*2.;v=fbm(q+vec2(sin(t*.2),cos(t*.17))*.08);v+=sin(q.x*3.+q.y*2.-t*.15)*.05;}
+v=clamp(v,.02,.98);float s=smoothstep(.15,.85,v);vec3 color=mix(u_a,u_b,s);
+float detail=mix(.03,.14,u_soft);color+=vec3(.8,.9,1.)*(pow(max(0.,1.-abs(v-.58)*3.2),2.)*detail*u_glow);
+color+=vec3(.8,.9,1.)*(exp(-length(p-mouse)*6.)*.045*u_glow+exp(-abs(d-(.28+u_pulse*.12))*25.)*.12*u_glow);
+color*=1.05-.38*smoothstep(.2,1.,d);gl_FragColor=vec4(max(color,vec3(0.)),1.);
+}
+</script>
+    <script>
+        const $=id=>document.getElementById(id), canvas=$("gl"),gl=canvas.getContext("webgl",{antialias:false});
+function sh(t,s){let x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(x));return x}
+let p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,$("vs").textContent));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,$("fs").textContent));gl.linkProgram(p);gl.useProgram(p);
+let b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+let pos=gl.getAttribLocation(p,"a_position");gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+const U={res:gl.getUniformLocation(p,"u_resolution"),mouse:gl.getUniformLocation(p,"u_mouse"),time:gl.getUniformLocation(p,"u_time"),motion:gl.getUniformLocation(p,"u_motion"),pulse:gl.getUniformLocation(p,"u_pulse"),a:gl.getUniformLocation(p,"u_a"),b:gl.getUniformLocation(p,"u_b"),speed:gl.getUniformLocation(p,"u_speed"),soft:gl.getUniformLocation(p,"u_soft"),glow:gl.getUniformLocation(p,"u_glow")};
+let dpr=1,W=1,H=1,mx=innerWidth/2,my=innerHeight/2,tx=mx,ty=innerHeight-my,pulse=0;
+function resize(){dpr=Math.min(devicePixelRatio||1,1.25);W=Math.max(1,innerWidth*dpr);H=Math.max(1,innerHeight*dpr);canvas.width=W;canvas.height=H;gl.viewport(0,0,W,H)}addEventListener("resize",resize);resize();
+addEventListener("pointermove",e=>{tx=e.clientX*dpr;ty=(innerHeight-e.clientY)*dpr},{passive:true});addEventListener("pointerdown",()=>pulse=1,{passive:true});
+function rgb(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255]}
+function preset(){return{name:$("name").value.trim()||"Untitled Liquid",category:$("cat").value,a:$("a").value,b:$("b").value,motion:+$("motion").value,speed:+$("speed").value,glow:+$("glow").value,soft:+$("soft").value,version:1}}
+function apply(o){$("name").value=o.name||"Untitled Liquid";$("cat").value=o.category||"organic";$("a").value=o.a||"#0d1118";$("b").value=o.b||"#55718d";$("motion").value=o.motion??0;$("speed").value=o.speed??.28;$("glow").value=o.glow??.3;$("soft").value=o.soft??.55;sync()}
+function sync(){["speed","glow","soft"].forEach(id=>$(id+"Out").textContent=(+$(id).value).toFixed(2))}
+["name","cat","a","b","motion","speed","glow","soft"].forEach(id=>$(id).addEventListener("input",sync));sync();
+function renderSaved(){let arr=JSON.parse(localStorage.getItem("calyx.presets")||"[]"),box=$("saved");box.innerHTML="";if(!arr.length){box.innerHTML='<div class="empty">No saved presets yet.<br>Save one and it will live in this browser.</div>';return}arr.forEach((o,i)=>{let x=document.createElement("button");x.className="preset";x.textContent=o.name;x.onclick=()=>apply(o);box.appendChild(x)})}
+$("save").onclick=()=>{let o=preset(),arr=JSON.parse(localStorage.getItem("calyx.presets")||"[]");let i=arr.findIndex(x=>x.name===o.name);if(i>=0)arr[i]=o;else arr.unshift(o);localStorage.setItem("calyx.presets",JSON.stringify(arr));renderSaved();$("status").textContent="SAVED • "+o.name;setTimeout(()=>$("status").textContent="LIVE PREVIEW",1200)};
+$("export").onclick=()=>{let o=preset(),blob=new Blob([JSON.stringify(o,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=o.name.toLowerCase().replace(/[^a-z0-9]+/g,"-")+".json";a.click();URL.revokeObjectURL(a.href);$("status").textContent="EXPORTED";setTimeout(()=>$("status").textContent="LIVE PREVIEW",1000)};
+$("import").onclick=()=>$("file").click();
+$("file").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{apply(JSON.parse(r.result));$("status").textContent="IMPORTED"}catch(_){$("status").textContent="INVALID PRESET"}setTimeout(()=>$("status").textContent="LIVE PREVIEW",1200)};r.readAsText(f);e.target.value=""};
+$("back").onclick=()=>location.href="index.html";
+function frame(t){mx+=(tx-mx)*.08;my+=(ty-my)*.08;pulse*=.92;let o=preset();gl.uniform2f(U.res,W,H);gl.uniform2f(U.mouse,mx,my);gl.uniform1f(U.time,t*.001);gl.uniform1i(U.motion,o.motion);gl.uniform1f(U.pulse,pulse);gl.uniform3fv(U.a,rgb(o.a));gl.uniform3fv(U.b,rgb(o.b));gl.uniform1f(U.speed,o.speed);gl.uniform1f(U.soft,o.soft);gl.uniform1f(U.glow,o.glow);gl.drawArrays(gl.TRIANGLES,0,6);requestAnimationFrame(frame)}
+renderSaved();requestAnimationFrame(frame);
+    </script>
+</body>
+
+</html>
