@@ -1,4 +1,4 @@
-// liquids.js — Calyx fluid definitions (REBUILT + cinema additions)
+// liquids.js — Calyx fluid definitions
 //
 // Every liquid carries its own hand-written GLSL in `custom`. The host
 // renderer injects it into main() at `// __CUSTOM_CODE__`, then computes:
@@ -6,7 +6,6 @@
 //   color     = mix(u_a, u_b, structure);
 //   color     += white glint where v ≈ 0.58  (highlight)
 //   color     += white edge  where v ≈ 0.50  (edge)
-// So values of v near 0.55–0.62 will light up as brilliant white glints.
 //
 // Available inside `custom`:
 //   p, mouse (vec2), t (float), d (float)
@@ -220,7 +219,7 @@ export default [
     `
   },
 
-  // ── NEW: from raymarched tree shader ──────────────────────────
+  // ── From the raymarched tree shader ──────────────────────────
   {
     name: "Rootwork",
     cat: "organic",
@@ -231,9 +230,9 @@ export default [
     speed: 0.25,
     glow: 0.9,
     custom: `
-      // Iterated rotate-and-fold — the fractal essence of the tree shader,
-      // collapsed to 2D. Each fold acts like the tri0() function in the
-      // original: reflect around a moving axis, then scale.
+      // Folded-space iteration, mirroring tri0() in the original tree
+      // shader. Each pass rotates by a drifting angle, reflects around a
+      // moving axis, and rescales — the branches emerge from the residual.
       vec2 vv = p * 1.4;
       float zoomed = 1.0;
       for (int i = 0; i < 7; i++) {
@@ -244,12 +243,9 @@ export default [
         vv *= 1.35;
         zoomed *= 1.35;
       }
-      // Distance from the "trunk" (origin) traces the branch tips
       float r = length(vv / zoomed);
       float branches = exp(-abs(r - 0.02) * 30.0);
-      // Warm glow from the base gives depth
       float glow = exp(-length(p) * 2.5) * 0.6;
-      // Fine grain to break up the smooth branches
       float grain = fbm(p * 8.0 + t * 0.05) * 0.15;
       v = clamp(branches * 0.9 + glow + grain, 0.0, 1.0);
     `
@@ -489,7 +485,6 @@ export default [
       vec2 q = p * 1.4;
       q.y -= t * 0.25;
       q += vec2(fbm(q * 1.1 + t * 0.1) * 0.3, 0.0);
-      float n1 = fbm(q * 2.0);
       float ridged = 0.0, amp = 0.55, freq = 1.0;
       for (int i = 0; i < 5; i++) {
         float v1 = fbm(q * freq + t * 0.15);
@@ -504,7 +499,7 @@ export default [
     `
   },
 
-  // ── NEW: from fire raymarcher ─────────────────────────────────
+  // ── From the fire raymarcher ─────────────────────────────────
   {
     name: "Inferno",
     cat: "energy",
@@ -517,9 +512,8 @@ export default [
     pulse: 1.3,
     custom: `
       // Compressed ray-marched fire. The original marched 90 steps through
-      // a rotated sin-soup. We keep 24 steps but reduce the inner warp to
-      // 5 iterations — enough to keep the flame turbulent while staying
-      // cheap enough to run as a liquid.
+      // a rotating sin-soup. We march 24 steps with an 8-iteration inner
+      // warp — enough turbulence to read as flame, cheap enough for a liquid.
       vec2 uv = p * 0.5;
       float z = 0.0;
       float acc = 0.0;
@@ -530,7 +524,7 @@ export default [
         float s = sin(a + t * 0.4);
         pp.xz = vec2(c * pp.x - s * pp.z, s * pp.x + c * pp.z);
         float dd = 2.0;
-        for (int j = 0; j < 5; j++) {
+        for (int j = 0; j < 8; j++) {
           pp += sin(pp.yzx * dd - vec3(t * 4.0, 0.0, 0.0)) / dd;
           dd /= 0.9;
         }
@@ -1045,7 +1039,7 @@ export default [
     `
   },
 
-  // ── NEW: from raymarched ocean shader ─────────────────────────
+  // ── From the raymarched ocean shader ─────────────────────────
   {
     name: "Swell",
     cat: "matter",
@@ -1057,16 +1051,14 @@ export default [
     glow: 1.1,
     soft: 0.15,
     custom: `
-      // Flattened 2D version of the raymarched ocean. The original did
-      // sea_octave() at multiple frequencies with a rotation matrix between
-      // them. Here we do the same accumulation, but directly on screen-space
-      // p — no ray marching needed for a convincing surface read.
+      // Flattened read of the raymarched ocean. Uses the same sea_octave
+      // accumulation (1 - pow(wv.x*wv.y, 0.65)) at four rotating frequencies
+      // — no ray march needed for a convincing surface.
       vec2 q = p * 1.2;
       float w = 0.0;
       for (int i = 0; i < 4; i++) {
         float fi = float(i);
         vec2 uv = q * (1.0 + fi * 0.7) + vec2(t * 0.3, -t * 0.15) * (1.0 + fi * 0.3);
-        // sea_octave: 1 - abs(sin(uv)) mirrored by abs(cos(uv))
         vec2 wv = 1.0 - abs(sin(uv));
         vec2 swv = abs(cos(uv));
         wv = mix(wv, swv, wv);
@@ -1074,9 +1066,7 @@ export default [
         q *= 1.6;
       }
       w *= 0.4;
-      // Steep crests become foam
       float foam = pow(smoothstep(0.35, 0.75, w), 2.5);
-      // Sparkling sun glints on the wave peaks
       float glint = pow(max(0.0, sin(w * 30.0 + t * 2.0)), 20.0) * 0.7;
       v = clamp(w * 0.8 + foam * 0.6 + glint, 0.0, 1.0);
     `
@@ -1335,7 +1325,6 @@ export default [
       for (int i = 0; i < 10; i++) {
         float fi = float(i);
         float baseAng = fi * 0.628;
-        float wobble = sin(t * 1.5 + fi) * 0.12;
         float dAng = abs(atan(sin(a - baseAng), cos(a - baseAng)));
         float thick = 0.05 + 0.03 * sin(t * 2.0 + fi * 2.1);
         float tendril = exp(-pow(dAng / thick, 2.0))
@@ -1374,7 +1363,7 @@ export default [
     `
   },
 
-  // ── NEW: from space station shader ────────────────────────────
+  // ── From the space station shader ────────────────────────────
   {
     name: "Orbital",
     cat: "strange",
@@ -1386,24 +1375,20 @@ export default [
     glow: 1.0,
     soft: 0.3,
     custom: `
-      // Compressed read of the space station shader. The original traced
-      // rays against Earth + a voxel-city ISS. Here we draw Earth as a
-      // screen-space disc with fbm land/ocean, add an atmosphere rim, then
-      // silhouette a rotating station cross in the foreground.
-      vec2 earthC = vec2(0.0, -1.6);
+      // Fixed: earthC must be a vec2, not a float. Also replaced the
+      // reversed smoothstep with 1.0 - smoothstep for portability.
+      vec2  earthC = vec2(0.0, -1.6);
       float earthR = 1.5;
-      float eDist = length(p - earthC);
-      float earth = smoothstep(earthR + 0.005, earthR - 0.005, eDist);
+      float eDist  = length(p - earthC);
+      float earth  = 1.0 - smoothstep(earthR - 0.01, earthR + 0.01, eDist);
 
       vec2 eq = (p - earthC) / earthR;
       float land = fbm(eq * 4.0 + vec2(t * 0.05, -t * 0.02));
       float landMask = smoothstep(0.48, 0.68, land) * earth;
       float clouds = fbm(eq * 8.0 + vec2(t * 0.08, 0.0)) * earth;
 
-      // Atmosphere limb glow
       float atmo = exp(-abs(eDist - earthR) * 10.0) * 0.9;
 
-      // Parallax starfield in the upper half
       vec2 sp = p * 18.0;
       vec2 si = floor(sp);
       float stars = step(0.985, hash(si)) *
@@ -1424,7 +1409,7 @@ export default [
     `
   },
 
-  // ── NEW: from raymarched cloud shader ─────────────────────────
+  // ── From the raymarched cloud shader ─────────────────────────
   {
     name: "Storm Cell",
     cat: "strange",
@@ -1436,10 +1421,8 @@ export default [
     glow: 1.4,
     soft: 0.35,
     custom: `
-      // The original raymarched 64 steps of a 4-octave noise heightfield.
-      // Here we keep the layered-fbm density and directional sun glow,
-      // but flatten the ray into a screen-space march that reads as
-      // volumetric cloud cover.
+      // Flattened cloud deck — 5 octaves of fbm density, a warm sun bloom,
+      // and three angled god-ray shafts.
       vec2 q = p * 0.7 + vec2(t * 0.02, 0.0);
       float den = 0.0;
       float amp = 0.5;
@@ -1451,10 +1434,8 @@ export default [
       }
       den = den * 0.7 + 0.5;
 
-      // Warm sun glow behind the clouds
       float sun = exp(-length(p - vec2(0.35, 0.35)) * 1.8) * 0.7;
 
-      // Angled god-ray shafts
       float shafts = 0.0;
       for (int i = 0; i < 3; i++) {
         float fi = float(i);
@@ -1466,6 +1447,222 @@ export default [
       shafts /= 3.0;
 
       v = clamp(den * 0.65 + sun * 0.5 + shafts * 0.35, 0.0, 1.0);
+    `
+  },
+
+  // =============================================================
+  // PREMIUM  — brand new high-quality liquids
+  // =============================================================
+
+  // ── PREMIUM 1 ────────────────────────────────────────────────
+  {
+    name: "Caustics Pool",
+    cat: "matter",
+    desc: "Layered underwater light caustics",
+    a: "#020c14",
+    b: "#7fe8ff",
+    motion: -1,
+    speed: 0.35,
+    glow: 1.3,
+    soft: 0.1,
+    custom: `
+      // Classic underwater caustics: four layers of warped Voronoi. The
+      // bright line where each cell's second-nearest distance catches up to
+      // the nearest is the caustic filament. Warping the cell domain with
+      // fbm breaks the grid and makes it read as light through moving water.
+      vec2 q = p * 1.4;
+      float caus = 0.0;
+      float fine = 0.0;
+      for (int i = 0; i < 4; i++) {
+        float fi = float(i);
+        vec2 w = q + vec2(fbm(q * (0.8 + fi * 0.35) + t * 0.06),
+                          fbm(q * (0.8 + fi * 0.35) + 3.7 + t * 0.06));
+        vec2 ii = floor(w);
+        vec2 f  = fract(w);
+        float md1 = 8.0, md2 = 8.0;
+        for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+          vec2 g = vec2(float(x), float(y));
+          vec2 o = vec2(hash(ii + g + fi * 13.0),
+                        hash(ii + g + fi * 13.0 + 5.5));
+          float dd = length(f - g - o);
+          if (dd < md1) { md2 = md1; md1 = dd; }
+          else if (dd < md2) { md2 = dd; }
+        }
+        float border = md2 - md1;
+        caus += pow(smoothstep(0.16, 0.0, border), 1.4) / (1.0 + fi * 0.9);
+        fine += pow(smoothstep(0.06, 0.0, border), 3.0) / (1.0 + fi);
+        q *= 1.55;
+      }
+      // Depth breathing — the pool's surface drifts
+      float breathe = 0.85 + 0.15 * sin(t * 0.6 + fbm(p * 0.5) * 3.0);
+      caus *= breathe;
+      v = clamp(caus * 0.75 + fine * 0.55 + fbm(p * 3.0 + t * 0.05) * 0.08, 0.0, 1.0);
+    `
+  },
+
+  // ── PREMIUM 2 ────────────────────────────────────────────────
+  {
+    name: "Aurora Borealis",
+    cat: "energy",
+    desc: "Volumetric curtains with ray detail",
+    a: "#020a18",
+    b: "#4affb0",
+    motion: -1,
+    speed: 0.35,
+    glow: 1.6,
+    soft: 0.35,
+    custom: `
+      // Real volumetric aurora: four curtains at different altitudes, each
+      // with its own meander, its own fbm-driven vertical ray pattern, and
+      // a bright base where the rays meet the atmosphere. Star field behind
+      // and a horizon glow up top complete the composition.
+      vec2 q = p;
+      float meander = fbm(vec2(q.x * 1.2, t * 0.15)) * 1.8 + q.x * 0.4;
+
+      float aur   = 0.0;
+      float rays  = 0.0;
+      float tips  = 0.0;
+      for (int i = 0; i < 4; i++) {
+        float fi = float(i);
+        float yOff = -0.5 + fi * 0.35
+                   + sin(meander * 1.5 + fi * 1.3 + t * 0.25) * 0.18;
+        float width = 0.12 + fi * 0.03;
+        float d = abs(q.y - yOff);
+        float curtain = exp(-pow(d / width, 2.0));
+        // Fine vertical rays running the length of the curtain
+        float ray = fbm(vec2(q.x * 30.0 + fi * 5.0, t * 0.6 + fi * 2.0));
+        ray = pow(0.5 + 0.5 * ray, 2.5);
+        // Bright base where rays meet the "atmosphere"
+        float base = exp(-pow(d / (width * 0.5), 2.0)) * ray;
+        aur  += curtain * (0.5 + 0.5 * ray) * (1.0 - fi * 0.15);
+        rays += ray * exp(-d * 2.5) * 0.35 * (1.0 - fi * 0.1);
+        tips += base * 0.6;
+      }
+
+      // Star field behind (multi-layer parallax)
+      float stars = 0.0;
+      for (int layer = 0; layer < 2; layer++) {
+        float fl = float(layer);
+        vec2 sp = p * (22.0 + fl * 14.0) - t * (0.03 + fl * 0.02);
+        vec2 si = floor(sp);
+        stars += step(0.985, hash(si))
+               * (0.6 + 0.4 * sin(t * 2.5 + hash(si + 1.7 + fl) * 20.0))
+               * (1.0 - fl * 0.3);
+      }
+
+      // Soft horizon glow
+      float horizon = exp(-abs(q.y + 0.8) * 4.0) * 0.3;
+      // Vertical fade so the aurora stays in the sky
+      float fade = smoothstep(-0.9, 0.5, q.y) * (1.0 - smoothstep(0.5, 1.2, q.y));
+
+      v = clamp((aur * 0.65 + rays * 0.5 + tips * 0.4) * fade
+              + stars * 0.55 + horizon * 0.4, 0.0, 1.0);
+    `
+  },
+
+  // ── PREMIUM 3 ────────────────────────────────────────────────
+  {
+    name: "Nebula Genesis",
+    cat: "strange",
+    desc: "Star-forming gas cloud with dust lanes",
+    a: "#04010c",
+    b: "#ff9ad4",
+    motion: -1,
+    speed: 0.3,
+    soft: 0.5,
+    glow: 1.5,
+    custom: `
+      // Deep-space nebula: three layers of fbm at different scales, where
+      // two of them produce emission (aligned knots glow) and the third
+      // carves dark dust lanes back out. On top, compact "star formation"
+      // knots that pulse on their own random phase, and a distant field of
+      // background stars.
+      vec2 q = p * 0.8;
+      vec2 warp = vec2(fbm(q * 0.7 + t * 0.02),
+                       fbm(q * 0.7 + 4.1 + t * 0.02)) * 1.2;
+
+      float n1 = fbm(q + warp + t * 0.03);
+      float n2 = fbm(q * 2.3 - warp * 0.7 + t * 0.05);
+      float n3 = fbm(q * 5.5 + warp * 1.3 + t * 0.08);
+
+      // Emission: bright where the two scales align
+      float emission = pow(max(0.0, n1 * 0.5 + n2 * 0.5), 2.5) * 0.8;
+
+      // Dust: a third, higher-frequency layer carves out the dark lanes
+      float dust = smoothstep(0.35, 0.75, n3);
+      emission *= (1.0 - dust * 0.75);
+
+      // Compact star-formation knots
+      float knots = 0.0;
+      vec2 sp = p * 14.0;
+      vec2 si = floor(sp), sf = fract(sp);
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(si + g), hash(si + g + 7.7));
+        float alive = step(0.90, hash(si + g + 3.3));
+        vec2 rel = sf - g - o;
+        float r = length(rel);
+        knots += alive * exp(-r * 22.0)
+               * (0.5 + 0.5 * sin(t * 4.0 + hash(si + g) * 20.0));
+      }
+
+      // Distant background stars
+      vec2 bsp = p * 40.0;
+      vec2 bsi = floor(bsp);
+      float stars = step(0.988, hash(bsi))
+                  * (0.6 + 0.4 * sin(t * 3.0 + hash(bsi + 1.1) * 20.0));
+
+      v = clamp(emission * 0.75 + knots * 0.9 + stars * 0.5, 0.0, 1.0);
+    `
+  },
+
+  // ── PREMIUM 4 ────────────────────────────────────────────────
+  {
+    name: "Marble Cathedral",
+    cat: "matter",
+    desc: "Polished marble with veined pattern",
+    a: "#0d0b0a",
+    b: "#f0e6d8",
+    motion: -1,
+    speed: 0.2,
+    soft: 0.25,
+    glow: 0.9,
+    custom: `
+      // Polished stone. A very low frequency fbm gives the base tone; three
+      // passes of ridged noise, each rotated, produce the interlocking vein
+      // pattern that real marble has. A fake normal from finite differences
+      // of a second fbm adds a soft specular sheen on top.
+      vec2 q = p * 1.1;
+
+      float base = fbm(q * 0.6 + t * 0.02) * 0.5 + 0.5;
+
+      // Veins: rotate the domain between passes so each set runs at a
+      // different angle. Ridged noise gives the sharp vein edges.
+      vec2 vq = q;
+      float veins = 0.0;
+      for (int i = 0; i < 3; i++) {
+        float fi = float(i);
+        vec2 r = rot(vq, fi * 1.047);
+        float n = fbm(r * vec2(1.5, 0.6) + fi * 3.7 + t * 0.03);
+        float ridged = 1.0 - abs(n - 0.5) * 2.0;
+        veins += pow(smoothstep(0.55, 1.0, ridged), 1.8) / (1.0 + fi * 0.5);
+        vq *= 1.2;
+      }
+
+      // Fine crystalline grain
+      float grain = fbm(q * 12.0 + t * 0.05) * 0.08;
+
+      // Fake normals for a subtle polished sheen
+      float e = 0.01;
+      float hL = fbm((q - vec2(e, 0.0)) * 2.0 + t * 0.02);
+      float hR = fbm((q + vec2(e, 0.0)) * 2.0 + t * 0.02);
+      float hD = fbm((q - vec2(0.0, e)) * 2.0 + t * 0.02);
+      float hU = fbm((q + vec2(0.0, e)) * 2.0 + t * 0.02);
+      vec3 n = normalize(vec3((hR - hL), (hU - hD), 0.8));
+      vec3 L = normalize(vec3(0.5, 0.7, 0.6));
+      float sheen = pow(max(0.0, dot(n, L)), 12.0) * 0.5;
+
+      v = clamp(base * 0.55 + veins * 0.65 + grain + sheen, 0.0, 1.0);
     `
   }
 
