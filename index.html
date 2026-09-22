@@ -971,20 +971,90 @@ void main(){
     loadSettings();
 
     // ============================================================
-    // WEBGL
+    // UNIVERSAL WEBGL CONTEXT
     // ============================================================
+    // Tries every known context name and every attribute combination.
+    // Whichever combination the browser accepts first wins.
     const canvas = $('gl');
-    const gl = canvas.getContext('webgl', {
-      antialias: false,
-      preserveDrawingBuffer: false,
-      premultipliedAlpha: false,
-      powerPreference: 'high-performance'
-    });
-    if (!gl) {
-      document.body.innerHTML = '<div style="padding:30px;color:white">WebGL is unavailable in this browser.</div>';
-      throw new Error('WebGL unavailable');
+    const CONTEXT_CANDIDATES = [
+      { name: 'webgl2', isWebGL2: true },
+      { name: 'webgl', isWebGL2: false },
+      { name: 'experimental-webgl', isWebGL2: false },
+      { name: 'experimental-webgl2', isWebGL2: true },
+      { name: 'webkit-3d', isWebGL2: false },
+      { name: 'moz-webgl', isWebGL2: false },
+      { name: 'ms-webgl', isWebGL2: false },
+      { name: 'webgl-experimental', isWebGL2: false },
+    ];
+    const ATTR_VARIANTS = [
+      { alpha: true,  antialias: false, depth: false, stencil: false, premultipliedAlpha: false, preserveDrawingBuffer: false, powerPreference: 'high-performance', failIfMajorPerformanceCaveat: false },
+      { alpha: false, antialias: false, depth: false, stencil: false, premultipliedAlpha: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' },
+      { alpha: true,  antialias: true,  depth: false, stencil: false, premultipliedAlpha: true,  preserveDrawingBuffer: true },
+      { alpha: true },
+      { antialias: false },
+      {},
+    ];
+
+    function createUniversalContext(cv) {
+      for (const cand of CONTEXT_CANDIDATES) {
+        for (const attrs of ATTR_VARIANTS) {
+          try {
+            const ctx = cv.getContext(cand.name, attrs);
+            if (ctx && typeof ctx.createShader === 'function') {
+              return { gl: ctx, contextName: cand.name, isWebGL2: cand.isWebGL2, attrs };
+            }
+          } catch (e) { /* try next */ }
+        }
+      }
+      return null;
     }
 
+    const ctxInfo = createUniversalContext(canvas);
+    if (!ctxInfo) {
+      document.body.innerHTML = '<div style="padding:30px;color:white;font:14px system-ui;max-width:600px">' +
+        '<h2>No WebGL context available</h2>' +
+        '<p>This browser or device does not expose any WebGL context (webgl2, webgl, experimental-webgl, ' +
+        'webkit-3d, moz-webgl). Try updating your browser or enabling hardware acceleration.</p></div>';
+      throw new Error('No WebGL context available');
+    }
+    const gl = ctxInfo.gl;
+    const GL_IS_WEBGL2 = ctxInfo.isWebGL2;
+    console.log('[Calyx] Context:', ctxInfo.contextName, GL_IS_WEBGL2 ? '(WebGL2)' : '(WebGL1)', ctxInfo.attrs);
+
+    // Extension aliasing — try every known name for each capability
+    function tryExtensions(...names) {
+      for (const n of names) {
+        try { const e = gl.getExtension(n); if (e) return e; } catch (e) {}
+      }
+      return null;
+    }
+    const EXT = {
+      drawBuffers:       tryExtensions('WEBGL_draw_buffers', 'EXT_draw_buffers'),
+      colorBufferFloat:  tryExtensions('EXT_color_buffer_float', 'WEBGL_color_buffer_float'),
+      colorBufferHFloat: tryExtensions('EXT_color_buffer_half_float'),
+      textureFloat:      tryExtensions('OES_texture_float', 'OES_texture_float_linear'),
+      textureHFloat:     tryExtensions('OES_texture_half_float', 'OES_texture_half_float_linear'),
+      floatBlend:        tryExtensions('EXT_float_blend'),
+      anisotropic:       tryExtensions('EXT_texture_filter_anisotropic', 'WEBKIT_EXT_texture_filter_anisotropic', 'MOZ_EXT_texture_filter_anisotropic'),
+      loseContext:       tryExtensions('WEBGL_lose_context', 'WEBKIT_WEBGL_lose_context', 'MOZ_WEBGL_lose_context'),
+      vao:               tryExtensions('OES_vertex_array_object'),
+      depthTexture:      tryExtensions('WEBGL_depth_texture', 'WEBKIT_WEBGL_depth_texture'),
+      derivatives:       tryExtensions('OES_standard_derivatives'),
+      shaderTextureLOD:  tryExtensions('EXT_shader_texture_lod'),
+    };
+    console.log('[Calyx] Extensions:', Object.keys(EXT).filter(k => EXT[k]).join(', ') || '(none)');
+
+    // Extensions that must be opted into for GLSL ES 1.00 shaders
+    const SHADER_EXT_DIRECTIVES = [];
+    if (EXT.derivatives) SHADER_EXT_DIRECTIVES.push('#extension GL_OES_standard_derivatives : enable');
+    if (EXT.shaderTextureLOD) SHADER_EXT_DIRECTIVES.push('#extension GL_EXT_shader_texture_lod : enable');
+    const SHADER_EXT_HEADER = SHADER_EXT_DIRECTIVES.length ? SHADER_EXT_DIRECTIVES.join('\n') + '\n' : '';
+
+    // Handle context loss
+    canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); console.warn('[Calyx] Context lost'); });
+    canvas.addEventListener('webglcontextrestored', () => { console.warn('[Calyx] Context restored'); location.reload(); });
+
+    // Fullscreen quad
     const quadBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
     gl.bufferData(gl.ARRAY_BUFFER,
@@ -995,14 +1065,21 @@ void main(){
     const FS_LIQUID = $('fs-template-liquid').textContent;
     const FS_SCENE = $('fs-template-3d').textContent;
 
+    // ============================================================
+    // SHADER COMPILATION HELPERS
+    // ============================================================
     function compileShader(type, src) {
       const s = gl.createShader(type);
       gl.shaderSource(s, src);
       gl.compileShader(s);
       if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
         const log = gl.getShaderInfoLog(s) || 'Unknown shader error';
+        const numbered = src.split('\n').map((l, i) => (i + 1) + ': ' + l).join('\n');
         gl.deleteShader(s);
-        throw new Error(log);
+        const err = new Error(log);
+        err.shaderLog = log;
+        err.numberedSource = numbered;
+        throw err;
       }
       return s;
     }
@@ -1024,12 +1101,59 @@ void main(){
       return prog;
     }
 
+    // Standard prologue auto-injected into multipass fragment shaders.
+    // Disable by adding `#define CALYX_NO_PROLOGUE` to the shader source.
+    const PASS_PROLOGUE = [
+      '#ifndef CALYX_NO_PROLOGUE',
+      '#ifdef GL_FRAGMENT_PRECISION_HIGH',
+      'precision highp float;',
+      '#else',
+      'precision mediump float;',
+      '#endif',
+      'uniform vec2 u_resolution;',
+      'uniform vec2 u_mouse;',
+      'uniform float u_time;',
+      'uniform float u_pulse;',
+      'uniform float u_speed;',
+      'uniform float u_soft;',
+      'uniform float u_glow;',
+      'uniform float u_scale;',
+      'uniform float u_warp;',
+      'uniform float u_pulseAmt;',
+      'uniform float u_frame;',
+      'uniform vec3 u_a;',
+      'uniform vec3 u_b;',
+      'uniform sampler2D iChannel0;',
+      'uniform sampler2D iChannel1;',
+      'uniform sampler2D iChannel2;',
+      'uniform sampler2D iChannel3;',
+      '#ifndef CALYX_NO_HELPERS',
+      'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+      'float noise(vec2 p){',
+      '  vec2 i = floor(p), f = fract(p);',
+      '  f = f * f * (3. - 2. * f);',
+      '  return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x),',
+      '             mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y);',
+      '}',
+      'float fbm(vec2 p){',
+      '  float v = 0., a = .5;',
+      '  for (int i = 0; i < 5; i++){ v += noise(p) * a; p *= 2.; a *= .5; }',
+      '  return v;',
+      '}',
+      'vec2 rot(vec2 p, float a){ float c = cos(a), s = sin(a); return vec2(c*p.x - s*p.y, s*p.x + c*p.y); }',
+      '#endif',
+      '#endif',
+      ''
+    ].join('\n');
+
     const FALLBACK_LIQUID = 'v = fbm(p * 2.5 + t * .02);';
     const FALLBACK_SCENE  = 'float map(vec3 p){ return p.y + 1.0; }';
 
     function buildLiquidSource(liquid) {
       const body = (liquid.custom && liquid.custom.trim()) || FALLBACK_LIQUID;
-      return FS_LIQUID.replace('// __LIQUID_BODY__', body.endsWith('\n') ? body : body + '\n');
+      let src = FS_LIQUID.replace('// __LIQUID_BODY__', body.endsWith('\n') ? body : body + '\n');
+      if (SHADER_EXT_HEADER) src = SHADER_EXT_HEADER + src;
+      return src;
     }
     function buildSceneSource(scene) {
       const body = (scene.custom && scene.custom.trim()) || FALLBACK_SCENE;
@@ -1042,67 +1166,303 @@ void main(){
       ].filter(Boolean).join('\n');
       let src = FS_SCENE.replace('// __DEFINES__', defines);
       src = src.replace('// __SCENE_BODY__', body.endsWith('\n') ? body : body + '\n');
+      if (SHADER_EXT_HEADER) src = SHADER_EXT_HEADER + src;
       return src;
     }
 
-    const programCache = new Map();
-
-    function compileEntry(item, mode) {
-      const isScene = mode === 'scene';
-      const fsSrc = isScene ? buildSceneSource(item) : buildLiquidSource(item);
-      const prog = compileProgram(VS_SRC, fsSrc);
-
-      const uniforms = {
-        res: gl.getUniformLocation(prog, 'u_resolution'),
-        mouse: gl.getUniformLocation(prog, 'u_mouse'),
-        time: gl.getUniformLocation(prog, 'u_time'),
-        pulse: gl.getUniformLocation(prog, 'u_pulse'),
-        a: gl.getUniformLocation(prog, 'u_a'),
-        b: gl.getUniformLocation(prog, 'u_b'),
-        speed: gl.getUniformLocation(prog, 'u_speed'),
-        soft: gl.getUniformLocation(prog, 'u_soft'),
-        glow: gl.getUniformLocation(prog, 'u_glow'),
-        scale: gl.getUniformLocation(prog, 'u_scale'),
-        warp: gl.getUniformLocation(prog, 'u_warp'),
-        pulseAmt: gl.getUniformLocation(prog, 'u_pulseAmt')
-      };
-      if (isScene) {
-        uniforms.camPos = gl.getUniformLocation(prog, 'u_camPos');
-        uniforms.camTarget = gl.getUniformLocation(prog, 'u_camTarget');
-        uniforms.lightDir = gl.getUniformLocation(prog, 'u_lightDir');
-        uniforms.lightCol = gl.getUniformLocation(prog, 'u_lightCol');
-        uniforms.ambient = gl.getUniformLocation(prog, 'u_ambient');
+    // ============================================================
+    // RENDER TARGETS + PING-PONG BUFFERS
+    // ============================================================
+    class RenderTarget {
+      constructor(w, h) {
+        this.w = Math.max(1, w | 0);
+        this.h = Math.max(1, h | 0);
+        this.tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.w, this.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        this.fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.tex, 0);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       }
-
-      return {
-        program: prog,
-        attribPos: gl.getAttribLocation(prog, 'a_position'),
-        uniforms,
-        isScene
-      };
+      resize(w, h) {
+        w = Math.max(1, w | 0); h = Math.max(1, h | 0);
+        if (w === this.w && h === this.h) return;
+        this.w = w; this.h = h;
+        gl.bindTexture(gl.TEXTURE_2D, this.tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      }
+      bind() {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+        gl.viewport(0, 0, this.w, this.h);
+      }
+      dispose() {
+        gl.deleteTexture(this.tex);
+        gl.deleteFramebuffer(this.fbo);
+      }
     }
 
-    function getEntry(mode, item) {
+    class PingPong {
+      constructor(w, h) {
+        this.a = new RenderTarget(w, h);
+        this.b = new RenderTarget(w, h);
+        this.readIdx = 0;
+      }
+      get read()  { return this.readIdx === 0 ? this.a : this.b; }
+      get write() { return this.readIdx === 0 ? this.b : this.a; }
+      swap()      { this.readIdx = 1 - this.readIdx; }
+      resize(w, h) { this.a.resize(w, h); this.b.resize(w, h); }
+      dispose()   { this.a.dispose(); this.b.dispose(); }
+    }
+
+    // ============================================================
+    // UNIFIED COMPILED SHADER (single-pass OR multipass)
+    // ============================================================
+    // Item formats accepted:
+    //
+    //   1. Legacy single-pass (existing liquids.js):
+    //      { name, custom: '...', a, b, ... }           → liquid template
+    //      { name, custom: '...', a, b, ... } + scene mode → 3D template
+    //
+    //   2. Multipass (new):
+    //      {
+    //        name, cat, desc, a, b, ...,
+    //        buffers: { BufferA: { scale: 1.0 }, BufferB: { scale: 1.0 } },
+    //        passes: [
+    //          { target: 'BufferA', fragment: '...' },   // reads iChannel0..3
+    //          { target: 'BufferB', fragment: '...' },
+    //          { target: null,      fragment: '...' }    // null = screen
+    //        ]
+    //      }
+    //
+    // Buffer names are auto-bound to iChannel0, iChannel1, ... in declaration order.
+    // Every pass reading a buffer sees the PREVIOUS frame's contents for that
+    // buffer (feedback semantics — perfect for reaction-diffusion / trails).
+    //
+    // Fragment shader is auto-wrapped with:
+    //   #version, precision, uniforms (u_resolution, u_mouse, u_time, u_frame,
+    //   u_pulse, u_speed, u_soft, u_glow, u_scale, u_warp, u_pulseAmt,
+    //   u_a, u_b), sampler2D iChannel0..3, and helpers (hash, noise, fbm, rot).
+    // Opt out with `#define CALYX_NO_PROLOGUE` at the top of the fragment.
+    class CompiledShader {
+      constructor(item, mode) {
+        this.item = item;
+        this.mode = mode;
+        this.isScene = mode === 'scene';
+        this.passes = [];
+        this.bufferNames = [];
+        this.buffers = {};
+        this.frame = 0;
+        this.ready = false;
+        this.usingMultipass = Array.isArray(item.passes) && item.passes.length > 0;
+        this._build();
+        this.ready = true;
+      }
+
+      _getUniformLocations(prog) {
+        const uni = (n) => gl.getUniformLocation(prog, n);
+        return {
+          res: uni('u_resolution'),
+          mouse: uni('u_mouse'),
+          time: uni('u_time'),
+          pulse: uni('u_pulse'),
+          a: uni('u_a'),
+          b: uni('u_b'),
+          speed: uni('u_speed'),
+          soft: uni('u_soft'),
+          glow: uni('u_glow'),
+          scale: uni('u_scale'),
+          warp: uni('u_warp'),
+          pulseAmt: uni('u_pulseAmt'),
+          frame: uni('u_frame'),
+          camPos: uni('u_camPos'),
+          camTarget: uni('u_camTarget'),
+          lightDir: uni('u_lightDir'),
+          lightCol: uni('u_lightCol'),
+          ambient: uni('u_ambient'),
+          channels: [uni('iChannel0'), uni('iChannel1'), uni('iChannel2'), uni('iChannel3')],
+        };
+      }
+
+      _build() {
+        if (this.usingMultipass) this._buildMultipass();
+        else this._buildSinglePass();
+      }
+
+      _buildSinglePass() {
+        let fsSrc;
+        if (this.isScene) fsSrc = buildSceneSource(this.item);
+        else              fsSrc = buildLiquidSource(this.item);
+        const prog = compileProgram(VS_SRC, fsSrc);
+        this.passes.push({
+          program: prog,
+          attribPos: gl.getAttribLocation(prog, 'a_position'),
+          uniforms: this._getUniformLocations(prog),
+          target: null,
+        });
+      }
+
+      _buildMultipass() {
+        // Create ping-pong buffers for each named buffer
+        for (const name of Object.keys(this.item.buffers || {})) {
+          this.bufferNames.push(name);
+          this.buffers[name] = new PingPong(1, 1); // sized in resize()
+        }
+        // Compile each pass
+        for (let i = 0; i < this.item.passes.length; i++) {
+          const pass = this.item.passes[i] || {};
+          const frag = pass.fragment || '';
+          const src = PASS_PROLOGUE + frag;
+          let prog;
+          try {
+            prog = compileProgram(VS_SRC, src);
+          } catch (e) {
+            console.error(`[Calyx] Pass ${i} of "${this.item.name}" failed:`, e.shaderLog || e.message);
+            if (e.numberedSource) console.error(e.numberedSource);
+            throw e;
+          }
+          this.passes.push({
+            program: prog,
+            attribPos: gl.getAttribLocation(prog, 'a_position'),
+            uniforms: this._getUniformLocations(prog),
+            target: (pass.target && this.buffers[pass.target]) ? pass.target : null,
+            index: i,
+          });
+        }
+      }
+
+      resize(w, h) {
+        if (!this.usingMultipass) return;
+        for (const name of this.bufferNames) {
+          const def = (this.item.buffers && this.item.buffers[name]) || {};
+          const s = def.scale != null ? def.scale : 1.0;
+          const bw = Math.max(1, Math.floor(w * s));
+          const bh = Math.max(1, Math.floor(h * s));
+          this.buffers[name].resize(bw, bh);
+        }
+      }
+
+      render(state) {
+        gl.disable(gl.DEPTH_TEST);
+        gl.disable(gl.BLEND);
+        gl.disable(gl.CULL_FACE);
+        gl.disable(gl.SCISSOR_TEST);
+
+        for (let i = 0; i < this.passes.length; i++) {
+          const p = this.passes[i];
+
+          // ---- Bind render target ----
+          let targetW = state.canvasW, targetH = state.canvasH;
+          if (p.target) {
+            const pp = this.buffers[p.target];
+            if (!pp) continue;
+            const writeRT = pp.write;
+            writeRT.bind();
+            targetW = writeRT.w;
+            targetH = writeRT.h;
+          } else {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, state.canvasW, state.canvasH);
+          }
+
+          // ---- Program + geometry ----
+          gl.useProgram(p.program);
+          gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+          if (p.attribPos >= 0) {
+            gl.enableVertexAttribArray(p.attribPos);
+            gl.vertexAttribPointer(p.attribPos, 2, gl.FLOAT, false, 0, 0);
+          }
+
+          // ---- Uniforms ----
+          const U = p.uniforms;
+          if (U.res)      gl.uniform2f(U.res, targetW, targetH);
+          if (U.mouse)    gl.uniform2f(U.mouse, state.mx, state.my);
+          if (U.time)     gl.uniform1f(U.time, state.time);
+          if (U.frame)    gl.uniform1f(U.frame, this.frame);
+          if (U.pulse)    gl.uniform1f(U.pulse, state.pulse);
+          if (U.a)        gl.uniform3fv(U.a, state.a);
+          if (U.b)        gl.uniform3fv(U.b, state.b);
+          if (U.speed)    gl.uniform1f(U.speed, state.speed);
+          if (U.soft)     gl.uniform1f(U.soft, state.soft);
+          if (U.glow)     gl.uniform1f(U.glow, state.glow);
+          if (U.scale)    gl.uniform1f(U.scale, state.scale);
+          if (U.warp)     gl.uniform1f(U.warp, state.warp);
+          if (U.pulseAmt) gl.uniform1f(U.pulseAmt, state.pulseAmt);
+          if (this.isScene) {
+            if (U.camPos)    gl.uniform3fv(U.camPos, state.camPos);
+            if (U.camTarget) gl.uniform3fv(U.camTarget, state.camTarget);
+            if (U.lightDir)  gl.uniform3fv(U.lightDir, state.lightDir);
+            if (U.lightCol)  gl.uniform3fv(U.lightCol, state.lightCol);
+            if (U.ambient)   gl.uniform1f(U.ambient, state.ambient);
+          }
+
+          // ---- Samplers: bind every named buffer to iChannel0..N ----
+          for (let s = 0; s < 4; s++) {
+            const loc = U.channels[s];
+            if (!loc) continue;
+            const bufName = this.bufferNames[s];
+            if (!bufName) continue;
+            const pp = this.buffers[bufName];
+            if (!pp) continue;
+            gl.activeTexture(gl.TEXTURE0 + s);
+            gl.bindTexture(gl.TEXTURE_2D, pp.read.tex);
+            gl.uniform1i(loc, s);
+          }
+
+          // ---- Draw ----
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+          // ---- Swap ping-pong after writing to a named buffer ----
+          if (p.target) this.buffers[p.target].swap();
+        }
+
+        this.frame++;
+      }
+
+      dispose() {
+        for (const p of this.passes) gl.deleteProgram(p.program);
+        for (const name of this.bufferNames) {
+          if (this.buffers[name]) this.buffers[name].dispose();
+        }
+        this.passes.length = 0;
+        this.bufferNames.length = 0;
+        this.buffers = {};
+      }
+    }
+
+    // ============================================================
+    // PIPELINE CACHE
+    // ============================================================
+    const shaderCache = new Map(); // key = mode + ':' + name
+
+    function getShader(mode, item) {
       const key = mode + ':' + item.name;
-      let e = programCache.get(key);
-      if (e) return e;
-      e = compileEntry(item, mode);
-      programCache.set(key, e);
-      return e;
+      let s = shaderCache.get(key);
+      if (s && s.ready) return s;
+      s = new CompiledShader(item, mode);
+      shaderCache.set(key, s);
+      return s;
+    }
+
+    function purgeSceneShaders() {
+      for (const key of [...shaderCache.keys()]) {
+        if (key.startsWith('scene:')) {
+          const s = shaderCache.get(key);
+          if (s) s.dispose();
+          shaderCache.delete(key);
+        }
+      }
     }
 
     function onQualityChange() {
-      for (const key of [...programCache.keys()]) {
-        if (key.startsWith('scene:')) {
-          const e = programCache.get(key);
-          if (e && e.program) gl.deleteProgram(e.program);
-          programCache.delete(key);
-        }
-      }
+      purgeSceneShaders();
       resize();
-      if (currentMode === 'scene' && currentEntry && currentEntry.isScene) {
-        currentEntry = null;
-      }
     }
 
     // ============================================================
@@ -1117,6 +1477,10 @@ void main(){
       canvas.width = W;
       canvas.height = H;
       gl.viewport(0, 0, W, H);
+      // Resize any already-compiled multipass buffers
+      for (const s of shaderCache.values()) {
+        if (s && s.usingMultipass) s.resize(W, H);
+      }
     }
     addEventListener('resize', resize, { passive: true });
     resize();
@@ -1296,6 +1660,8 @@ void main(){
     // ============================================================
     // SET ITEM
     // ============================================================
+    let currentShader = null;
+
     function setItem(i, mode) {
       mode = mode || currentMode;
       const col = COLLECTIONS[mode];
@@ -1323,16 +1689,33 @@ void main(){
         camDist = item.camDist ?? 3.5;
       }
 
-      try { getEntry(mode, item); }
-      catch (e) { console.error('Shader compile failed for', item.name, e); }
+      try {
+        currentShader = getShader(mode, item);
+        currentShader.resize(W, H);
+      } catch (e) {
+        console.error('[Calyx] Shader compile failed for', item.name);
+        if (e.numberedSource) console.error(e.numberedSource);
+        else console.error(e);
+        // Fallback
+        try {
+          const fallbackItem = mode === 'scene'
+            ? { name: '__fallback_scene__', custom: FALLBACK_SCENE }
+            : { name: '__fallback_liquid__', custom: FALLBACK_LIQUID };
+          currentShader = getShader(mode, fallbackItem);
+          currentShader.resize(W, H);
+        } catch (e2) {
+          console.error('[Calyx] Fallback also failed', e2);
+          currentShader = null;
+        }
+      }
     }
 
     // ============================================================
     // RENDER LOOP
     // ============================================================
-    let currentEntry = null;
     let lastTime = 0;
     let raf = 0;
+    let frameCount = 0;
 
     function draw(t) {
       raf = requestAnimationFrame(draw);
@@ -1347,100 +1730,59 @@ void main(){
       my += (ty - my) * .08;
       pulseVal *= .92;
 
-      const col = activeCollection();
-      const item = col[current];
+      const item = activeCollection()[current];
       if (!item) return;
 
-      let entry;
-      try { entry = getEntry(currentMode, item); }
-      catch (e) {
-        const key = currentMode + ':__fallback__';
-        if (!programCache.has(key)) {
-          try {
-            const fallbackSrc = currentMode === 'scene'
-              ? buildSceneSource({ custom: FALLBACK_SCENE })
-              : buildLiquidSource({ custom: FALLBACK_LIQUID });
-            const prog = compileProgram(VS_SRC, fallbackSrc);
-            const uni = {
-              res: gl.getUniformLocation(prog, 'u_resolution'),
-              mouse: gl.getUniformLocation(prog, 'u_mouse'),
-              time: gl.getUniformLocation(prog, 'u_time'),
-              pulse: gl.getUniformLocation(prog, 'u_pulse'),
-              a: gl.getUniformLocation(prog, 'u_a'),
-              b: gl.getUniformLocation(prog, 'u_b'),
-              speed: gl.getUniformLocation(prog, 'u_speed'),
-              soft: gl.getUniformLocation(prog, 'u_soft'),
-              glow: gl.getUniformLocation(prog, 'u_glow'),
-              scale: gl.getUniformLocation(prog, 'u_scale'),
-              warp: gl.getUniformLocation(prog, 'u_warp'),
-              pulseAmt: gl.getUniformLocation(prog, 'u_pulseAmt'),
-              camPos: gl.getUniformLocation(prog, 'u_camPos'),
-              camTarget: gl.getUniformLocation(prog, 'u_camTarget'),
-              lightDir: gl.getUniformLocation(prog, 'u_lightDir'),
-              lightCol: gl.getUniformLocation(prog, 'u_lightCol'),
-              ambient: gl.getUniformLocation(prog, 'u_ambient')
-            };
-            programCache.set(key, {
-              program: prog,
-              attribPos: gl.getAttribLocation(prog, 'a_position'),
-              uniforms: uni,
-              isScene: currentMode === 'scene'
-            });
-          } catch (e2) { console.error('Fallback compile failed', e2); }
+      // Lazily (re)compile if cache was purged or currentShader is stale
+      if (!currentShader || currentShader.item !== item) {
+        try {
+          currentShader = getShader(currentMode, item);
+          currentShader.resize(W, H);
+        } catch (e) {
+          console.error('[Calyx] Compile error:', e);
+          return;
         }
-        entry = programCache.get(key);
-        if (!entry) return;
       }
 
-      if (entry !== currentEntry) {
-        currentEntry = entry;
-        gl.useProgram(entry.program);
-        gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
-        gl.enableVertexAttribArray(entry.attribPos);
-        gl.vertexAttribPointer(entry.attribPos, 2, gl.FLOAT, false, 0, 0);
-      }
-
-      const U = entry.uniforms;
-      const speed   = (item.speed ?? .3) * settings.motionMult;
-      const glow    = (item.glow  ?? .45) * settings.glowMult;
-      const soft    = (item.soft  ?? .3);
-      const scale   = (item.scale ?? 1);
-      const warp    = (item.warp  ?? 0);
-      const pulseAmt= (item.pulse ?? 1);
-
-      gl.uniform2f(U.res, W, H);
-      gl.uniform2f(U.mouse, mx, my);
-      gl.uniform1f(U.time, t * .001);
-      gl.uniform1f(U.pulse, pulseVal);
-      gl.uniform3fv(U.a, rgb(item.a));
-      gl.uniform3fv(U.b, rgb(item.b));
-      gl.uniform1f(U.speed, speed);
-      gl.uniform1f(U.soft, soft);
-      gl.uniform1f(U.glow, glow);
-      gl.uniform1f(U.scale, scale);
-      gl.uniform1f(U.warp, warp);
-      gl.uniform1f(U.pulseAmt, pulseAmt);
-
-      if (entry.isScene && U.camPos) {
+      // Build render state
+      const camPos = [0, 0, 0];
+      if (currentMode === 'scene') {
         camTheta += (item.camOrbit ?? 0.1) * 0.016;
         const theta = camTheta + camUserTheta;
         const phi = camPhi;
         const dist = camDist;
-        const cpx = Math.sin(theta) * Math.cos(phi) * dist;
-        const cpy = Math.sin(phi) * dist;
-        const cpz = Math.cos(theta) * Math.cos(phi) * dist;
-        const targetY = item.camHeight ?? 0;
-
-        gl.uniform3f(U.camPos, cpx, cpy, cpz);
-        gl.uniform3f(U.camTarget, 0, targetY, 0);
-
-        const ld = item.lightDir || [0.5, 0.7, 0.6];
-        gl.uniform3f(U.lightDir, ld[0], ld[1], ld[2]);
-        gl.uniform3fv(U.lightCol, rgb(item.lightCol || '#ffffff'));
-        gl.uniform1f(U.ambient, item.ambient ?? 0.15);
+        camPos[0] = Math.sin(theta) * Math.cos(phi) * dist;
+        camPos[1] = Math.sin(phi) * dist;
+        camPos[2] = Math.cos(theta) * Math.cos(phi) * dist;
       }
 
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      const state = {
+        canvasW: W,
+        canvasH: H,
+        mx, my,
+        time: t * 0.001,
+        pulse: pulseVal,
+        a: rgb(item.a),
+        b: rgb(item.b),
+        speed: (item.speed ?? .3) * settings.motionMult,
+        soft: (item.soft ?? .3),
+        glow: (item.glow ?? .45) * settings.glowMult,
+        scale: (item.scale ?? 1),
+        warp: (item.warp ?? 0),
+        pulseAmt: (item.pulse ?? 1),
+        camPos,
+        camTarget: [0, item.camHeight ?? 0, 0],
+        lightDir: item.lightDir || [0.5, 0.7, 0.6],
+        lightCol: rgb(item.lightCol || '#ffffff'),
+        ambient: item.ambient ?? 0.15,
+      };
+
+      try {
+        currentShader.render(state);
+        frameCount++;
+      } catch (e) {
+        console.error('[Calyx] Render error:', e);
+      }
     }
 
     // ============================================================
@@ -1456,9 +1798,13 @@ void main(){
       function step(deadline) {
         while (i < queue.length && deadline.timeRemaining() > 4) {
           const { mode, item } = queue[i++];
-          if (!programCache.has(mode + ':' + item.name)) {
-            try { getEntry(mode, item); }
-            catch (e) { console.warn('Skipped ' + mode + ':' + item.name, e); }
+          if (!shaderCache.has(mode + ':' + item.name)) {
+            try {
+              const s = getShader(mode, item);
+              s.resize(W, H);
+            } catch (e) {
+              console.warn('[Calyx] Skipped', mode + ':' + item.name, e.shaderLog || e.message);
+            }
           }
         }
         if (i < queue.length) idle(step);
