@@ -16,9 +16,486 @@
 
 export default [
 
-  // =============================================================
-  // BALATRO  —  faithful port of background.fs
-  // =============================================================
+  // ============================================================
+  // MOLTEN CORE — raymarched SDF metaball with PBR lighting
+  // ============================================================
+  {
+    name: "Molten Core",
+    cat: "matter",
+    desc: "Raymarched metaball · PBR lighting + emissive cracks",
+    a: "#160300",
+    b: "#ffd090",
+    motion: -1,
+    speed: 0.5,
+    glow: 1.5,
+    soft: 0.1,
+    custom: `
+      // ---- SDF primitives ----
+      float sdSph(vec3 q, float r) { return length(q) - r; }
+      float smin(float a, float b, float k) {
+        float h = clamp(0.5 + 0.5*(b-a)/k, 0.0, 1.0);
+        return mix(b, a, h) - k*h*(1.0-h);
+      }
+      // ---- Animated metaball field ----
+      float map(vec3 q) {
+        float d = sdSph(q, 0.38);
+        for (int i = 0; i < 5; i++) {
+          float fi = float(i);
+          vec3 c = vec3(sin(t*0.6 + fi*1.7),
+                        cos(t*0.4 + fi*2.3),
+                        sin(t*0.8 + fi*1.3)) * 0.32;
+          d = smin(d, sdSph(q - c, 0.20), 0.24);
+        }
+        d += (fbm(q.xy * 3.0 + t * 0.5) - 0.5) * 0.06;
+        return d;
+      }
+      vec3 calcN(vec3 q) {
+        vec2 e = vec2(0.0015, 0.0);
+        return normalize(vec3(
+          map(q+e.xyy) - map(q-e.xyy),
+          map(q+e.yxy) - map(q-e.yxy),
+          map(q+e.yyx) - map(q-e.yyx)));
+      }
+      // ---- Ray setup ----
+      vec3 ro = vec3(0.0, 0.0, -1.7);
+      vec3 rd = normalize(vec3(p * 0.9, 1.5));
+      float tt = 0.0;
+      float hitD = -1.0;
+      vec3 hp = vec3(0.0);
+      for (int i = 0; i < 56; i++) {
+        vec3 pos = ro + rd * tt;
+        float dd = map(pos);
+        if (dd < 0.002) { hitD = tt; hp = pos; break; }
+        if (tt > 5.0) break;
+        tt += dd * 0.85;
+      }
+      float v = 0.0;
+      if (hitD > 0.0) {
+        vec3 n = calcN(hp);
+        vec3 L = normalize(vec3(0.6, 0.7, -0.4));
+        float diff = max(0.0, dot(n, L));
+        vec3 hv = normalize(L - rd);
+        float spec = pow(max(0.0, dot(n, hv)), 56.0);
+        float fres = pow(1.0 - max(0.0, dot(n, -rd)), 4.0);
+        // Emissive cracks — ridged noise glow
+        float crack = smoothstep(0.42, 0.62, fbm(hp.xy * 7.0 + t * 0.5));
+        // Depth attenuation so far parts fade
+        float depthFade = exp(-hitD * 0.15);
+        v = clamp((diff * 0.35 + spec * 0.7 + fres * 0.35) * depthFade
+                  + crack * 0.9, 0.0, 1.0);
+      }
+    `
+  },
+
+  // ============================================================
+  // CRYSTAL PRISM — raymarched octahedron with refraction
+  // ============================================================
+  {
+    name: "Crystal Prism",
+    cat: "matter",
+    desc: "Raymarched crystal · refraction + dispersion iridescence",
+    a: "#05060e",
+    b: "#c0e8ff",
+    motion: -1,
+    speed: 0.4,
+    glow: 1.4,
+    soft: 0.05,
+    custom: `
+      float sdOct(vec3 q, float s) {
+        q = abs(q);
+        return (q.x + q.y + q.z - s) * 0.577350269;
+      }
+      float map(vec3 q) {
+        // Slow rotation
+        float ca = cos(t*0.3), sa = sin(t*0.3);
+        q.xz = mat2(ca, -sa, sa, ca) * q.xz;
+        // Two overlapping octahedra
+        float d = sdOct(q, 0.52);
+        float d2 = sdOct(q * 1.4 + vec3(0.1, 0.2, 0.0), 0.52) * 0.7;
+        d = min(d, d2);
+        // Facet cut
+        float facet = abs(q.x + q.y) * 0.4 + abs(q.z - q.x) * 0.3;
+        d = max(d, -facet + 0.16);
+        return d;
+      }
+      vec3 calcN(vec3 q) {
+        vec2 e = vec2(0.001, 0.0);
+        return normalize(vec3(
+          map(q+e.xyy)-map(q-e.xyy),
+          map(q+e.yxy)-map(q-e.yxy),
+          map(q+e.yyx)-map(q-e.yyx)));
+      }
+      vec3 ro = vec3(0.0, 0.0, -1.65);
+      vec3 rd = normalize(vec3(p * 0.85, 1.5));
+      float tt = 0.0;
+      float hitD = -1.0;
+      vec3 hp = vec3(0.0);
+      for (int i = 0; i < 48; i++) {
+        vec3 pos = ro + rd * tt;
+        float dd = map(pos);
+        if (dd < 0.002) { hitD = tt; hp = pos; break; }
+        if (tt > 5.0) break;
+        tt += dd * 0.85;
+      }
+      float v = 0.0;
+      if (hitD > 0.0) {
+        vec3 n = calcN(hp);
+        vec3 L1 = normalize(vec3(0.5, 0.8, -0.5));
+        float diff = max(0.0, dot(n, L1));
+        vec3 hv = normalize(L1 - rd);
+        float spec = pow(max(0.0, dot(n, hv)), 120.0);
+        float fres = pow(1.0 - max(0.0, dot(n, -rd)), 5.0);
+        // Refraction into RGB-split directions (fake dispersion)
+        vec3 refrR = refract(rd, n, 0.62);
+        vec3 refrG = refract(rd, n, 0.66);
+        vec3 refrB = refract(rd, n, 0.70);
+        float iridR = 0.5 + 0.5*sin(dot(refrR, vec3(18.0, 12.0, 24.0)) + t*2.0);
+        float iridG = 0.5 + 0.5*sin(dot(refrG, vec3(18.0, 12.0, 24.0)) + t*2.0 + 2.09);
+        float iridB = 0.5 + 0.5*sin(dot(refrB, vec3(18.0, 12.0, 24.0)) + t*2.0 + 4.18);
+        float irid = (iridR + iridG + iridB) / 3.0;
+        v = clamp(diff * 0.22 + spec * 1.2 + fres * 0.85 + irid * 0.45, 0.0, 1.0);
+      }
+    `
+  },
+
+  // ============================================================
+  // DEEP OCEAN — volumetric underwater with caustics + light shafts
+  // ============================================================
+  {
+    name: "Deep Ocean",
+    cat: "organic",
+    desc: "Volumetric underwater · caustics + god rays",
+    a: "#010a15",
+    b: "#5ad0e8",
+    motion: -1,
+    speed: 0.35,
+    glow: 1.3,
+    soft: 0.45,
+    custom: `
+      vec3 rayDir = normalize(vec3(p * 1.1, 1.4));
+      vec3 acc = vec3(0.0);
+      float trans = 1.0;
+      vec3 sunDir = normalize(vec3(0.25, 1.0, 0.3));
+
+      for (int i = 0; i < 40; i++) {
+        float z = float(i) * 0.08;
+        vec3 pos = rayDir * z;
+
+        // Caustics: project the ray up onto the water surface, then fbm
+        float surfY = 1.2;
+        float sx = pos.x + rayDir.x * (surfY - pos.y) / max(rayDir.y, 0.05);
+        float sz = pos.z + rayDir.z * (surfY - pos.y) / max(rayDir.y, 0.05);
+        float caustic = fbm(vec2(sx, sz) * 4.0 + t * 0.6);
+        caustic = pow(caustic, 2.0);
+
+        // Density: fbm modulated, falls off with depth
+        float dens = 0.4 + 0.6 * fbm(pos.xy * 1.5 + pos.z + t * 0.2);
+        dens *= exp(-pos.y * 0.5);
+
+        float w = dens * 0.05;
+
+        // God ray: alignment of the ray with the sun
+        float lit = max(0.0, dot(rayDir, sunDir));
+        float shaft = pow(lit, 4.0);
+
+        acc += (caustic * 0.6 + shaft * 0.8) * trans * w;
+        trans *= exp(-w * 1.2);
+      }
+      float v = clamp(dot(acc, vec3(0.4, 0.9, 1.2)) * 1.5, 0.0, 1.0);
+    `
+  },
+
+  // ============================================================
+  // THUNDER HEAD — volumetric storm cloud + lightning flashes
+  // ============================================================
+  {
+    name: "Thunder Head",
+    cat: "energy",
+    desc: "Volumetric storm cloud · sun scatter + lightning",
+    a: "#05070f",
+    b: "#b8c8e8",
+    motion: -1,
+    speed: 0.3,
+    glow: 1.6,
+    soft: 0.5,
+    custom: `
+      vec3 rayDir = normalize(vec3(p * 1.0, 0.8));
+      vec3 sunDir = normalize(vec3(0.6, 0.4, 0.4));
+      vec3 acc = vec3(0.0);
+      float trans = 1.0;
+
+      // Lightning: discrete flashes
+      float flashPhase = floor(t * 3.0);
+      float flashAmt = pow(fract(t * 3.0), 6.0)
+                     * step(0.72, hash(vec2(flashPhase, 3.7)));
+      vec3 flashPos = vec3(sin(flashPhase * 1.7), 0.4, cos(flashPhase * 1.3)) * 0.6;
+
+      for (int i = 0; i < 40; i++) {
+        float z = float(i) * 0.10 + 0.5;
+        vec3 pos = rayDir * z;
+
+        // Cloud density: layered fbm
+        float dens = fbm(pos.xy * 1.8 + vec2(t * 0.15, -t * 0.1));
+        dens *= fbm(pos.xy * 3.5 + vec2(pos.z * 0.6, 0.0) + t * 0.2);
+        dens = smoothstep(0.3, 0.7, dens);
+        dens *= smoothstep(2.0, 0.3, z);
+
+        float w = dens * 0.12;
+
+        // Sun-occlusion: march toward the sun
+        float lightDepth = 0.0;
+        for (int j = 0; j < 4; j++) {
+          float lz = float(j) * 0.4;
+          vec3 lp = pos + sunDir * lz;
+          lightDepth += fbm(lp.xy * 1.8 + t * 0.15) * 0.25;
+        }
+        float sunLit = exp(-lightDepth * 2.5);
+
+        // Lightning burst
+        float flashDist = length(pos - flashPos);
+        float flash = flashAmt * exp(-flashDist * 2.0) * 3.0;
+
+        // Silver lining on rim
+        float rim = pow(1.0 - smoothstep(0.3, 0.9, dens), 2.0);
+
+        acc += (vec3(0.4, 0.5, 0.7) * sunLit * 0.6
+               + vec3(0.7, 0.8, 1.0) * rim * 0.9
+               + vec3(1.0, 0.9, 1.0) * flash) * trans * w;
+        trans *= exp(-w * 1.5);
+      }
+      float v = clamp(dot(acc, vec3(0.5, 0.9, 1.0)) * 1.6, 0.0, 1.0);
+    `
+  },
+
+  // ============================================================
+  // LIQUID CHROME — raymarched reflective surface, fake env map
+  // ============================================================
+  {
+    name: "Liquid Chrome",
+    cat: "matter",
+    desc: "Raymarched mirror surface · procedural environment",
+    a: "#080a10",
+    b: "#ffffff",
+    motion: -1,
+    speed: 0.4,
+    glow: 1.2,
+    soft: 0.05,
+    custom: `
+      float height(vec2 q) {
+        return fbm(q * 1.2 + t * 0.15) * 0.5
+             + fbm(q * 2.8 + vec2(5.0, 3.0)) * 0.25;
+      }
+      // Fake environment: sky gradient + horizon sun
+      vec3 env(vec3 dir) {
+        float sky = dir.y * 0.5 + 0.5;
+        vec3 topCol = vec3(0.65, 0.78, 1.0);
+        vec3 botCol = vec3(0.04, 0.06, 0.10);
+        vec3 skyCol = mix(botCol, topCol, sky);
+        vec3 sunDir = normalize(vec3(0.3, 0.7, -0.5));
+        float sunDot = max(0.0, dot(dir, sunDir));
+        skyCol += vec3(1.0, 0.9, 0.7) * pow(sunDot, 200.0) * 3.0;
+        skyCol += vec3(1.0) * pow(1.0 - abs(dir.y), 8.0) * 0.3;
+        return skyCol;
+      }
+      vec3 ro = vec3(0.0, 0.6, -1.5);
+      vec3 rd = normalize(vec3(p * 1.1, 1.0));
+      float tt = 0.0;
+      float hit = -1.0;
+      vec3 hp = vec3(0.0);
+      for (int i = 0; i < 32; i++) {
+        vec3 pos = ro + rd * tt;
+        float dd = (pos.y - height(pos.xz)) * 0.5;
+        if (dd < 0.005) { hit = tt; hp = pos; break; }
+        if (tt > 6.0 || pos.y < -1.0) break;
+        tt += max(dd, 0.01);
+      }
+      float v = 0.0;
+      if (hit > 0.0) {
+        // Normal via finite differences of the height field
+        float e = 0.01;
+        float h = height(hp.xz);
+        float hx = height(hp.xz + vec2(e, 0.0));
+        float hz = height(hp.xz + vec2(0.0, e));
+        vec3 n = normalize(vec3(h - hx, e, h - hz));
+        vec3 refr = reflect(rd, n);
+        vec3 envCol = env(refr);
+        float fres = pow(1.0 - max(0.0, dot(n, -rd)), 5.0);
+        float depthFade = exp(-tt * 0.15);
+        float envLum = dot(envCol, vec3(0.299, 0.587, 0.114));
+        v = clamp(envLum * depthFade + fres * 0.4, 0.0, 1.0);
+      }
+    `
+  },
+
+  // ============================================================
+  // WET ASPHALT — 2.5D parallax city reflected in a wet street
+  // ============================================================
+  {
+    name: "Wet Asphalt",
+    cat: "matter",
+    desc: "2.5D parallax skyline · wet mirror reflection",
+    a: "#05070c",
+    b: "#c8e0ff",
+    motion: -1,
+    speed: 0.35,
+    glow: 1.2,
+    soft: 0.25,
+    custom: `
+      float horizon = -0.05;
+      float v = 0.0;
+
+      // ---- Skyline sampler: 3 parallax layers of buildings ----
+      float skyline(vec2 coord, float timeShift) {
+        float buildings = 0.0;
+        for (int i = 0; i < 3; i++) {
+          float fi = float(i);
+          float scale = 4.0 + fi * 6.0;
+          float parallax = timeShift * (0.02 + fi * 0.03);
+          float col = floor((coord.x + parallax) * scale);
+          float h = hash(vec2(col, fi)) * 0.4;
+          float topY = 0.05 + h;
+          float row = step(coord.y, topY);
+          // Window lights
+          vec2 wuv = vec2((coord.x + parallax) * scale, coord.y * 10.0);
+          vec2 wid = floor(wuv);
+          float lit = step(0.7, hash(wid + fi * 3.7))
+                    * (0.5 + 0.5 * sin(timeShift * 2.0 + hash(wid) * 20.0));
+          buildings += row * (0.15 + lit * 0.4) * (1.0 - fi * 0.25);
+        }
+        return buildings;
+      }
+
+      if (p.y > horizon) {
+        // ---- Above the horizon: sky ----
+        vec2 skyCoord = vec2(p.x, p.y - horizon);
+        v = skyline(skyCoord, t);
+      } else {
+        // ---- Below: wet street with mirror reflection ----
+        float yb = horizon - p.y;              // distance below horizon
+        float depth = 1.0 / (yb + 0.05);       // pseudo-perspective
+
+        // Asphalt grain
+        float grain = fbm(vec2(p.x * depth * 3.0, depth * 2.0) + t * 0.1);
+        grain = smoothstep(0.4, 0.7, grain) * 0.25;
+
+        // Mirror: sample the skyline using the mirrored y
+        float refY = horizon + (horizon - p.y) * 0.75;
+        vec2 refCoord = vec2(p.x * depth * 0.9, 0.3 - (refY - horizon) * 2.0);
+        float refl = skyline(refCoord, t);
+
+        // Wet ripple distortion on the reflection
+        float ripple = fbm(refCoord * 2.0 + t * 0.8) * 0.15;
+        refl *= 0.7 + ripple;
+
+        // Puddle mask so it's not uniformly wet
+        float puddle = smoothstep(0.3, 0.7, fbm(p * 3.0 + t * 0.2));
+
+        v = clamp(grain * 0.5 + refl * puddle * 1.3, 0.0, 1.0);
+      }
+    `
+  },
+
+  // ============================================================
+  // FROZEN HEART — ice with subsurface scattering and cracks
+  // ============================================================
+  {
+    name: "Frozen Heart",
+    cat: "matter",
+    desc: "Ice with subsurface glow · ridged fracture network",
+    a: "#040b16",
+    b: "#c0e8ff",
+    motion: -1,
+    speed: 0.25,
+    glow: 1.4,
+    soft: 0.2,
+    custom: `
+      // Ridged fbm → crack network
+      float crack = 0.0;
+      float freq = 1.0;
+      float amp = 1.0;
+      for (int i = 0; i < 4; i++) {
+        float n = fbm(p * freq + t * 0.05);
+        crack += (1.0 - abs(n - 0.5) * 2.0) * amp;
+        freq *= 2.0;
+        amp *= 0.55;
+      }
+      crack = pow(crack, 3.0);
+
+      // Subsurface: soft inner core bleeding through
+      float core = exp(-length(p) * 2.5);
+      float corePulse = 0.7 + 0.3 * sin(t * 1.2);
+
+      // Frost sparkle on the surface
+      float frost = fbm(p * 12.0 + t * 0.05);
+      frost = smoothstep(0.4, 0.7, frost) * 0.3;
+
+      // Refraction: sample the noise at an offset position
+      vec2 refrOffset = vec2(fbm(p * 2.0 + t * 0.1) - 0.5,
+                             fbm(p * 2.0 + 3.7 + t * 0.1) - 0.5) * 0.4;
+      float inner = fbm((p + refrOffset) * 1.5 + t * 0.05);
+      inner = pow(inner, 1.5);
+
+      v = clamp(crack * 0.75 + core * corePulse * 0.85 + frost + inner * 0.3,
+                0.0, 1.0);
+    `
+  },
+
+  // ============================================================
+  // COSMIC VOID — layered parallax starfield, DOF, nebula bloom
+  // ============================================================
+  {
+    name: "Cosmic Void",
+    cat: "strange",
+    desc: "5-layer parallax starfield · DOF + nebula bloom",
+    a: "#010109",
+    b: "#b090ff",
+    motion: -1,
+    speed: 0.3,
+    glow: 1.6,
+    soft: 0.5,
+    custom: `
+      // ---- Parallax star layers with per-layer DOF ----
+      float stars = 0.0;
+      float totalWeight = 0.0;
+      for (int i = 0; i < 5; i++) {
+        float fi = float(i);
+        float scale = 8.0 + fi * 8.0;
+        float drift = t * (0.02 + fi * 0.015);
+        vec2 sq = (p + vec2(drift, 0.0)) * scale;
+        vec2 si = floor(sq);
+        vec2 sf = fract(sq) - 0.5;
+        float star = step(0.94, hash(si));
+        float tw = 0.5 + 0.5 * sin(t * (1.5 + fi) + hash(si + 1.3) * 20.0);
+        float dot_ = exp(-dot(sf, sf) * 60.0);
+        float size = 1.0 - fi * 0.1;
+        // Deeper layers get fuzzier (fake DOF)
+        float blurred = mix(dot_, fbm(sq * 0.3 + t * 0.05) * 0.4, fi / 5.0);
+        float contrib = star * tw * blurred * size;
+        stars += contrib;
+        totalWeight += size;
+      }
+      stars /= max(totalWeight, 1.0);
+
+      // ---- Layered nebula ----
+      vec2 nq = p * 1.2;
+      float n1 = fbm(nq + vec2(t * 0.03, -t * 0.02));
+      float n2 = fbm(nq * 2.3 + vec2(3.0) + t * 0.04);
+      float n3 = fbm(nq * 4.7 - vec2(1.0) + t * 0.05);
+      float nebula = n1 * 0.6 + n2 * 0.3 + n3 * 0.2;
+      nebula = pow(nebula, 2.5);
+      float nebulaIntensity = nebula * (0.5 + 0.5 * n3);
+
+      // ---- Central bloom ----
+      float bloom = exp(-length(p) * 0.8) * 0.4;
+      bloom *= (0.7 + 0.3 * sin(t * 0.5));
+
+      v = clamp(stars * 1.4 + nebulaIntensity * 0.6 + bloom, 0.0, 1.0);
+    `
+  },
+
+  // ============================================================
+  // BALATRO — faithful port of background.fs
+  // ============================================================
   {
     name: "Balatro",
     cat: "strange",
@@ -79,9 +556,9 @@ export default [
     `
   },
 
-  // =============================================================
-  // SILK  —  ported from 21st.dev Shader Builder
-  // =============================================================
+  // ============================================================
+  // SILK — ported from 21st.dev Shader Builder
+  // ============================================================
   {
     name: "Silk",
     cat: "organic",
@@ -178,7 +655,6 @@ export default [
         vec3 lb = silkLinToOklab(silkSrgbToLinear(b));
         return clamp(silkLinearToSrgb(silkOklabToLin(mix(la, lb, tt))), 0.0, 1.0);
       }
-      // Constant-loop palette — WebGL1-safe
       vec3 silkPalette(float x) {
         float n = max(silk_colorCount - 1.0, 1.0);
         float f = clamp(x, 0.0, 1.0) * n;
@@ -236,9 +712,9 @@ export default [
     `
   },
 
-  // =============================================================
-  // FOG BANK  —  ported from the ANGLE/Metal raymarched fog shader
-  // =============================================================
+  // ============================================================
+  // FOG BANK — ported from the ANGLE/Metal volumetric fog raymarcher
+  // ============================================================
   {
     name: "Fog Bank",
     cat: "organic",
@@ -251,28 +727,10 @@ export default [
     pulse: 0.7,
     soft: 0.3,
     custom: `
-      // ------------------------------------------------------------
-      // Faithful port of the ANGLE/Metal volumetric fog raymarcher.
-      // The original runs 90 outer iterations with an inner
-      // sin-warp loop that keeps subdividing the step distance.
-      // We keep the exact accumulation math and tanh tonemap but
-      // reduce the outer count for real-time use — the fog still
-      // builds up the same rolling, layered look.
-      //
-      // Key constants from the original:
-      //   z           — distance along the ray, starts at 0
-      //   Z = 6*T     — time offset for the inner warp
-      //   p.z + 9.0   — bias so the fog sits in front of the camera
-      //   d = 2.0     — starting step size for the inner loop
-      //   (7, 5, z)   — per-step RGB tint (blue grows with depth)
-      //   tanh(O²/1000) — final tonemap
-      // ------------------------------------------------------------
-
       vec3 Z = vec3(6.0 * t, 0.0, 0.0);
       vec3 O = vec3(0.0);
       float z = 0.0;
 
-      // Ray direction from screen position — matches the original
       vec3 rd = normalize(vec3(2.0 * gl_FragCoord.xy - u_resolution.xy,
                                -u_resolution.y));
 
@@ -284,42 +742,34 @@ export default [
         float d = 2.0;
         float a = (pPos.y - length(pPos.xz)) / d - t;
 
-        // Rotation matrix from cos of (a + t + offsets)
         vec4 cosV = cos(a + t + vec4(0.0, 5.0, 8.0, 0.0));
         mat2 rotM = mat2(cosV.x, cosV.y, cosV.z, cosV.w);
         pPos.xz = rotM * pPos.xz;
 
-        // Inner domain warp — subdivides d while d < 4.0
         for (int j = 0; j < 6; j++) {
           if (d >= 4.0) break;
           d /= 0.9;
           pPos += sin(pPos.yzx * d - Z) / d;
         }
 
-        // Adaptive step size — small near the fog, larger far away
         d = min(length(pPos.xz), 8.0 - abs(pPos.y))
             / 15.0
             / (2.0 + cos(a));
         z += d;
 
-        // Accumulate colour — the (7, 5, z) tint makes distant fog
-        // increasingly blue, which reads as depth
         vec2 w = tSaved.xz - (pPos.xz * 0.5 + 3.0) * sin(a);
         O += vec3(7.0, 5.0, z) * d / max(length(w), 0.001);
       }
 
-      // Final tonemap — tanh on squared accumulation
       O = tanh(O * O / 1000.0);
-
-      // Collapse to v for the Calyx template
       float fogLum = dot(O, vec3(0.299, 0.587, 0.114));
       v = clamp(fogLum * 3.0, 0.0, 1.0);
     `
   },
 
-  // =============================================================
+  // ============================================================
   // ORGANIC
-  // =============================================================
+  // ============================================================
   {
     name: "Mycelium",
     cat: "organic",
@@ -333,7 +783,6 @@ export default [
     custom: `
       vec2 q = p * 2.0;
       float growth = fbm(q * 1.5 + t * 0.1);
-
       float branches = 0.0;
       for (int i = 0; i < 6; i++) {
         float fi = float(i);
@@ -347,15 +796,14 @@ export default [
         branches += line;
       }
       branches *= 0.5 + 0.5 * fbm(q * 4.0 + t * 0.2);
-
       float glow = exp(-length(p) * 1.5) * 0.5;
       v = clamp(branches * 0.8 + glow + growth * 0.3, 0.0, 1.0);
     `
   },
 
-  // =============================================================
+  // ============================================================
   // ENERGY
-  // =============================================================
+  // ============================================================
   {
     name: "Plasma Storm",
     cat: "energy",
@@ -369,7 +817,6 @@ export default [
     custom: `
       vec2 q = p * 1.5;
       float plasma = fbm(q + vec2(t * 0.2, -t * 0.1));
-
       float arcs = 0.0;
       for (int i = 0; i < 5; i++) {
         float fi = float(i);
@@ -381,15 +828,14 @@ export default [
         arcs += arc;
       }
       arcs *= smoothstep(1.5, 0.2, length(p));
-
       float core = exp(-length(p) * 10.0);
       v = clamp(plasma * 0.5 + arcs * 0.9 + core * 0.8, 0.0, 1.0);
     `
   },
 
-  // =============================================================
+  // ============================================================
   // MATTER
-  // =============================================================
+  // ============================================================
   {
     name: "Ferrofluid",
     cat: "matter",
@@ -408,24 +854,22 @@ export default [
       for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
         vec2 g = vec2(float(x), float(y));
         vec2 o = vec2(hash(i + g), hash(i + g + 3.3));
-        float d = length(f - g - o);
-        if (d < md1) { md2 = md1; md1 = d; id1 = i + g; }
-        else if (d < md2) { md2 = d; }
+        float dd = length(f - g - o);
+        if (dd < md1) { md2 = md1; md1 = dd; id1 = i + g; }
+        else if (dd < md2) { md2 = dd; }
       }
       float border = md2 - md1;
       float spikes = smoothstep(0.1, 0.0, border);
-
       vec3 n = normalize(vec3(f - 0.5, 0.5));
       float lit = max(0.0, dot(n, normalize(vec3(0.5, 0.5, 0.7))));
       float metal = 0.5 + 0.5 * hash(id1);
-
       v = clamp(lit * 0.6 + spikes * 1.2 * metal, 0.0, 1.0);
     `
   },
 
-  // =============================================================
+  // ============================================================
   // STRANGE
-  // =============================================================
+  // ============================================================
   {
     name: "Cosmic Strings",
     cat: "strange",
@@ -452,7 +896,6 @@ export default [
       }
       float glow = fbm(q * 0.5 + t * 0.05) * 0.5;
       float stars = step(0.98, hash(floor(q * 20.0))) * 0.8;
-
       v = clamp(strings * 0.8 + glow + stars, 0.0, 1.0);
     `
   }
