@@ -12,108 +12,91 @@
 //   p, mouse (vec2), t (float), d (float)
 //   u_a, u_b (vec3), u_pulse (float)
 //   hash(vec2), noise(vec2), fbm(vec2), rot(vec2,float)
+//   u_resolution (vec2), gl_FragCoord (vec4), u_time (float)
 //   v (float) — set this to your result
 
 export default [
 
   // =============================================================
-  // BALATRO  —  the star of the show
+  // BALATRO  —  faithful port of the real background.fs
   // =============================================================
   {
     name: "Balatro",
     cat: "strange",
-    desc: "Psychedelic card chaos · joker energy",
-    a: "#150229",
-    b: "#ff2966",
+    desc: "The real Balatro background · pixelated paint vortex",
+    a: "#0d0a12",
+    b: "#de443b",
     motion: -1,
-    speed: 0.65,
-    glow: 1.9,
-    pulse: 1.4,
-    soft: 0.35,
+    speed: 0.6,
+    glow: 0.7,
+    pulse: 0.9,
+    soft: 0.05,
     custom: `
-      // ---------- BASE SWIRL ----------
-      // The legendary Balatro vortex: two turbulent fbm layers riding on a
-      // polar spiral with a slow rotation offset. This is the deep magenta
-      // plasma that fills every menu and run in the game.
-      vec2 q = p * 1.15;
-      float ang = atan(q.y, q.x);
-      float rad = length(q);
+      // ------------------------------------------------------------
+      // Faithful port of Balatro's resources/shaders/background.fs
+      // by LocalThunk. The original runs in LÖVE with love_ScreenSize,
+      // love_Timer, spin_time, colour_1..3, contrast, spin_amount.
+      // Here we map those to Calyx's u_resolution, u_time, and set the
+      // Balatro palette internally.
+      // ------------------------------------------------------------
 
-      float swirlA = fbm(vec2(ang * 1.8 + rad * 1.5, rad * 3.5 - t * 0.40));
-      float swirlB = fbm(vec2(ang * 3.0 - rad * 2.0 + t * 0.15, rad * 5.0 + t * 0.22));
+      // --- Balatro palette (near-black + crimson + cyan) ---
+      vec3 balCol1 = vec3(0.05, 0.04, 0.07);   // near-black velvet
+      vec3 balCol2 = vec3(0.87, 0.27, 0.23);   // crimson / red
+      vec3 balCol3 = vec3(0.30, 0.95, 1.00);   // pale cyan accent
 
-      float spiral = sin(ang * 4.0 + rad * 9.0 - t * 2.6 + swirlA * 5.0) * 0.5 + 0.5;
-      spiral = pow(spiral, 1.35);
+      float PIXEL_SIZE_FAC = 700.0;
+      float SPIN_EASE      = 0.5;
+      float spin_amount    = 1.05;
+      float contrast       = 1.0;
 
-      float bg = spiral * 0.55 + swirlB * 0.45;
-      bg *= 1.0 - smoothstep(1.1, 2.3, rad);
+      // --- Pixelated screen UV (exactly as the original) ---
+      vec2 screen_size = u_resolution;
+      float pixel_size = length(screen_size) / PIXEL_SIZE_FAC;
+      vec2 buv = (floor(gl_FragCoord.xy * (1.0 / pixel_size)) * pixel_size
+                  - 0.5 * screen_size) / length(screen_size) - vec2(0.12, 0.0);
+      float buv_len = length(buv);
 
-      // ---------- FALLING CARD SUITS ----------
-      // Hearts, diamonds, spades and clubs tumbling down like a shuffling
-      // deck. Each card is one of four procedurally-shaped glyphs — the
-      // rotation, size, hue and fall-speed are all hash-seeded per index.
-      float suits = 0.0;
-      for (int i = 0; i < 18; i++) {
-        float fi = float(i);
-        float sX = hash(vec2(fi, 1.1)) - 0.5;
-        float sY = hash(vec2(fi, 2.2));
-        float fall = fract(t * 0.065 + sY);
+      // --- Central swirl (the vortex) ---
+      float spin_time = u_time;
+      float bspeed = (spin_time * SPIN_EASE * 0.2) + 302.2;
+      float new_pixel_angle = atan(buv.y, buv.x) + bspeed
+                              - SPIN_EASE * 20.0
+                                * (spin_amount * buv_len + (1.0 - spin_amount));
+      vec2 bmid = (screen_size / length(screen_size)) / 2.0;
+      buv = (vec2(buv_len * cos(new_pixel_angle) + bmid.x,
+                  buv_len * sin(new_pixel_angle) + bmid.y) - bmid);
 
-        vec2 pos = vec2(sX * 2.6 + sin(t * 0.4 + fi * 1.3) * 0.35,
-                        1.5 - fall * 3.1);
-        vec2 rel = p - pos;
-
-        float rotA = t * (0.45 + hash(vec2(fi, 3.3))) + fi * 1.7;
-        rel = rot(rel, rotA);
-        float sz = 0.055 + hash(vec2(fi, 4.4)) * 0.045;
-
-        // Diamond
-        float d = abs(rel.x) + abs(rel.y);
-        float diamond = 1.0 - smoothstep(sz, sz + 0.006, d);
-
-        // Circle / club-head
-        float circle = 1.0 - smoothstep(sz * 0.85, sz * 0.85 + 0.006, length(rel));
-
-        // Heart: two lobes + a point
-        vec2 hr = rel - vec2(0.0, -sz * 0.10);
-        float lobeL = 1.0 - smoothstep(sz * 0.50, sz * 0.50 + 0.006,
-                                       length(hr + vec2(sz * 0.35, sz * 0.15)));
-        float lobeR = 1.0 - smoothstep(sz * 0.50, sz * 0.50 + 0.006,
-                                       length(hr - vec2(sz * 0.35, -sz * 0.15)));
-        float point = 1.0 - smoothstep(sz * 0.60, sz * 0.60 + 0.006,
-                                       abs(rel.x) * 1.10 + max(0.0, rel.y) * 1.40);
-        float heart = max(max(lobeL, lobeR), point);
-
-        float shape = max(max(diamond, circle * 0.80), heart);
-        float fade = 1.0 - fall * 0.35;
-
-        suits += shape * fade * (0.6 + 0.4 * sin(t * 3.0 + fi * 2.0));
+      // --- Paint effect: 5 octaves of sine/cosine warping ---
+      buv *= 30.0;
+      float paint_speed = u_time * 2.0;
+      vec2 buv2 = vec2(buv.x + buv.y);
+      for (int i = 0; i < 5; i++) {
+        buv2 += sin(max(buv.x, buv.y)) + buv;
+        buv += 0.5 * vec2(
+          cos(5.1123314 + 0.353 * buv2.y + paint_speed * 0.131121),
+          sin(buv2.x - 0.113 * paint_speed)
+        );
+        buv -= cos(buv.x + buv.y) - sin(buv.x * 0.711 - buv.y);
       }
-      suits = clamp(suits, 0.0, 1.0);
 
-      // ---------- MULTIPLIER ORBS ----------
-      // Big pulsing chip/mult orbs orbiting the middle — the "+30 ×4" energy
-      // that lights up when a hand scores.
-      float orbs = 0.0;
-      for (int i = 0; i < 4; i++) {
-        float fi = float(i);
-        vec2 op = vec2(sin(t * 0.35 + fi * 2.1) * 1.00,
-                       cos(t * 0.45 + fi * 1.7) * 0.70);
-        float orb = exp(-length(p - op) * 6.0);
-        orbs += orb * (0.75 + 0.35 * sin(t * 2.2 + fi * 1.7));
-      }
-      orbs = min(orbs, 1.2);
+      // --- Colour blending (original formula) ---
+      float contrast_mod = (0.25 * contrast + 0.5 * spin_amount + 1.2);
+      float paint_res = min(2.0, max(0.0, length(buv) * 0.035 * contrast_mod));
+      float c1p = max(0.0, 1.0 - contrast_mod * abs(1.0 - paint_res));
+      float c2p = max(0.0, 1.0 - contrast_mod * abs(paint_res));
+      float c3p = 1.0 - min(1.0, c1p + c2p);
 
-      // ---------- CRT / GLITCH ----------
-      // Scanlines + random horizontal slice-tears: the lo-fi CRT shimmer
-      // that coats the entire game.
-      float scan = 0.88 + 0.12 * sin(p.y * 240.0);
-      float glitch = step(0.97, hash(vec2(floor(p.y * 30.0), floor(t * 18.0)))) * 0.14;
+      vec3 balatro_col =
+          (0.3 / contrast) * balCol1
+        + (1.0 - 0.3 / contrast)
+          * (balCol1 * c1p + balCol2 * c2p + balCol3 * c3p);
 
-      // ---------- ASSEMBLE ----------
-      float v = bg * 0.75 + suits * 1.05 + orbs * 0.40 + glitch;
-      v *= scan;
-      v = clamp(v, 0.0, 1.0);
+      // --- Map the Balatro colour to Calyx's scalar v ---
+      // Weight toward the bright accents so the swirls pop against
+      // the near-black background.
+      float lum = dot(balatro_col, vec3(0.299, 0.587, 0.114));
+      v = clamp(lum * 2.4, 0.0, 1.0);
     `
   },
 
@@ -134,7 +117,6 @@ export default [
       vec2 q = p * 2.0;
       float growth = fbm(q * 1.5 + t * 0.1);
 
-      // Branching filaments radiating from scattered spores
       float branches = 0.0;
       for (int i = 0; i < 6; i++) {
         float fi = float(i);
